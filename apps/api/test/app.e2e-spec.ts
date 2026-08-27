@@ -1,19 +1,18 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
+import { closeTestApp, createTestApp, TestAppContext } from './utils/test-app';
 
 describe('AppController (e2e)', () => {
-  let app: INestApplication<App>;
+  let ctx: TestAppContext;
+  let app: INestApplication;
 
-  beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+  beforeAll(async () => {
+    ctx = await createTestApp();
+    app = ctx.app;
+  }, 60_000);
 
-    app = moduleFixture.createNestApplication();
-    await app.init();
+  afterAll(async () => {
+    await closeTestApp(ctx);
   });
 
   it('/ (GET) returns the welcome message (happy path)', () => {
@@ -36,9 +35,5 @@ describe('AppController (e2e)', () => {
 
   it('/does-not-exist (GET) 404s (edge case)', () => {
     return request(app.getHttpServer()).get('/does-not-exist').expect(404);
-  });
-
-  afterEach(async () => {
-    await app.close();
   });
 });

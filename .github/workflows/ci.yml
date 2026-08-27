@@ -26,3 +26,35 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      # Reports the API's JUnit results to Jira as an Xray Test Execution.
+      # Requires repo secrets XRAY_CLIENT_ID / XRAY_CLIENT_SECRET (Xray Cloud API
+      # key, created in Jira under Apps > Xray > API Keys) and repo variable
+      # JIRA_PROJECT_KEY (e.g. "BMS"). Skipped entirely if those aren't set, and
+      # never fails the build on its own.
+      - name: Report results to Jira Xray
+        if: always()
+        continue-on-error: true
+        env:
+          XRAY_CLIENT_ID: ${{ secrets.XRAY_CLIENT_ID }}
+          XRAY_CLIENT_SECRET: ${{ secrets.XRAY_CLIENT_SECRET }}
+          JIRA_PROJECT_KEY: ${{ vars.JIRA_PROJECT_KEY }}
+        run: |
+          if [ -z "$XRAY_CLIENT_ID" ] || [ -z "$XRAY_CLIENT_SECRET" ]; then
+            echo "XRAY_CLIENT_ID/XRAY_CLIENT_SECRET not set, skipping Xray upload"
+            exit 0
+          fi
+          REPORT=apps/api/reports/junit.xml
+          if [ ! -f "$REPORT" ]; then
+            echo "No JUnit report at $REPORT, skipping Xray upload"
+            exit 0
+          fi
+          TOKEN=$(jq -n --arg id "$XRAY_CLIENT_ID" --arg secret "$XRAY_CLIENT_SECRET" \
+              '{client_id: $id, client_secret: $secret}' \
+            | curl -sf -X POST https://xray.cloud.getxray.app/api/v2/authenticate \
+                -H "Content-Type: application/json" -d @- \
+            | tr -d '"')
+          curl -sf -X POST "https://xray.cloud.getxray.app/api/v2/import/execution/junit?projectKey=$JIRA_PROJECT_KEY" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: text/xml" \
+            --data-binary @"$REPORT"

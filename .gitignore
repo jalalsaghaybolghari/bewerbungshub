@@ -8,3 +8,6 @@ build/
 .DS_Store
 coverage/
 .vite/
+reports/
+# Local-only working notes (not part of the published project)
+*.md

@@ -9,5 +9,6 @@ build/
 coverage/
 .vite/
 reports/
+apps/api/uploads/
 # Local-only working notes (not part of the published project)
 *.md

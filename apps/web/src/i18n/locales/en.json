@@ -1,0 +1,82 @@
+{
+  "app": {
+    "name": "applied"
+  },
+  "nav": {
+    "applications": "Applications",
+    "cvs": "CVs",
+    "logout": "Log out"
+  },
+  "auth": {
+    "login": "Log in",
+    "register": "Create account",
+    "email": "Email",
+    "password": "Password",
+    "displayName": "Name",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?",
+    "loginError": "Invalid email or password.",
+    "registerError": "Could not create your account."
+  },
+  "applications": {
+    "title": "Applications",
+    "new": "New application",
+    "search": "Search title, company, tag",
+    "empty": "No applications yet. Create your first one.",
+    "columns": {
+      "position": "Position",
+      "location": "Location",
+      "channel": "Channel",
+      "sent": "Sent",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "draft": "Draft",
+      "applied": "Applied",
+      "acknowledged": "Acknowledged",
+      "screening": "Screening",
+      "interview": "Interview",
+      "offer": "Offer",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn",
+      "ghosted": "Ghosted"
+    },
+    "form": {
+      "jobTitle": "Job title",
+      "companyName": "Company",
+      "locationRaw": "Location",
+      "jobDescription": "Job description",
+      "applyLink": "Apply link",
+      "applyType": "Applied via",
+      "notes": "Notes",
+      "save": "Save application",
+      "cancel": "Cancel"
+    },
+    "detail": {
+      "timeline": "Timeline",
+      "changeStatus": "Change status",
+      "delete": "Delete application",
+      "confirmDelete": "Delete this application? This can't be undone."
+    }
+  },
+  "cvs": {
+    "title": "CVs",
+    "upload": "Upload CV",
+    "empty": "No CVs uploaded yet.",
+    "label": "Label",
+    "language": "Language",
+    "setDefault": "Set as default",
+    "default": "Default",
+    "delete": "Delete"
+  },
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong.",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit"
+  }
+}

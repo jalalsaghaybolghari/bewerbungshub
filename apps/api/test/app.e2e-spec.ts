@@ -16,11 +16,26 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('/ (GET)', () => {
+  it('/ (GET) returns the welcome message (happy path)', () => {
     return request(app.getHttpServer())
       .get('/')
       .expect(200)
       .expect('Hello World!');
+  });
+
+  it('/health (GET) reports ok status (happy path)', () => {
+    return request(app.getHttpServer())
+      .get('/health')
+      .expect(200)
+      .expect({ status: 'ok' });
+  });
+
+  it('/health (POST) is not allowed (negative case)', () => {
+    return request(app.getHttpServer()).post('/health').expect(404);
+  });
+
+  it('/does-not-exist (GET) 404s (edge case)', () => {
+    return request(app.getHttpServer()).get('/does-not-exist').expect(404);
   });
 
   afterEach(async () => {

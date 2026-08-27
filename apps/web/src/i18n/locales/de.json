@@ -1,0 +1,82 @@
+{
+  "app": {
+    "name": "applied"
+  },
+  "nav": {
+    "applications": "Bewerbungen",
+    "cvs": "Lebensläufe",
+    "logout": "Abmelden"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "register": "Konto erstellen",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "displayName": "Name",
+    "noAccount": "Noch kein Konto?",
+    "haveAccount": "Bereits ein Konto?",
+    "loginError": "E-Mail oder Passwort ist falsch.",
+    "registerError": "Konto konnte nicht erstellt werden."
+  },
+  "applications": {
+    "title": "Bewerbungen",
+    "new": "Neue Bewerbung",
+    "search": "Titel, Firma, Tag suchen",
+    "empty": "Noch keine Bewerbungen. Erstelle deine erste.",
+    "columns": {
+      "position": "Position",
+      "location": "Ort",
+      "channel": "Kanal",
+      "sent": "Gesendet",
+      "status": "Status",
+      "actions": "Aktionen"
+    },
+    "status": {
+      "draft": "Entwurf",
+      "applied": "Beworben",
+      "acknowledged": "Bestätigt",
+      "screening": "Vorauswahl",
+      "interview": "Interview",
+      "offer": "Angebot",
+      "accepted": "Angenommen",
+      "rejected": "Abgelehnt",
+      "withdrawn": "Zurückgezogen",
+      "ghosted": "Ohne Antwort"
+    },
+    "form": {
+      "jobTitle": "Jobtitel",
+      "companyName": "Firma",
+      "locationRaw": "Ort",
+      "jobDescription": "Stellenbeschreibung",
+      "applyLink": "Bewerbungslink",
+      "applyType": "Beworben über",
+      "notes": "Notizen",
+      "save": "Bewerbung speichern",
+      "cancel": "Abbrechen"
+    },
+    "detail": {
+      "timeline": "Verlauf",
+      "changeStatus": "Status ändern",
+      "delete": "Bewerbung löschen",
+      "confirmDelete": "Diese Bewerbung löschen? Das kann nicht rückgängig gemacht werden."
+    }
+  },
+  "cvs": {
+    "title": "Lebensläufe",
+    "upload": "Lebenslauf hochladen",
+    "empty": "Noch keine Lebensläufe hochgeladen.",
+    "label": "Bezeichnung",
+    "language": "Sprache",
+    "setDefault": "Als Standard festlegen",
+    "default": "Standard",
+    "delete": "Löschen"
+  },
+  "common": {
+    "loading": "Lädt…",
+    "error": "Etwas ist schiefgelaufen.",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten"
+  }
+}

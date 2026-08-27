@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_PIPE } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { join } from 'node:path';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -14,7 +15,14 @@ import { ApplicationsModule } from './applications/applications.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [configuration],
+      // .env lives at the monorepo root (one file for the whole app), not
+      // apps/api/ — but Turborepo runs `nest start` with cwd=apps/api, which
+      // is where @nestjs/config looks by default.
+      envFilePath: join(__dirname, '../../../.env'),
+    }),
     DatabaseModule,
     AuthModule,
     UsersModule,

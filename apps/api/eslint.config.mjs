@@ -32,4 +32,17 @@ export default tseslint.config(
       "prettier/prettier": ["error", { endOfLine: "auto" }],
     },
   },
+  {
+    // supertest's `res.body` is untyped (`any`) by design; asserting a shape
+    // for every access in e2e tests would be pure boilerplate for no real
+    // safety gain, so these rules are relaxed here (only here — `src/` keeps
+    // the strict versions).
+    files: ['test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+    },
+  },
 );

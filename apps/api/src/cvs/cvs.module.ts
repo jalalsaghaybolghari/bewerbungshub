@@ -1,0 +1,17 @@
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { StorageModule } from '../storage/storage.module';
+import { Cv, CvSchema } from './schemas/cv.schema';
+import { CvsController } from './cvs.controller';
+import { CvsService } from './cvs.service';
+
+@Module({
+  imports: [
+    MongooseModule.forFeature([{ name: Cv.name, schema: CvSchema }]),
+    StorageModule,
+  ],
+  controllers: [CvsController],
+  providers: [CvsService],
+  exports: [CvsService, MongooseModule],
+})
+export class CvsModule {}

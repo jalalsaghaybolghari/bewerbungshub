@@ -41,6 +41,11 @@ export class ApplicationsController {
     return this.applicationsService.checkDuplicate(user.userId, applyLink);
   }
 
+  @Get('stats')
+  getStats(@CurrentUser() user: RequestUser) {
+    return this.applicationsService.getStats(user.userId);
+  }
+
   @Get(':id')
   findOne(@CurrentUser() user: RequestUser, @Param('id') id: string) {
     return this.applicationsService.findOneForUser(user.userId, id);

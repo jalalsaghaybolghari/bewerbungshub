@@ -5,6 +5,7 @@ import { applicationStatusValues } from '@bewerber/shared';
 import { useApplications } from './api';
 import { Button, buttonClasses, Input, Select } from '../components/ui';
 import { StatusBadge } from './StatusBadge';
+import { KanbanBoard } from './KanbanBoard';
 
 const PAGE_SIZE = 20;
 
@@ -13,6 +14,7 @@ export function ApplicationsListPage() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
+  const [view, setView] = useState<'list' | 'kanban'>('list');
 
   const { data, isLoading, isError } = useApplications({ q, status, page, pageSize: PAGE_SIZE });
 
@@ -25,39 +27,61 @@ export function ApplicationsListPage() {
         </Link>
       </div>
 
-      <div className="mb-4 flex gap-3">
-        <Input
-          placeholder={t('applications.search')}
-          value={q}
-          onChange={(e) => {
-            setPage(1);
-            setQ(e.target.value);
-          }}
-          className="max-w-sm"
-        />
-        <Select
-          value={status}
-          onChange={(e) => {
-            setPage(1);
-            setStatus(e.target.value);
-          }}
-          className="max-w-[200px]"
-        >
-          <option value="">{t('applications.title')}</option>
-          {applicationStatusValues.map((s) => (
-            <option key={s} value={s}>
-              {t(`applications.status.${s}`)}
-            </option>
-          ))}
-        </Select>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex gap-3">
+          <Input
+            placeholder={t('applications.search')}
+            value={q}
+            onChange={(e) => {
+              setPage(1);
+              setQ(e.target.value);
+            }}
+            className="max-w-sm"
+          />
+          {view === 'list' && (
+            <Select
+              value={status}
+              onChange={(e) => {
+                setPage(1);
+                setStatus(e.target.value);
+              }}
+              className="max-w-[200px]"
+            >
+              <option value="">{t('applications.title')}</option>
+              {applicationStatusValues.map((s) => (
+                <option key={s} value={s}>
+                  {t(`applications.status.${s}`)}
+                </option>
+              ))}
+            </Select>
+          )}
+        </div>
+        <div className="flex overflow-hidden rounded-lg border border-slate/30 text-sm">
+          <button
+            className={`px-3 py-1.5 ${view === 'list' ? 'bg-teal text-white' : 'bg-white text-ink hover:bg-slate/5'}`}
+            onClick={() => setView('list')}
+          >
+            {t('applications.view.list')}
+          </button>
+          <button
+            className={`px-3 py-1.5 ${view === 'kanban' ? 'bg-teal text-white' : 'bg-white text-ink hover:bg-slate/5'}`}
+            onClick={() => setView('kanban')}
+          >
+            {t('applications.view.kanban')}
+          </button>
+        </div>
       </div>
 
-      {isLoading && <p className="text-slate">{t('common.loading')}</p>}
-      {isError && <p className="text-danger">{t('common.error')}</p>}
+      {view === 'kanban' && <KanbanBoard q={q} />}
 
-      {data && data.items.length === 0 && <p className="text-slate">{t('applications.empty')}</p>}
+      {view === 'list' && isLoading && <p className="text-slate">{t('common.loading')}</p>}
+      {view === 'list' && isError && <p className="text-danger">{t('common.error')}</p>}
 
-      {data && data.items.length > 0 && (
+      {view === 'list' && data && data.items.length === 0 && (
+        <p className="text-slate">{t('applications.empty')}</p>
+      )}
+
+      {view === 'list' && data && data.items.length > 0 && (
         <div className="overflow-hidden rounded-xl border border-slate/15 bg-white">
           <table className="w-full text-sm">
             <thead>
@@ -71,9 +95,15 @@ export function ApplicationsListPage() {
             </thead>
             <tbody>
               {data.items.map((app) => (
-                <tr key={app._id} className="border-b border-slate/10 last:border-0 hover:bg-slate/5">
+                <tr
+                  key={app._id}
+                  className="border-b border-slate/10 last:border-0 hover:bg-slate/5"
+                >
                   <td className="px-4 py-3">
-                    <Link to={`/applications/${app._id}`} className="font-semibold text-ink hover:text-teal">
+                    <Link
+                      to={`/applications/${app._id}`}
+                      className="font-semibold text-ink hover:text-teal"
+                    >
                       {app.jobTitle}
                     </Link>
                     <div className="text-xs text-slate">{app.company.name}</div>
@@ -93,7 +123,7 @@ export function ApplicationsListPage() {
         </div>
       )}
 
-      {data && data.total > PAGE_SIZE && (
+      {view === 'list' && data && data.total > PAGE_SIZE && (
         <div className="mt-4 flex items-center justify-between text-sm text-slate">
           <span>
             {data.total} total · page {data.page}

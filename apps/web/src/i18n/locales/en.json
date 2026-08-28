@@ -61,6 +61,10 @@
       "changeStatus": "Change status",
       "delete": "Delete application",
       "confirmDelete": "Delete this application? This can't be undone."
+    },
+    "view": {
+      "list": "List",
+      "kanban": "Kanban"
     }
   },
   "interviews": {

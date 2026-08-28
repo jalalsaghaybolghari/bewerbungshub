@@ -72,6 +72,15 @@ export function useUpdateApplication(id: string) {
   });
 }
 
+export function useMoveApplicationStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      apiFetch<Application>(`/applications/${id}/status`, { method: 'POST', body: { status } }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['applications'] }),
+  });
+}
+
 export function useChangeApplicationStatus(id: string) {
   const queryClient = useQueryClient();
   return useMutation({

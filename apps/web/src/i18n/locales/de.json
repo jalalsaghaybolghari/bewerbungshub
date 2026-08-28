@@ -61,6 +61,10 @@
       "changeStatus": "Status ändern",
       "delete": "Bewerbung löschen",
       "confirmDelete": "Diese Bewerbung löschen? Das kann nicht rückgängig gemacht werden."
+    },
+    "view": {
+      "list": "Liste",
+      "kanban": "Kanban"
     }
   },
   "interviews": {

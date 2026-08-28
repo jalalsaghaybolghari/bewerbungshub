@@ -8,6 +8,7 @@ import { ApplicationDetailPage } from './applications/ApplicationDetailPage';
 import { ApplicationFormPage } from './applications/ApplicationFormPage';
 import { CvsPage } from './cvs/CvsPage';
 import { SettingsPage } from './settings/SettingsPage';
+import { DashboardPage } from './dashboard/DashboardPage';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/applications/:id" element={<ApplicationDetailPage />} />
           <Route path="/applications/:id/edit" element={<ApplicationFormPage />} />
           <Route path="/cvs" element={<CvsPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>

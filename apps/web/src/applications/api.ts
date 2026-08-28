@@ -5,7 +5,12 @@ import type {
   UpdateApplicationInput,
 } from '@bewerber/shared';
 import { apiFetch } from '../lib/api-client';
-import type { Application, ApplicationDetailResponse, ApplicationsListResponse } from './types';
+import type {
+  Application,
+  ApplicationDetailResponse,
+  ApplicationsListResponse,
+  ApplicationStats,
+} from './types';
 
 export interface ApplicationsQuery {
   status?: string;
@@ -37,6 +42,13 @@ export function useApplication(id: string | undefined) {
     queryKey: ['applications', id],
     queryFn: () => apiFetch<ApplicationDetailResponse>(`/applications/${id}`),
     enabled: !!id,
+  });
+}
+
+export function useApplicationStats() {
+  return useQuery({
+    queryKey: ['applications', 'stats'],
+    queryFn: () => apiFetch<ApplicationStats>('/applications/stats'),
   });
 }
 

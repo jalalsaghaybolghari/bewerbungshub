@@ -5,6 +5,7 @@
   "nav": {
     "applications": "Applications",
     "cvs": "CVs",
+    "dashboard": "Dashboard",
     "settings": "Settings",
     "logout": "Log out"
   },
@@ -99,6 +100,18 @@
       "skipped": "Skipped",
       "cancelled": "Cancelled"
     }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "totalTracked": "Total tracked",
+    "sentThisWeek": "Sent this week",
+    "responseRate": "Response rate",
+    "avgDaysToReply": "Avg days to first reply",
+    "byStatus": "Pipeline",
+    "byApplyType": "By channel",
+    "overdueFollowUps": "Overdue follow-ups",
+    "noOverdue": "Nothing overdue right now.",
+    "noData": "No data yet — add some applications first."
   },
   "settings": {
     "title": "Settings",

@@ -5,6 +5,7 @@
   "nav": {
     "applications": "Bewerbungen",
     "cvs": "Lebensläufe",
+    "dashboard": "Übersicht",
     "settings": "Einstellungen",
     "logout": "Abmelden"
   },
@@ -99,6 +100,18 @@
       "skipped": "Übersprungen",
       "cancelled": "Abgesagt"
     }
+  },
+  "dashboard": {
+    "title": "Übersicht",
+    "totalTracked": "Insgesamt erfasst",
+    "sentThisWeek": "Diese Woche gesendet",
+    "responseRate": "Antwortquote",
+    "avgDaysToReply": "Ø Tage bis erste Antwort",
+    "byStatus": "Pipeline",
+    "byApplyType": "Nach Kanal",
+    "overdueFollowUps": "Überfällige Nachfass-Termine",
+    "noOverdue": "Aktuell nichts überfällig.",
+    "noData": "Noch keine Daten — füge zuerst ein paar Bewerbungen hinzu."
   },
   "settings": {
     "title": "Einstellungen",

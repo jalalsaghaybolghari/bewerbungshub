@@ -7,6 +7,7 @@ import { ApplicationsListPage } from './applications/ApplicationsListPage';
 import { ApplicationDetailPage } from './applications/ApplicationDetailPage';
 import { ApplicationFormPage } from './applications/ApplicationFormPage';
 import { CvsPage } from './cvs/CvsPage';
+import { SettingsPage } from './settings/SettingsPage';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="/applications/:id" element={<ApplicationDetailPage />} />
           <Route path="/applications/:id/edit" element={<ApplicationFormPage />} />
           <Route path="/cvs" element={<CvsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>
 

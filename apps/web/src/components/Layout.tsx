@@ -22,6 +22,9 @@ export function Layout() {
           <NavLink to="/cvs" className={navLinkClass}>
             {t('nav.cvs')}
           </NavLink>
+          <NavLink to="/settings" className={navLinkClass}>
+            {t('nav.settings')}
+          </NavLink>
         </nav>
         <div className="mt-auto border-t border-white/10 pt-4 text-xs text-white/60">
           <div className="mb-2 truncate">{user?.email}</div>

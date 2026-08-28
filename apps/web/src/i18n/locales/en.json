@@ -5,6 +5,7 @@
   "nav": {
     "applications": "Applications",
     "cvs": "CVs",
+    "settings": "Settings",
     "logout": "Log out"
   },
   "auth": {
@@ -98,6 +99,12 @@
       "skipped": "Skipped",
       "cancelled": "Cancelled"
     }
+  },
+  "settings": {
+    "title": "Settings",
+    "followUpDefaultDays": "Default follow-up reminder (days after applying)",
+    "ghostedAfterDays": "Mark as ghosted after (days with no update)",
+    "saved": "Saved."
   },
   "cvs": {
     "title": "CVs",

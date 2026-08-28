@@ -5,6 +5,7 @@
   "nav": {
     "applications": "Bewerbungen",
     "cvs": "Lebensläufe",
+    "settings": "Einstellungen",
     "logout": "Abmelden"
   },
   "auth": {
@@ -98,6 +99,12 @@
       "skipped": "Übersprungen",
       "cancelled": "Abgesagt"
     }
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "followUpDefaultDays": "Standard-Erinnerung zum Nachfassen (Tage nach Bewerbung)",
+    "ghostedAfterDays": "Als „ohne Antwort“ markieren nach (Tage ohne Update)",
+    "saved": "Gespeichert."
   },
   "cvs": {
     "title": "Lebensläufe",

@@ -15,6 +15,13 @@ export default defineManifest({
   permissions: ['activeTab', 'scripting', 'storage'],
   // TODO: point this at the deployed API origin before shipping past dev.
   host_permissions: ['http://localhost:3000/*'],
+  // The content script (src/content-script/index.ts, built to a stable
+  // content-script.js — see vite.config.ts) is deliberately NOT declared
+  // here as a content_scripts entry — that would need "matches" and would
+  // run on every page load. It doesn't need a web_accessible_resources
+  // entry either: that mechanism is for exposing files to web-page-context
+  // JS, not for the extension's own chrome.scripting.executeScript calls,
+  // which just need the built file to exist in the packaged extension.
   icons: {
     16: 'icons/icon16.png',
     48: 'icons/icon48.png',

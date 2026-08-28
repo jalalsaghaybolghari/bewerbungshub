@@ -3,6 +3,8 @@ import {
   type HTMLAttributes,
   type InputHTMLAttributes,
   type LabelHTMLAttributes,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
 } from 'react';
 import clsx from 'clsx';
 
@@ -30,6 +32,30 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
     <input
       className={clsx(
         'w-full rounded-lg border border-slate/30 bg-white px-3 py-2 text-sm text-ink placeholder:text-slate/60 focus:border-teal focus:outline-none',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      className={clsx(
+        'w-full rounded-lg border border-slate/30 bg-white px-3 py-2 text-sm text-ink placeholder:text-slate/60 focus:border-teal focus:outline-none',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select
+      className={clsx(
+        'w-full rounded-lg border border-slate/30 bg-white px-3 py-2 text-sm text-ink focus:border-teal focus:outline-none',
         className,
       )}
       {...props}

@@ -26,6 +26,10 @@ vi.mock('./LoginView', () => ({
   ),
 }));
 
+vi.mock('./CaptureView', () => ({
+  CaptureView: () => <div>mock capture view</div>,
+}));
+
 describe('App', () => {
   afterEach(() => {
     vi.clearAllMocks();
@@ -45,7 +49,7 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /mock login/i })).toBeInTheDocument();
   });
 
-  it('shows the signed-in view once a session is recovered, and logging out returns to the login view (happy path)', async () => {
+  it('shows the capture view once a session is recovered, and logging out returns to the login view (happy path)', async () => {
     authState = {
       user: { id: '1', email: 'bob@example.com', displayName: 'Bob', locale: 'en' },
       isLoading: false,
@@ -53,7 +57,7 @@ describe('App', () => {
     logoutMock.mockResolvedValueOnce(undefined);
     render(<App />);
 
-    expect(screen.getByText(/signed in as bob@example\.com/i)).toBeInTheDocument();
+    expect(screen.getByText(/mock capture view/i)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: /log out/i }));
 

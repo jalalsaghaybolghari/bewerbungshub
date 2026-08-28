@@ -2,5 +2,6 @@
   "apps/api/**/*.ts": "apps/api/node_modules/.bin/eslint --config apps/api/eslint.config.mjs --fix",
   "apps/web/**/*.{ts,tsx}": ["apps/web/node_modules/.bin/oxlint --fix", "prettier --write"],
   "packages/shared/**/*.ts": "prettier --write",
+  "packages/scrapers/**/*.ts": "prettier --write",
   "*.{json,yml,yaml}": "prettier --write --ignore-unknown"
 }

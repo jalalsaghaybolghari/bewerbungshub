@@ -4,6 +4,8 @@ import { applicationStatusValues } from '@bewerber/shared';
 import { useApplication, useChangeApplicationStatus, useDeleteApplication } from './api';
 import { StatusBadge } from './StatusBadge';
 import { Button, Card, Select } from '../components/ui';
+import { InterviewsSection } from '../interviews/InterviewsSection';
+import { FollowUpsSection } from '../follow-ups/FollowUpsSection';
 
 export function ApplicationDetailPage() {
   const { t } = useTranslation();
@@ -16,7 +18,7 @@ export function ApplicationDetailPage() {
   if (isLoading) return <p className="text-slate">{t('common.loading')}</p>;
   if (isError || !data) return <p className="text-danger">{t('common.error')}</p>;
 
-  const { application, events } = data;
+  const { application, events, interviews, followUps } = data;
 
   async function handleDelete() {
     if (!id) return;
@@ -36,7 +38,10 @@ export function ApplicationDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={application.status} />
-          <Link to={`/applications/${application._id}/edit`} className="text-sm text-teal hover:underline">
+          <Link
+            to={`/applications/${application._id}/edit`}
+            className="text-sm text-teal hover:underline"
+          >
             {t('common.edit')}
           </Link>
         </div>
@@ -48,7 +53,11 @@ export function ApplicationDetailPage() {
         </div>
         <Select
           value={application.status}
-          onChange={(e) => changeStatus.mutate({ status: e.target.value as (typeof applicationStatusValues)[number] })}
+          onChange={(e) =>
+            changeStatus.mutate({
+              status: e.target.value as (typeof applicationStatusValues)[number],
+            })
+          }
           disabled={changeStatus.isPending}
         >
           {applicationStatusValues.map((s) => (
@@ -59,19 +68,26 @@ export function ApplicationDetailPage() {
         </Select>
       </Card>
 
+      <InterviewsSection applicationId={application._id} interviews={interviews} />
+      <FollowUpsSection applicationId={application._id} followUps={followUps} />
+
       <Card className="mb-6">
         <h2 className="mb-3 font-semibold text-ink">{t('applications.detail.timeline')}</h2>
         <ul className="space-y-3">
           {events.map((event) => (
             <li key={event._id} className="border-l-2 border-teal/40 pl-3 text-sm">
               <div className="font-medium text-ink">{event.type}</div>
-              <div className="text-xs text-slate">{new Date(event.occurredAt).toLocaleString()}</div>
+              <div className="text-xs text-slate">
+                {new Date(event.occurredAt).toLocaleString()}
+              </div>
             </li>
           ))}
         </ul>
       </Card>
 
-      <Card className="mb-6 whitespace-pre-wrap text-sm text-ink">{application.jobDescription}</Card>
+      <Card className="mb-6 whitespace-pre-wrap text-sm text-ink">
+        {application.jobDescription}
+      </Card>
 
       <Button variant="danger" onClick={() => void handleDelete()}>
         {t('applications.detail.delete')}

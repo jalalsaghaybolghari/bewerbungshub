@@ -61,6 +61,44 @@
       "confirmDelete": "Delete this application? This can't be undone."
     }
   },
+  "interviews": {
+    "title": "Interviews",
+    "schedule": "Schedule interview",
+    "empty": "No interviews scheduled yet.",
+    "round": "Round",
+    "roundLabel": "Round {{round}}",
+    "type": "Type",
+    "scheduledAt": "Date & time",
+    "types": {
+      "phone_screen": "Phone screen",
+      "hr": "HR",
+      "technical": "Technical",
+      "take_home": "Take-home",
+      "onsite": "Onsite",
+      "final": "Final"
+    },
+    "outcomes": {
+      "pending": "Pending",
+      "passed": "Passed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "followUps": {
+    "title": "Follow-ups",
+    "schedule": "Schedule follow-up",
+    "empty": "No follow-ups scheduled yet.",
+    "dueAt": "Due",
+    "channel": "Channel",
+    "markSent": "Mark sent",
+    "overdue": "overdue",
+    "status": {
+      "scheduled": "Scheduled",
+      "sent": "Sent",
+      "skipped": "Skipped",
+      "cancelled": "Cancelled"
+    }
+  },
   "cvs": {
     "title": "CVs",
     "upload": "Upload CV",

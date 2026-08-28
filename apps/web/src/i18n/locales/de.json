@@ -61,6 +61,44 @@
       "confirmDelete": "Diese Bewerbung löschen? Das kann nicht rückgängig gemacht werden."
     }
   },
+  "interviews": {
+    "title": "Interviews",
+    "schedule": "Interview planen",
+    "empty": "Noch keine Interviews geplant.",
+    "round": "Runde",
+    "roundLabel": "Runde {{round}}",
+    "type": "Typ",
+    "scheduledAt": "Datum & Uhrzeit",
+    "types": {
+      "phone_screen": "Telefonat",
+      "hr": "HR",
+      "technical": "Technisch",
+      "take_home": "Hausaufgabe",
+      "onsite": "Vor Ort",
+      "final": "Abschluss"
+    },
+    "outcomes": {
+      "pending": "Ausstehend",
+      "passed": "Bestanden",
+      "failed": "Nicht bestanden",
+      "cancelled": "Abgesagt"
+    }
+  },
+  "followUps": {
+    "title": "Nachfassen",
+    "schedule": "Nachfassen planen",
+    "empty": "Noch keine Nachfass-Termine geplant.",
+    "dueAt": "Fällig",
+    "channel": "Kanal",
+    "markSent": "Als gesendet markieren",
+    "overdue": "überfällig",
+    "status": {
+      "scheduled": "Geplant",
+      "sent": "Gesendet",
+      "skipped": "Übersprungen",
+      "cancelled": "Abgesagt"
+    }
+  },
   "cvs": {
     "title": "Lebensläufe",
     "upload": "Lebenslauf hochladen",

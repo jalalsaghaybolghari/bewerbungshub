@@ -9,10 +9,13 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "turbo": "^2.1.3",
-    "prettier": "^3.3.3"
+    "husky": "^9.1.7",
+    "lint-staged": "^17.3.0",
+    "prettier": "^3.3.3",
+    "turbo": "^2.1.3"
   }
 }

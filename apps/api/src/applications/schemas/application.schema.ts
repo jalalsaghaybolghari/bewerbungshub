@@ -76,6 +76,12 @@ export class Application {
   @Prop({ default: Date.now })
   sentAt?: Date;
 
+  @Prop()
+  nextFollowUpAt?: Date;
+
+  @Prop({ default: 0 })
+  followUpCount: number;
+
   @Prop({ type: [String], default: [] })
   tags: string[];
 
@@ -99,6 +105,7 @@ export type ApplicationDocument = HydratedDocument<Application>;
 export const ApplicationSchema = SchemaFactory.createForClass(Application);
 
 ApplicationSchema.index({ userId: 1, status: 1 });
+ApplicationSchema.index({ userId: 1, nextFollowUpAt: 1 });
 ApplicationSchema.index({ userId: 1, applyLink: 1 }, { unique: true });
 ApplicationSchema.index({
   jobTitle: 'text',

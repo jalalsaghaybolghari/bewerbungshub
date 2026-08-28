@@ -13,6 +13,8 @@ import type {
 } from '@bewerber/shared';
 import { Application, ApplicationDocument } from './schemas/application.schema';
 import { Event, EventDocument } from './schemas/event.schema';
+import { InterviewsService } from '../interviews/interviews.service';
+import { FollowUpsService } from '../follow-ups/follow-ups.service';
 
 const DUPLICATE_KEY_ERROR = 11000;
 
@@ -22,6 +24,8 @@ export class ApplicationsService {
     @InjectModel(Application.name)
     private readonly applicationModel: Model<ApplicationDocument>,
     @InjectModel(Event.name) private readonly eventModel: Model<EventDocument>,
+    private readonly interviewsService: InterviewsService,
+    private readonly followUpsService: FollowUpsService,
   ) {}
 
   async create(
@@ -80,12 +84,17 @@ export class ApplicationsService {
       .exec();
     if (!application) throw new NotFoundException('Application not found');
 
-    const events = await this.eventModel
-      .find({ applicationId: application._id })
-      .sort({ occurredAt: 1 })
-      .exec();
+    const applicationId = application._id.toString();
+    const [events, interviews, followUps] = await Promise.all([
+      this.eventModel
+        .find({ applicationId: application._id })
+        .sort({ occurredAt: 1 })
+        .exec(),
+      this.interviewsService.findAllForApplication(applicationId),
+      this.followUpsService.findAllForApplication(applicationId),
+    ]);
 
-    return { application, events };
+    return { application, events, interviews, followUps };
   }
 
   async update(

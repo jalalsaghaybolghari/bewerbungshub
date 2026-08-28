@@ -1,14 +1,14 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
 
 export const eventTypeValues = ['created', 'status_changed', 'note'] as const;
 
 @Schema({ timestamps: false })
 export class Event {
-  @Prop({ required: true, type: Types.ObjectId, index: true })
+  @Prop({ required: true, type: MongooseSchema.Types.ObjectId, index: true })
   applicationId: Types.ObjectId;
 
-  @Prop({ required: true, type: Types.ObjectId, index: true })
+  @Prop({ required: true, type: MongooseSchema.Types.ObjectId, index: true })
   userId: Types.ObjectId;
 
   @Prop({ required: true, type: String, enum: eventTypeValues })

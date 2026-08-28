@@ -1,13 +1,13 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
 import { followUpChannelValues, followUpStatusValues } from '@bewerber/shared';
 
 @Schema({ timestamps: true })
 export class FollowUp {
-  @Prop({ required: true, type: Types.ObjectId, index: true })
+  @Prop({ required: true, type: MongooseSchema.Types.ObjectId, index: true })
   applicationId: Types.ObjectId;
 
-  @Prop({ required: true, type: Types.ObjectId, index: true })
+  @Prop({ required: true, type: MongooseSchema.Types.ObjectId, index: true })
   userId: Types.ObjectId;
 
   @Prop({ required: true })

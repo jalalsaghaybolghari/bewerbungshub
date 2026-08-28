@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
 import { interviewOutcomeValues, interviewTypeValues } from '@bewerber/shared';
 
 @Schema({ _id: false })
@@ -16,10 +16,10 @@ class Interviewer {
 
 @Schema({ timestamps: true })
 export class Interview {
-  @Prop({ required: true, type: Types.ObjectId, index: true })
+  @Prop({ required: true, type: MongooseSchema.Types.ObjectId, index: true })
   applicationId: Types.ObjectId;
 
-  @Prop({ required: true, type: Types.ObjectId, index: true })
+  @Prop({ required: true, type: MongooseSchema.Types.ObjectId, index: true })
   userId: Types.ObjectId;
 
   @Prop({ required: true, min: 1 })

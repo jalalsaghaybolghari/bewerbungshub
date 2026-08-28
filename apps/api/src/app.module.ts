@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_PIPE } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { join } from 'node:path';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { AppController } from './app.controller';
@@ -23,6 +24,7 @@ import { ApplicationsModule } from './applications/applications.module';
       // is where @nestjs/config looks by default.
       envFilePath: join(__dirname, '../../../.env'),
     }),
+    ScheduleModule.forRoot(),
     DatabaseModule,
     AuthModule,
     UsersModule,

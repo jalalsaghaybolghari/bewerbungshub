@@ -1,4 +1,6 @@
 import type { ApplicationStatus, ApplyType, RemoteType } from '@bewerber/shared';
+import type { Interview } from '../interviews/types';
+import type { FollowUp } from '../follow-ups/types';
 
 export interface Application {
   _id: string;
@@ -13,6 +15,8 @@ export interface Application {
   statusChangedAt: string;
   statusSetBy: 'user' | 'system';
   sentAt?: string;
+  nextFollowUpAt?: string;
+  followUpCount: number;
   tags: string[];
   notes?: string;
   createdAt: string;
@@ -38,4 +42,23 @@ export interface ApplicationsListResponse {
 export interface ApplicationDetailResponse {
   application: Application;
   events: ApplicationEvent[];
+  interviews: Interview[];
+  followUps: FollowUp[];
+}
+
+export interface OverdueFollowUpApplication {
+  _id: string;
+  jobTitle: string;
+  company: { name: string };
+  nextFollowUpAt: string;
+}
+
+export interface ApplicationStats {
+  total: number;
+  sentThisWeek: number;
+  responseRate: number;
+  avgDaysToFirstResponse: number | null;
+  byStatus: Partial<Record<ApplicationStatus, number>>;
+  byApplyType: Partial<Record<ApplyType, number>>;
+  overdueFollowUps: OverdueFollowUpApplication[];
 }

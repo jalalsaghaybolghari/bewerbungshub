@@ -1,7 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { getConnectionToken } from '@nestjs/mongoose';
 import cookieParser from 'cookie-parser';
 import { MongoMemoryServer } from 'mongodb-memory-server';
+import type { Connection } from 'mongoose';
 import { rm } from 'node:fs/promises';
 import { AppModule } from '../../src/app.module';
 
@@ -33,6 +35,15 @@ export async function createTestApp(): Promise<TestAppContext> {
   app.use(cookieParser());
   app.setGlobalPrefix('api/v1', { exclude: ['/', 'health'] });
   await app.init();
+
+  // Mongoose builds indexes (e.g. the unique {userId, applyLink} index)
+  // asynchronously in the background after connecting — without this,
+  // tests that hit a uniqueness constraint can race a still-building index
+  // and flake. `Model.init()` resolves once that model's indexes are ready.
+  const connection = app.get<Connection>(getConnectionToken());
+  await Promise.all(
+    connection.modelNames().map((name) => connection.model(name).init()),
+  );
 
   return { app, mongo, uploadsDir };
 }

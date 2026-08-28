@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
 import {
   applicationStatusValues,
   applyTypeValues,
@@ -35,7 +35,7 @@ class Location {
 
 @Schema({ timestamps: true })
 export class Application {
-  @Prop({ required: true, type: Types.ObjectId, index: true })
+  @Prop({ required: true, type: MongooseSchema.Types.ObjectId, index: true })
   userId: Types.ObjectId;
 
   @Prop({ required: true, trim: true })
@@ -56,7 +56,7 @@ export class Application {
   @Prop({ required: true, type: String, enum: applyTypeValues })
   applyType: (typeof applyTypeValues)[number];
 
-  @Prop({ type: Types.ObjectId })
+  @Prop({ type: MongooseSchema.Types.ObjectId })
   cvId?: Types.ObjectId;
 
   @Prop({
@@ -75,6 +75,12 @@ export class Application {
 
   @Prop({ default: Date.now })
   sentAt?: Date;
+
+  @Prop()
+  nextFollowUpAt?: Date;
+
+  @Prop({ default: 0 })
+  followUpCount: number;
 
   @Prop({ type: [String], default: [] })
   tags: string[];
@@ -99,6 +105,7 @@ export type ApplicationDocument = HydratedDocument<Application>;
 export const ApplicationSchema = SchemaFactory.createForClass(Application);
 
 ApplicationSchema.index({ userId: 1, status: 1 });
+ApplicationSchema.index({ userId: 1, nextFollowUpAt: 1 });
 ApplicationSchema.index({ userId: 1, applyLink: 1 }, { unique: true });
 ApplicationSchema.index({
   jobTitle: 'text',

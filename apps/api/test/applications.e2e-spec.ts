@@ -286,4 +286,63 @@ describe('Applications (e2e)', () => {
       expect(after.body).toEqual({ exists: true, id: created.body._id });
     });
   });
+
+  describe('GET /applications/stats', () => {
+    it('returns zeroed stats for a user with no applications (edge case)', async () => {
+      const res = await authed.get('/api/v1/applications/stats').expect(200);
+      expect(res.body).toMatchObject({
+        total: 0,
+        responseRate: 0,
+        byStatus: {},
+        overdueFollowUps: [],
+      });
+    });
+
+    it('counts total and byStatus/byApplyType correctly (happy path)', async () => {
+      await authed.post('/api/v1/applications').send(
+        sampleApplication({
+          applyLink: 'https://example.com/jobs/stats-1',
+          applyType: 'linkedin',
+        }),
+      );
+      const second = await authed.post('/api/v1/applications').send(
+        sampleApplication({
+          applyLink: 'https://example.com/jobs/stats-2',
+          applyType: 'email',
+        }),
+      );
+      await authed
+        .post(`/api/v1/applications/${second.body._id}/status`)
+        .send({ status: 'interview' });
+
+      const res = await authed.get('/api/v1/applications/stats').expect(200);
+      expect(res.body.total).toBe(2);
+      expect(res.body.byStatus).toMatchObject({ applied: 1, interview: 1 });
+      expect(res.body.byApplyType).toMatchObject({ linkedin: 1, email: 1 });
+      // 1 of 2 non-draft applications moved past "applied" → 50%
+      expect(res.body.responseRate).toBe(50);
+    });
+
+    it("only counts the current user's applications, not another user's (negative case)", async () => {
+      const other = await registerUser(app);
+      await request(app.getHttpServer())
+        .post('/api/v1/applications')
+        .set('Authorization', `Bearer ${other.accessToken}`)
+        .send(
+          sampleApplication({
+            applyLink: 'https://example.com/jobs/stats-other',
+          }),
+        )
+        .expect(201);
+
+      const res = await authed.get('/api/v1/applications/stats').expect(200);
+      expect(res.body.total).toBe(0);
+    });
+
+    it('rejects an unauthenticated request (negative case)', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/applications/stats')
+        .expect(401);
+    });
+  });
 });

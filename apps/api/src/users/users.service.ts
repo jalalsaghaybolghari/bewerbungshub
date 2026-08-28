@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import type { UpdateUserSettingsInput } from '@bewerber/shared';
 import { User, UserDocument } from './schemas/user.schema';
 
 @Injectable()
@@ -19,6 +20,19 @@ export class UsersService {
 
   create(data: { email: string; passwordHash: string; displayName: string }) {
     return this.userModel.create(data);
+  }
+
+  async updateSettings(userId: string, input: UpdateUserSettingsInput) {
+    const update: Record<string, number> = {};
+    if (input.followUpDefaultDays !== undefined) {
+      update['settings.followUpDefaultDays'] = input.followUpDefaultDays;
+    }
+    if (input.ghostedAfterDays !== undefined) {
+      update['settings.ghostedAfterDays'] = input.ghostedAfterDays;
+    }
+    return this.userModel
+      .findByIdAndUpdate(userId, { $set: update }, { new: true })
+      .exec();
   }
 
   setRefreshTokenHash(userId: string, refreshTokenHash: string | undefined) {

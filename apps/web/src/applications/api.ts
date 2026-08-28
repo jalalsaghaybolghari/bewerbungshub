@@ -5,7 +5,12 @@ import type {
   UpdateApplicationInput,
 } from '@bewerber/shared';
 import { apiFetch } from '../lib/api-client';
-import type { Application, ApplicationDetailResponse, ApplicationsListResponse } from './types';
+import type {
+  Application,
+  ApplicationDetailResponse,
+  ApplicationsListResponse,
+  ApplicationStats,
+} from './types';
 
 export interface ApplicationsQuery {
   status?: string;
@@ -40,6 +45,13 @@ export function useApplication(id: string | undefined) {
   });
 }
 
+export function useApplicationStats() {
+  return useQuery({
+    queryKey: ['applications', 'stats'],
+    queryFn: () => apiFetch<ApplicationStats>('/applications/stats'),
+  });
+}
+
 export function useCreateApplication() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -57,6 +69,15 @@ export function useUpdateApplication(id: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['applications'] });
     },
+  });
+}
+
+export function useMoveApplicationStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      apiFetch<Application>(`/applications/${id}/status`, { method: 'POST', body: { status } }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['applications'] }),
   });
 }
 

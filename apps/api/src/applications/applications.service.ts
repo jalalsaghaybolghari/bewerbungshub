@@ -13,6 +13,8 @@ import type {
 } from '@bewerber/shared';
 import { Application, ApplicationDocument } from './schemas/application.schema';
 import { Event, EventDocument } from './schemas/event.schema';
+import { InterviewsService } from '../interviews/interviews.service';
+import { FollowUpsService } from '../follow-ups/follow-ups.service';
 
 const DUPLICATE_KEY_ERROR = 11000;
 
@@ -22,6 +24,8 @@ export class ApplicationsService {
     @InjectModel(Application.name)
     private readonly applicationModel: Model<ApplicationDocument>,
     @InjectModel(Event.name) private readonly eventModel: Model<EventDocument>,
+    private readonly interviewsService: InterviewsService,
+    private readonly followUpsService: FollowUpsService,
   ) {}
 
   async create(
@@ -80,12 +84,17 @@ export class ApplicationsService {
       .exec();
     if (!application) throw new NotFoundException('Application not found');
 
-    const events = await this.eventModel
-      .find({ applicationId: application._id })
-      .sort({ occurredAt: 1 })
-      .exec();
+    const applicationId = application._id.toString();
+    const [events, interviews, followUps] = await Promise.all([
+      this.eventModel
+        .find({ applicationId: application._id })
+        .sort({ occurredAt: 1 })
+        .exec(),
+      this.interviewsService.findAllForApplication(applicationId),
+      this.followUpsService.findAllForApplication(applicationId),
+    ]);
 
-    return { application, events };
+    return { application, events, interviews, followUps };
   }
 
   async update(
@@ -143,6 +152,99 @@ export class ApplicationsService {
       .exec();
     if (result.matchedCount === 0)
       throw new NotFoundException('Application not found');
+  }
+
+  async getStats(userId: string) {
+    const userObjectId = new Types.ObjectId(userId);
+    const baseFilter = { userId: userObjectId, archivedAt: { $exists: false } };
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const [
+      total,
+      byStatusAgg,
+      byApplyTypeAgg,
+      sentThisWeek,
+      respondedCount,
+      sentCount,
+      overdueFollowUps,
+    ] = await Promise.all([
+      this.applicationModel.countDocuments(baseFilter).exec(),
+      this.applicationModel.aggregate<{ _id: string; count: number }>([
+        { $match: baseFilter },
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+      ]),
+      this.applicationModel.aggregate<{ _id: string; count: number }>([
+        { $match: baseFilter },
+        { $group: { _id: '$applyType', count: { $sum: 1 } } },
+      ]),
+      this.applicationModel
+        .countDocuments({ ...baseFilter, sentAt: { $gte: weekAgo } })
+        .exec(),
+      this.applicationModel
+        .countDocuments({
+          ...baseFilter,
+          status: { $nin: ['draft', 'applied'] },
+        })
+        .exec(),
+      this.applicationModel
+        .countDocuments({ ...baseFilter, status: { $ne: 'draft' } })
+        .exec(),
+      this.applicationModel
+        .find({ ...baseFilter, nextFollowUpAt: { $lt: new Date() } })
+        .sort({ nextFollowUpAt: 1 })
+        .limit(10)
+        .select('jobTitle company.name nextFollowUpAt')
+        .exec(),
+    ]);
+
+    const avgDaysToFirstResponse =
+      await this.computeAvgDaysToFirstResponse(userObjectId);
+
+    return {
+      total,
+      sentThisWeek,
+      responseRate:
+        sentCount > 0 ? Math.round((respondedCount / sentCount) * 100) : 0,
+      avgDaysToFirstResponse,
+      byStatus: Object.fromEntries(byStatusAgg.map((r) => [r._id, r.count])),
+      byApplyType: Object.fromEntries(
+        byApplyTypeAgg.map((r) => [r._id, r.count]),
+      ),
+      overdueFollowUps,
+    };
+  }
+
+  private async computeAvgDaysToFirstResponse(
+    userId: Types.ObjectId,
+  ): Promise<number | null> {
+    const result = await this.eventModel.aggregate<{ avgMs: number }>([
+      { $match: { userId, type: 'status_changed' } },
+      { $sort: { occurredAt: 1 } },
+      {
+        $group: {
+          _id: '$applicationId',
+          firstResponseAt: { $first: '$occurredAt' },
+        },
+      },
+      {
+        $lookup: {
+          from: 'applications',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'application',
+        },
+      },
+      { $unwind: '$application' },
+      {
+        $project: {
+          diffMs: { $subtract: ['$firstResponseAt', '$application.sentAt'] },
+        },
+      },
+      { $group: { _id: null, avgMs: { $avg: '$diffMs' } } },
+    ]);
+
+    const avgMs = result[0]?.avgMs;
+    return avgMs ? Math.round(avgMs / (24 * 60 * 60 * 1000)) : null;
   }
 
   async checkDuplicate(

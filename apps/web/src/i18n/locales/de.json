@@ -5,6 +5,8 @@
   "nav": {
     "applications": "Bewerbungen",
     "cvs": "Lebensläufe",
+    "dashboard": "Übersicht",
+    "settings": "Einstellungen",
     "logout": "Abmelden"
   },
   "auth": {
@@ -59,7 +61,67 @@
       "changeStatus": "Status ändern",
       "delete": "Bewerbung löschen",
       "confirmDelete": "Diese Bewerbung löschen? Das kann nicht rückgängig gemacht werden."
+    },
+    "view": {
+      "list": "Liste",
+      "kanban": "Kanban"
     }
+  },
+  "interviews": {
+    "title": "Interviews",
+    "schedule": "Interview planen",
+    "empty": "Noch keine Interviews geplant.",
+    "round": "Runde",
+    "roundLabel": "Runde {{round}}",
+    "type": "Typ",
+    "scheduledAt": "Datum & Uhrzeit",
+    "types": {
+      "phone_screen": "Telefonat",
+      "hr": "HR",
+      "technical": "Technisch",
+      "take_home": "Hausaufgabe",
+      "onsite": "Vor Ort",
+      "final": "Abschluss"
+    },
+    "outcomes": {
+      "pending": "Ausstehend",
+      "passed": "Bestanden",
+      "failed": "Nicht bestanden",
+      "cancelled": "Abgesagt"
+    }
+  },
+  "followUps": {
+    "title": "Nachfassen",
+    "schedule": "Nachfassen planen",
+    "empty": "Noch keine Nachfass-Termine geplant.",
+    "dueAt": "Fällig",
+    "channel": "Kanal",
+    "markSent": "Als gesendet markieren",
+    "overdue": "überfällig",
+    "status": {
+      "scheduled": "Geplant",
+      "sent": "Gesendet",
+      "skipped": "Übersprungen",
+      "cancelled": "Abgesagt"
+    }
+  },
+  "dashboard": {
+    "title": "Übersicht",
+    "totalTracked": "Insgesamt erfasst",
+    "sentThisWeek": "Diese Woche gesendet",
+    "responseRate": "Antwortquote",
+    "avgDaysToReply": "Ø Tage bis erste Antwort",
+    "byStatus": "Pipeline",
+    "byApplyType": "Nach Kanal",
+    "overdueFollowUps": "Überfällige Nachfass-Termine",
+    "noOverdue": "Aktuell nichts überfällig.",
+    "noData": "Noch keine Daten — füge zuerst ein paar Bewerbungen hinzu."
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "followUpDefaultDays": "Standard-Erinnerung zum Nachfassen (Tage nach Bewerbung)",
+    "ghostedAfterDays": "Als „ohne Antwort“ markieren nach (Tage ohne Update)",
+    "saved": "Gespeichert."
   },
   "cvs": {
     "title": "Lebensläufe",

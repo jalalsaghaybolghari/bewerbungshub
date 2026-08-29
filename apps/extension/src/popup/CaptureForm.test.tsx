@@ -44,6 +44,38 @@ describe('CaptureForm', () => {
     expect(await screen.findByText(/saved to your application tracker/i)).toBeInTheDocument();
   });
 
+  it('shows and saves an extracted posted date, and omits both when none was found (edge case)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });
+    const postedAt = new Date('2026-08-28T01:00:00.000Z');
+    render(
+      <CaptureForm
+        url="https://example.com/jobs/1"
+        extraction={{
+          ...extraction,
+          postedAt: { value: postedAt, confidence: 0.7, source: 'site-adapter' },
+        }}
+      />,
+    );
+
+    expect(
+      await screen.findByText(new RegExp(`Posted ${postedAt.toLocaleDateString()}`)),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /save application/i }));
+
+    await vi.waitFor(() => expect(createApplicationMock).toHaveBeenCalled());
+    expect(createApplicationMock.mock.calls[0][0]).toMatchObject({ postedAt });
+  });
+
+  it('omits the posted-date note when none was found (negative case)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    render(<CaptureForm url="https://example.com/jobs/1" extraction={extraction} />);
+
+    await screen.findByLabelText(/job title/i);
+    expect(screen.queryByText(/^Posted /)).not.toBeInTheDocument();
+  });
+
   it('saves the extracted off-site apply link instead of the tab URL, and duplicate-checks against it (edge case)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
     createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });

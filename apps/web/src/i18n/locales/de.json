@@ -60,7 +60,8 @@
       "timeline": "Verlauf",
       "changeStatus": "Status ändern",
       "delete": "Bewerbung löschen",
-      "confirmDelete": "Diese Bewerbung löschen? Das kann nicht rückgängig gemacht werden."
+      "confirmDelete": "Diese Bewerbung löschen? Das kann nicht rückgängig gemacht werden.",
+      "postedAt": "Veröffentlicht {{date}} (ungefähr)"
     },
     "view": {
       "list": "Liste",

@@ -60,7 +60,8 @@
       "timeline": "Timeline",
       "changeStatus": "Change status",
       "delete": "Delete application",
-      "confirmDelete": "Delete this application? This can't be undone."
+      "confirmDelete": "Delete this application? This can't be undone.",
+      "postedAt": "Posted {{date}} (approximate)"
     },
     "view": {
       "list": "List",

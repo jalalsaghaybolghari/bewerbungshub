@@ -35,6 +35,13 @@ export function ApplicationDetailPage() {
           <p className="text-slate">
             {application.company.name} · {application.location.raw}
           </p>
+          {application.postedAt && (
+            <p className="text-xs text-slate">
+              {t('applications.detail.postedAt', {
+                date: new Date(application.postedAt).toLocaleDateString(),
+              })}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={application.status} />

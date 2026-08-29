@@ -15,6 +15,7 @@ export interface Application {
   statusChangedAt: string;
   statusSetBy: 'user' | 'system';
   sentAt?: string;
+  postedAt?: string;
   nextFollowUpAt?: string;
   followUpCount: number;
   tags: string[];

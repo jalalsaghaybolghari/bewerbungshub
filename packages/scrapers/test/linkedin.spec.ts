@@ -141,3 +141,47 @@ describe('extractLinkedIn (split-panel layout, title line present in header scop
     expect(result.companyName?.value).toBe('Empion');
   });
 });
+
+// Real LinkedIn routes every off-site "Apply" link through a safety-check
+// redirector (linkedin.com/safety/go/?url=<encoded target>) rather than
+// linking to the employer's site directly — verified live.
+describe('extractLinkedIn (apply link)', () => {
+  it('decodes the real destination out of the safety redirector URL (happy path)', () => {
+    const target = encodeURIComponent(
+      'https://merkur.recruitee.com/o/senior-angular-frontend-developer',
+    );
+    const doc = new DOMParser().parseFromString(
+      `<html><body><a aria-label="Apply on company website" href="https://www.linkedin.com/safety/go/?url=${target}&isSdui=true">Apply</a></body></html>`,
+      'text/html',
+    );
+
+    const result = extractLinkedIn(doc);
+
+    expect(result.applyLink).toEqual({
+      value: 'https://merkur.recruitee.com/o/senior-angular-frontend-developer',
+      confidence: 0.9,
+      source: 'site-adapter',
+    });
+  });
+
+  it('finds nothing for an Easy Apply posting, which has no such link (edge case)', () => {
+    const doc = new DOMParser().parseFromString(
+      '<html><body><button aria-label="Easy Apply to Backend Engineer">Easy Apply</button></body></html>',
+      'text/html',
+    );
+
+    const result = extractLinkedIn(doc);
+
+    expect(result.applyLink).toBeUndefined();
+  });
+
+  it('does not throw on a malformed apply href (negative case)', () => {
+    const doc = new DOMParser().parseFromString(
+      '<html><body><a aria-label="Apply on company website" href="not a url">Apply</a></body></html>',
+      'text/html',
+    );
+
+    expect(() => extractLinkedIn(doc)).not.toThrow();
+    expect(extractLinkedIn(doc).applyLink).toBeUndefined();
+  });
+});

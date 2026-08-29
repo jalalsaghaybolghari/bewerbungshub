@@ -1,0 +1,53 @@
+<!doctype html>
+<!--
+  Reflects what a real LinkedIn job page actually ships today (verified live,
+  2026-08-29, both /jobs/view/<id> and /jobs/search-results/ variants) rather
+  than the schema.org JobPosting JSON-LD the site was originally assumed to
+  carry: no JSON-LD, no microdata, no OpenGraph tags, no <h1> at all.
+
+  Two structural facts checked directly against real markup:
+  - The company name always sits in a link to /company/..., and the
+    location is the very next leaf line after it — but the "·" separating
+    location / posted-time / applicant-count is drawn via CSS, NOT present
+    as real text, so those three are three separate leaf elements with no
+    "·" in any of them. Only the later "Promoted by hirer ·" boilerplate
+    line has a literal "·" character.
+  - The description sits right after a leaf heading matching "About the
+    job", with no whitespace between the heading's own text and the
+    description content that follows in the combined container text.
+
+  Class names below are made up (LinkedIn's are hashed and rotate) — this
+  fixture exercises the structural pattern, not any particular selector.
+-->
+<html>
+  <head>
+    <title>Senior Angular Frontend Developer (w/m/d) | Merkur Versicherung | LinkedIn</title>
+  </head>
+  <body>
+    <div class="jobs-search-results-list">
+      <div class="job-card">Unrelated other job in Vienna, Austria</div>
+    </div>
+    <div class="job-details-jobs-unified-top-card">
+      <div class="_hashedwrapper1">
+        <div class="_hashedwrapper2">
+          <a href="https://www.linkedin.com/company/merkur-versicherung/life/">Merkur Versicherung</a>
+        </div>
+        <div>Graz, Styria, Austria</div>
+        <div>Reposted 11 hours ago</div>
+        <div>97 people clicked apply</div>
+        <div>Promoted by hirer ·</div>
+        <div>Responses managed off LinkedIn</div>
+      </div>
+    </div>
+    <div class="jobs-description">
+      <div>
+        <h2>About the job</h2>
+        <p>Jobbeschreibung: Sie arbeiten aktiv in einem <strong>agilen Scrum-Team</strong> mit.</p>
+        <ul>
+          <li>5+ Jahre Erfahrung</li>
+          <li>Angular und TypeScript</li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

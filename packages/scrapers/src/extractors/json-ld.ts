@@ -1,4 +1,5 @@
 import type { ExtractedJobPosting } from '../types';
+import { elementToMarkdown } from '../html-to-markdown';
 
 interface JobPostingNode {
   '@type'?: string | string[];
@@ -29,8 +30,14 @@ function findJobPostingNode(parsed: unknown): JobPostingNode | undefined {
   return undefined;
 }
 
-function stripHtml(value: string): string {
-  return value.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+// JobPosting.description is an HTML string (per schema.org), not plain
+// text — parse it into a detached element via the same `document` so it
+// converts to Markdown the same way the LinkedIn DOM extractor's live
+// description does, instead of flattening formatting away.
+function descriptionMarkdown(document: Document, html: string): string {
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  return elementToMarkdown(container);
 }
 
 function locationText(location: JobPostingNode['jobLocation']): string | undefined {
@@ -69,8 +76,9 @@ export function extractJsonLd(document: Document): ExtractedJobPosting {
     if (location) {
       result.locationRaw = { value: location, confidence: 0.85, source: 'json-ld' };
     }
-    if (node.description) {
-      result.jobDescription = { value: stripHtml(node.description), confidence: 0.85, source: 'json-ld' };
+    const description = node.description && descriptionMarkdown(document, node.description);
+    if (description) {
+      result.jobDescription = { value: description, confidence: 0.85, source: 'json-ld' };
     }
     return result;
   }

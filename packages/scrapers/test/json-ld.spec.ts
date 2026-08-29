@@ -42,6 +42,26 @@ describe('extractJsonLd', () => {
     });
   });
 
+  it('converts a formatted description to Markdown, not flattened text (edge case)', () => {
+    const doc = docFromHtml(`
+      <html><head>
+        <script type="application/ld+json">
+          {
+            "@type": "JobPosting",
+            "title": "Backend Engineer",
+            "description": "<p>Join our <strong>platform team</strong>.</p><ul><li>5+ years experience</li><li>Strong TypeScript</li></ul>"
+          }
+        </script>
+      </head></html>
+    `);
+
+    const result = extractJsonLd(doc);
+
+    expect(result.jobDescription?.value).toBe(
+      'Join our **platform team**.\n\n- 5+ years experience\n- Strong TypeScript',
+    );
+  });
+
   it('finds a JobPosting node inside an @graph array (edge case)', () => {
     const doc = docFromHtml(`
       <html><head>

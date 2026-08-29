@@ -1,0 +1,30 @@
+<!doctype html>
+<!--
+  Reflects the /jobs/search-results/ split-panel layout specifically
+  (verified live, 2026-08-29) — unlike the standalone /jobs/view/<id> page
+  (see linkedin-job-no-jsonld.html), this layout includes the job title as
+  one of the leaf lines in the same header scope as company/location,
+  positioned between them. extractLinkedInDom has to recognize and skip it
+  (via document.title) rather than assume "line right after company" is
+  always the location.
+-->
+<html>
+  <head>
+    <title>Full Stack Developer (m/w/d) | Empion | LinkedIn</title>
+  </head>
+  <body>
+    <div class="job-details-jobs-unified-top-card">
+      <div class="_hashedwrapper1">
+        <div class="_hashedwrapper2">
+          <a href="https://www.linkedin.com/company/empion/life/">Empion</a>
+        </div>
+        <div>Full Stack Developer (m/w/d)</div>
+        <div>Salzburg, Austria</div>
+        <div>13 hours ago</div>
+        <div>10 applicants</div>
+        <div>Promoted by hirer ·</div>
+        <div>No response insights available yet</div>
+      </div>
+    </div>
+  </body>
+</html>

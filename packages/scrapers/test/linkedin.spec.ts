@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { matchesLinkedIn, extractLinkedIn } from '../src/adapters/linkedin';
 
 const fixtureHtml = readFileSync(join(__dirname, 'fixtures/linkedin-job.html'), 'utf-8');
@@ -139,6 +139,54 @@ describe('extractLinkedIn (split-panel layout, title line present in header scop
       source: 'site-adapter',
     });
     expect(result.companyName?.value).toBe('Empion');
+  });
+});
+
+// Both a "Reposted 11 hours ago" line (linkedin-job-no-jsonld.html) and a
+// bare "13 hours ago" line (linkedin-job-split-panel.html — the original
+// posting date, no repost) should parse into an approximate absolute date.
+describe('extractLinkedIn (posted/reposted date)', () => {
+  const now = new Date('2026-08-29T12:00:00.000Z');
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('parses a "Reposted X hours ago" line into an approximate date (happy path)', () => {
+    const doc = new DOMParser().parseFromString(noJsonLdFixtureHtml, 'text/html');
+
+    const result = extractLinkedIn(doc);
+
+    expect(result.postedAt).toEqual({
+      value: new Date('2026-08-29T01:00:00.000Z'),
+      confidence: 0.7,
+      source: 'site-adapter',
+    });
+  });
+
+  it('parses a bare "X hours ago" line with no "Reposted" prefix (edge case)', () => {
+    const doc = new DOMParser().parseFromString(splitPanelFixtureHtml, 'text/html');
+
+    const result = extractLinkedIn(doc);
+
+    expect(result.postedAt).toEqual({
+      value: new Date('2026-08-28T23:00:00.000Z'),
+      confidence: 0.7,
+      source: 'site-adapter',
+    });
+  });
+
+  it('leaves postedAt unset when there is no such line to parse (negative case)', () => {
+    const doc = new DOMParser().parseFromString(fixtureHtml, 'text/html');
+
+    const result = extractLinkedIn(doc);
+
+    expect(result.postedAt).toBeUndefined();
   });
 });
 

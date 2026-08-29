@@ -58,6 +58,10 @@ describe('App', () => {
     render(<App />);
 
     expect(screen.getByText(/mock capture view/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /bewerbermanagementsystem/i })).toHaveAttribute(
+      'href',
+      'http://localhost:5173/dashboard',
+    );
 
     await userEvent.click(screen.getByRole('button', { name: /log out/i }));
 

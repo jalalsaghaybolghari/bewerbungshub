@@ -44,6 +44,37 @@ describe('CaptureForm', () => {
     expect(await screen.findByText(/saved to your application tracker/i)).toBeInTheDocument();
   });
 
+  it('saves the extracted off-site apply link instead of the tab URL, and duplicate-checks against it (edge case)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });
+    render(
+      <CaptureForm
+        url="https://www.linkedin.com/jobs/view/123"
+        extraction={{
+          ...extraction,
+          applyLink: {
+            value: 'https://acme.example.com/careers/backend-engineer',
+            confidence: 0.9,
+            source: 'site-adapter',
+          },
+        }}
+      />,
+    );
+
+    await vi.waitFor(() =>
+      expect(checkDuplicateMock).toHaveBeenCalledWith(
+        'https://acme.example.com/careers/backend-engineer',
+      ),
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: /save application/i }));
+
+    await vi.waitFor(() => expect(createApplicationMock).toHaveBeenCalled());
+    expect(createApplicationMock.mock.calls[0][0]).toMatchObject({
+      applyLink: 'https://acme.example.com/careers/backend-engineer',
+    });
+  });
+
   it('shows a duplicate warning when the apply link is already tracked (edge case)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: true, id: 'app-existing' });
     render(<CaptureForm url="https://example.com/jobs/1" extraction={{}} />);

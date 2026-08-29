@@ -36,6 +36,9 @@ function defaultValues(applyLink: string, extraction: ExtractedJobPosting): Capt
     applyType: extraction.applyType?.value ?? 'website',
     status: 'applied',
     tags: [],
+    // Not every source can find this (nullable) — an approximate posted/
+    // reposted date when one was found, e.g. from LinkedIn's "11 hours ago".
+    postedAt: extraction.postedAt?.value,
   };
 }
 
@@ -85,8 +88,14 @@ export function CaptureForm({ url, extraction }: { url: string; extraction: Extr
     );
   }
 
+  const postedAt = extraction.postedAt?.value;
+
   return (
     <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-3 p-4">
+      {postedAt && (
+        <p className="text-xs text-slate">Posted {postedAt.toLocaleDateString()} (approximate)</p>
+      )}
+
       {duplicateId && (
         <p className="rounded-lg bg-amber/15 px-3 py-2 text-xs text-amber">
           You already have an application saved for this link.

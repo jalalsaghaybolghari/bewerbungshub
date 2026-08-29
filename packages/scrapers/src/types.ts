@@ -14,4 +14,9 @@ export interface ExtractedJobPosting {
   locationRaw?: ExtractedField<string>;
   jobDescription?: ExtractedField<string>;
   applyType?: ExtractedField<ApplyType>;
+  // Only set when a genuine off-site apply URL was found (e.g. LinkedIn's
+  // "Apply on company website" link). Left unset for in-platform flows like
+  // LinkedIn's Easy Apply — the current tab's URL is the right applyLink
+  // there, which is the caller's fallback to make, not this package's.
+  applyLink?: ExtractedField<string>;
 }

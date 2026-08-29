@@ -6,6 +6,7 @@ import { elementToMarkdown } from '../html-to-markdown';
 const TITLE_SUFFIX = /\s*\|\s*LinkedIn\s*$/i;
 const NON_LOCATION_LINE = /ago$|clicked apply|viewed|applicants?|^promoted|responses managed/i;
 const ABOUT_HEADING = /about the job/i;
+const APPLY_ON_COMPANY_SITE = /apply on company website/i;
 
 export function matchesLinkedIn(url: string): boolean {
   try {
@@ -116,11 +117,34 @@ function extractLinkedInDescription(document: Document): ExtractedJobPosting {
   return { jobDescription: { value: description, confidence: 0.75, source: 'site-adapter' } };
 }
 
+// LinkedIn routes every off-site "Apply" link through a safety-check
+// redirector (`linkedin.com/safety/go/?url=<encoded target>`) rather than
+// linking to the employer's site directly — verified live. Reliably
+// distinguished from an in-platform Easy Apply button, which carries no such
+// label, by its aria-label ("Apply on company website"). The real
+// destination is the redirector URL's own `url` query parameter.
+function extractLinkedInApplyLink(document: Document): ExtractedJobPosting {
+  const anchor = [...document.querySelectorAll('a')].find((el) =>
+    APPLY_ON_COMPANY_SITE.test(el.getAttribute('aria-label') ?? ''),
+  );
+  const href = anchor?.getAttribute('href');
+  if (!href) return {};
+
+  try {
+    const target = new URL(href, document.baseURI).searchParams.get('url');
+    if (!target) return {};
+    return { applyLink: { value: target, confidence: 0.9, source: 'site-adapter' } };
+  } catch {
+    return {};
+  }
+}
+
 export function extractLinkedIn(document: Document): ExtractedJobPosting {
   const base = mergeExtractions(
     extractGeneric(document),
     extractLinkedInDom(document),
     extractLinkedInDescription(document),
+    extractLinkedInApplyLink(document),
   );
 
   const overrides: ExtractedJobPosting = {

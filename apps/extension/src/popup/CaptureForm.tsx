@@ -17,13 +17,22 @@ import { Button, FieldError, Input, Label, Select, Textarea } from '../component
 // same pattern as apps/web/src/applications/ApplicationFormPage.tsx.
 type CaptureFormValues = z.input<typeof createApplicationSchema>;
 
-function defaultValues(url: string, extraction: ExtractedJobPosting): CaptureFormValues {
+// The apply link to save is the job's own off-site apply URL when the
+// extraction found one (e.g. LinkedIn's "Apply on company website"), since
+// that's the link a user would actually revisit to apply — the current tab
+// URL is only a fallback for in-platform flows like Easy Apply, where there
+// is no separate apply URL.
+function resolveApplyLink(tabUrl: string, extraction: ExtractedJobPosting): string {
+  return extraction.applyLink?.value ?? tabUrl;
+}
+
+function defaultValues(applyLink: string, extraction: ExtractedJobPosting): CaptureFormValues {
   return {
     jobTitle: extraction.jobTitle?.value ?? '',
     company: { name: extraction.companyName?.value ?? '' },
     location: { raw: extraction.locationRaw?.value ?? '' },
     jobDescription: extraction.jobDescription?.value ?? '',
-    applyLink: url,
+    applyLink,
     applyType: extraction.applyType?.value ?? 'website',
     status: 'applied',
     tags: [],
@@ -35,6 +44,8 @@ export function CaptureForm({ url, extraction }: { url: string; extraction: Extr
   const [saved, setSaved] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
+  const applyLink = resolveApplyLink(url, extraction);
+
   const {
     register,
     handleSubmit,
@@ -42,7 +53,7 @@ export function CaptureForm({ url, extraction }: { url: string; extraction: Extr
     formState: { errors, isSubmitting },
   } = useForm<CaptureFormValues, unknown, CreateApplicationInput>({
     resolver: zodResolver(createApplicationSchema),
-    defaultValues: defaultValues(url, extraction),
+    defaultValues: defaultValues(applyLink, extraction),
   });
 
   const locationValue = watch('location.raw');
@@ -51,10 +62,10 @@ export function CaptureForm({ url, extraction }: { url: string; extraction: Extr
     : null;
 
   useEffect(() => {
-    checkDuplicate(url)
+    checkDuplicate(applyLink)
       .then((result) => setDuplicateId(result.exists ? result.id : null))
       .catch(() => setDuplicateId(null));
-  }, [url]);
+  }, [applyLink]);
 
   async function onSubmit(input: CreateApplicationInput) {
     setServerError(null);

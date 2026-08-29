@@ -64,6 +64,10 @@ export const createApplicationSchema = z.object({
   status: applicationStatusSchema.optional().default('applied'),
   tags: z.array(z.string().max(60)).max(20).optional().default([]),
   notes: z.string().max(5000).optional(),
+  // When the employer posted (or reposted) the listing — distinct from
+  // `sentAt` (when the user applied). Not every source can find this, so
+  // it's optional rather than defaulted.
+  postedAt: z.coerce.date().optional(),
 });
 export type CreateApplicationInput = z.infer<typeof createApplicationSchema>;
 
@@ -83,6 +87,9 @@ export const applicationQuerySchema = z.object({
   tag: z.string().max(60).optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
-  sort: z.enum(['sentAt', '-sentAt', 'jobTitle', '-jobTitle', 'statusChangedAt', '-statusChangedAt']).optional().default('-sentAt'),
+  sort: z
+    .enum(['sentAt', '-sentAt', 'jobTitle', '-jobTitle', 'statusChangedAt', '-statusChangedAt'])
+    .optional()
+    .default('-sentAt'),
 });
 export type ApplicationQuery = z.infer<typeof applicationQuerySchema>;

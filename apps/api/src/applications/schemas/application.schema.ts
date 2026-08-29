@@ -77,6 +77,9 @@ export class Application {
   sentAt?: Date;
 
   @Prop()
+  postedAt?: Date;
+
+  @Prop()
   nextFollowUpAt?: Date;
 
   @Prop({ default: 0 })

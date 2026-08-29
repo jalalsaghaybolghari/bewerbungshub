@@ -29,6 +29,7 @@
       "position": "Position",
       "location": "Location",
       "channel": "Channel",
+      "posted": "Posted",
       "sent": "Sent",
       "status": "Status",
       "actions": "Actions"

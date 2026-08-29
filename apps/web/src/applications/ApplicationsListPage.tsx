@@ -89,6 +89,7 @@ export function ApplicationsListPage() {
                 <th className="px-4 py-3">{t('applications.columns.position')}</th>
                 <th className="px-4 py-3">{t('applications.columns.location')}</th>
                 <th className="px-4 py-3">{t('applications.columns.channel')}</th>
+                <th className="px-4 py-3">{t('applications.columns.posted')}</th>
                 <th className="px-4 py-3">{t('applications.columns.sent')}</th>
                 <th className="px-4 py-3">{t('applications.columns.status')}</th>
               </tr>
@@ -110,6 +111,9 @@ export function ApplicationsListPage() {
                   </td>
                   <td className="px-4 py-3 text-slate">{app.location.raw}</td>
                   <td className="px-4 py-3 text-slate capitalize">{app.applyType}</td>
+                  <td className="px-4 py-3 text-slate">
+                    {app.postedAt ? new Date(app.postedAt).toLocaleDateString() : '—'}
+                  </td>
                   <td className="px-4 py-3 text-slate">
                     {app.sentAt ? new Date(app.sentAt).toLocaleDateString() : '—'}
                   </td>

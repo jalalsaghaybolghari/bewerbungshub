@@ -29,6 +29,7 @@
       "position": "Position",
       "location": "Ort",
       "channel": "Kanal",
+      "posted": "Veröffentlicht",
       "sent": "Gesendet",
       "status": "Status",
       "actions": "Aktionen"

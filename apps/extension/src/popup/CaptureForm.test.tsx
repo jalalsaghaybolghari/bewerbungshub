@@ -51,6 +51,34 @@ describe('CaptureForm', () => {
     expect(await screen.findByText(/already have an application saved/i)).toBeInTheDocument();
   });
 
+  it('links location to a Google Maps search, updating as the field is edited (edge case)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    render(<CaptureForm url="https://example.com/jobs/1" extraction={extraction} />);
+
+    const mapsLink = await screen.findByRole('link', { name: /open in maps/i });
+    expect(mapsLink).toHaveAttribute(
+      'href',
+      'https://www.google.com/maps/search/?api=1&query=Berlin',
+    );
+
+    const locationInput = screen.getByLabelText(/location/i);
+    await userEvent.clear(locationInput);
+    await userEvent.type(locationInput, 'Vienna, Austria');
+
+    expect(screen.getByRole('link', { name: /open in maps/i })).toHaveAttribute(
+      'href',
+      'https://www.google.com/maps/search/?api=1&query=Vienna%2C%20Austria',
+    );
+  });
+
+  it('hides the Maps link when location is empty (negative case)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    render(<CaptureForm url="https://example.com/jobs/1" extraction={{}} />);
+
+    await screen.findByLabelText(/job title/i);
+    expect(screen.queryByRole('link', { name: /open in maps/i })).not.toBeInTheDocument();
+  });
+
   it('shows the server error and does not clear the form when saving fails (negative case)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
     createApplicationMock.mockRejectedValueOnce(new ApiError(400, 'jobTitle is required'));

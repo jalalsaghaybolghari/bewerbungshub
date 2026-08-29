@@ -38,11 +38,17 @@ export function CaptureForm({ url, extraction }: { url: string; extraction: Extr
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CaptureFormValues, unknown, CreateApplicationInput>({
     resolver: zodResolver(createApplicationSchema),
     defaultValues: defaultValues(url, extraction),
   });
+
+  const locationValue = watch('location.raw');
+  const mapsUrl = locationValue?.trim()
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationValue)}`
+    : null;
 
   useEffect(() => {
     checkDuplicate(url)
@@ -89,7 +95,19 @@ export function CaptureForm({ url, extraction }: { url: string; extraction: Extr
       </div>
 
       <div>
-        <Label htmlFor="locationRaw">Location</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="locationRaw">Location</Label>
+          {mapsUrl && (
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mb-1 text-xs text-teal hover:underline"
+            >
+              Open in Maps
+            </a>
+          )}
+        </div>
         <Input id="locationRaw" {...register('location.raw')} />
         <FieldError>{errors.location?.raw?.message}</FieldError>
       </div>

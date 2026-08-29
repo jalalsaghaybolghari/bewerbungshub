@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { AuthUser } from '@bewerber/shared';
 import { useAuthState, logout } from '../lib/auth';
+import { WEB_APP_URL } from '../lib/api-client';
 import { LoginView } from './LoginView';
 import { CaptureView } from './CaptureView';
 
@@ -22,7 +23,14 @@ export function App() {
   return (
     <div>
       <div className="flex items-center justify-between border-b border-slate/15 px-4 py-2">
-        <h1 className="text-sm font-bold text-ink">Bewerbermanagementsystem</h1>
+        <a
+          href={`${WEB_APP_URL}/dashboard`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm font-bold text-ink hover:text-teal"
+        >
+          Bewerbermanagementsystem
+        </a>
         <button
           className="text-xs text-slate hover:text-ink"
           onClick={() => void logout().then(() => setOverride(null))}

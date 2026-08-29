@@ -2,6 +2,9 @@
 // (keep in sync with manifest.config.ts's host_permissions).
 const API_BASE = 'http://localhost:3000/api/v1';
 
+// TODO: point this at the deployed web app origin before shipping past dev.
+export const WEB_APP_URL = 'http://localhost:5173';
+
 const ACCESS_TOKEN_KEY = 'accessToken';
 
 export async function getAccessToken(): Promise<string | null> {

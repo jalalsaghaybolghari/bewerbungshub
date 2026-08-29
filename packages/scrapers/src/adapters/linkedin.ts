@@ -7,6 +7,25 @@ const TITLE_SUFFIX = /\s*\|\s*LinkedIn\s*$/i;
 const NON_LOCATION_LINE = /ago$|clicked apply|viewed|applicants?|^promoted|responses managed/i;
 const ABOUT_HEADING = /about the job/i;
 const APPLY_ON_COMPANY_SITE = /apply on company website/i;
+// Matches both "Reposted 11 hours ago" and a bare "13 hours ago" / "4 days
+// ago" — LinkedIn shows the latter for a listing's original posting date.
+const RELATIVE_TIME = /^(?:reposted\s+)?(\d+)\s*(minute|hour|day|week|month)s?\s+ago$/i;
+const RELATIVE_TIME_UNIT_MS: Record<string, number> = {
+  minute: 60 * 1000,
+  hour: 60 * 60 * 1000,
+  day: 24 * 60 * 60 * 1000,
+  week: 7 * 24 * 60 * 60 * 1000,
+  month: 30 * 24 * 60 * 60 * 1000,
+};
+
+// A best-effort approximation, not a precise timestamp — LinkedIn's own
+// label is only precise to the hour/day itself.
+function parseRelativeTime(text: string): Date | undefined {
+  const match = RELATIVE_TIME.exec(text.trim());
+  if (!match) return undefined;
+  const unitMs = RELATIVE_TIME_UNIT_MS[match[2].toLowerCase()];
+  return unitMs ? new Date(Date.now() - Number(match[1]) * unitMs) : undefined;
+}
 
 export function matchesLinkedIn(url: string): boolean {
   try {
@@ -38,7 +57,7 @@ function leafTexts(el: Element): string[] {
 // /jobs/search-results/ split panel, checked directly against real markup)
 // carry no JobPosting JSON-LD, microdata, or OpenGraph tags at all — despite
 // that being the documented convention this package's other extractors rely
-// on. Company/location have to come from the rendered DOM instead.
+// on. Company/location/postedAt have to come from the rendered DOM instead.
 //
 // Rather than hardcode LinkedIn's hashed/rotating CSS classes (which the
 // adapter resolution order in the project plan explicitly avoids), this
@@ -84,6 +103,11 @@ function extractLinkedInDom(document: Document): ExtractedJobPosting {
       : undefined;
   if (candidate) {
     result.locationRaw = { value: candidate, confidence: 0.75, source: 'site-adapter' };
+  }
+
+  const postedAt = lines.map(parseRelativeTime).find((date) => date !== undefined);
+  if (postedAt) {
+    result.postedAt = { value: postedAt, confidence: 0.7, source: 'site-adapter' };
   }
 
   return result;

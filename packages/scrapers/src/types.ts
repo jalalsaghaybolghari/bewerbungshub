@@ -19,4 +19,8 @@ export interface ExtractedJobPosting {
   // LinkedIn's Easy Apply — the current tab's URL is the right applyLink
   // there, which is the caller's fallback to make, not this package's.
   applyLink?: ExtractedField<string>;
+  // When the listing was posted/reposted — not every source can find this,
+  // so it's optional. A best-effort approximation where present (e.g.
+  // derived from a relative "11 hours ago" label), not a precise timestamp.
+  postedAt?: ExtractedField<Date>;
 }

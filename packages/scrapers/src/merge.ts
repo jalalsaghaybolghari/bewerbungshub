@@ -18,6 +18,7 @@ export function mergeExtractions(...extractions: ExtractedJobPosting[]): Extract
       jobDescription: higherConfidence(merged.jobDescription, next.jobDescription),
       applyType: higherConfidence(merged.applyType, next.applyType),
       applyLink: higherConfidence(merged.applyLink, next.applyLink),
+      postedAt: higherConfidence(merged.postedAt, next.postedAt),
     }),
     {},
   );

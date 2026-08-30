@@ -15,20 +15,45 @@ export default defineManifest({
     service_worker: 'src/background/index.ts',
     type: 'module',
   },
+  // A small always-on launcher tab (src/launcher/index.ts), docked to the
+  // page edge on every site, so opening the widget doesn't require finding
+  // the toolbar icon first. This is a real permission-scope decision, not
+  // free: unlike the on-demand widget (activeTab-gated, only runs on an
+  // explicit click), a declarative content script with a broad `matches`
+  // runs on every page load on every site, and Chrome shows that as a
+  // broader install-time warning ("Read and change all your data on all
+  // websites you visit") than activeTab-only ever required. Confirmed with
+  // the user as the wanted tradeoff (they want the tab everywhere, not
+  // scoped to just job-posting sites) rather than an oversight.
+  content_scripts: [
+    {
+      matches: ['<all_urls>'],
+      js: ['src/launcher/index.ts'],
+      run_at: 'document_idle',
+    },
+  ],
   // "storage" for the cached access token (background-only — see
-  // background/api.ts), "scripting" + "activeTab" to inject the widget into
-  // the current tab on demand (no declarative content_scripts / broad host
-  // permissions needed for that).
+  // background/api.ts), "scripting" to inject the widget into a tab on
+  // demand. "activeTab" alone is NOT enough for that once the launcher tab
+  // exists: it only grants chrome.scripting.executeScript access when the
+  // triggering gesture is the toolbar icon itself, a context-menu click, or
+  // a command shortcut — a click on a button the launcher's content script
+  // put on the page does not qualify, even though it's the extension's own
+  // UI (verified live: the launcher tab's click did nothing, silently,
+  // because of exactly this). <all_urls> host_permissions below covers it
+  // persistently instead, for both trigger paths.
   permissions: ['activeTab', 'scripting', 'storage'],
-  // TODO: point this at the deployed API origin before shipping past dev.
-  host_permissions: ['http://localhost:3000/*'],
+  // Superset of the API origin this used to list on its own — already
+  // covered by <all_urls>, and needed regardless now (see above), so it's
+  // not listed separately anymore.
+  host_permissions: ['<all_urls>'],
   // The widget's injected bundle (src/widget/content.tsx, built to a stable
   // widget.js — see vite.config.ts) is deliberately NOT declared here as a
-  // content_scripts entry — that would need "matches" and would run on
-  // every page load. It doesn't need a web_accessible_resources entry
-  // either: that mechanism is for exposing files to web-page-context JS,
-  // not for the extension's own chrome.scripting.executeScript calls,
-  // which just need the built file to exist in the packaged extension.
+  // content_scripts entry — chrome.scripting.executeScript (triggered by
+  // either the toolbar icon or the launcher tab) just needs the built file
+  // to exist in the packaged extension, no web_accessible_resources entry
+  // needed either (that mechanism is for exposing files to web-page-context
+  // JS, not the extension's own executeScript calls).
   icons: {
     16: 'icons/icon16.png',
     48: 'icons/icon48.png',

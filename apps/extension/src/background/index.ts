@@ -1,18 +1,37 @@
 import { apiFetch, setAccessToken } from './api';
 import { ApiError } from '../lib/api-client';
 
-// No default_popup in the manifest, so this fires on every toolbar-icon
-// click (the click itself is the user gesture that grants activeTab for
-// this tab). Fire-and-forget: widget.js does its own DOM-presence check to
-// decide whether to mount or unmount, so there's no toggle state to track
-// here — and nothing to track it in, since MV3 service workers get
-// killed/evicted between events anyway.
-chrome.action.onClicked.addListener((tab) => {
-  if (!tab.id) return;
+// Fire-and-forget: widget.js does its own DOM-presence check to decide
+// whether to mount or unmount, so there's no toggle state to track here —
+// and nothing to track it in, since MV3 service workers get killed/evicted
+// between events anyway.
+function injectWidget(tabId: number) {
   void chrome.scripting.executeScript({
-    target: { tabId: tab.id },
+    target: { tabId },
     files: ['widget.js'],
   });
+}
+
+// No default_popup in the manifest, so this fires on every toolbar-icon
+// click (the click itself is the user gesture that grants activeTab for
+// this tab).
+chrome.action.onClicked.addListener((tab) => {
+  if (tab.id) injectWidget(tab.id);
+});
+
+// The always-on launcher tab (src/launcher/index.ts, present on every page
+// via a declarative content script) can't call chrome.scripting itself —
+// that API isn't available to content scripts, only to extension pages and
+// the background — so it messages this instead.
+chrome.runtime.onMessage.addListener((message, sender) => {
+  if (
+    typeof message === 'object' &&
+    message !== null &&
+    (message as { type?: unknown }).type === 'TOGGLE_WIDGET' &&
+    sender.tab?.id
+  ) {
+    injectWidget(sender.tab.id);
+  }
 });
 
 interface ApiFetchMessage {

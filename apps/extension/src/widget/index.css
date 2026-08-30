@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #16233a;
+  --color-paper: #f7f5f0;
+  --color-teal: #14b8a6;
+  --color-slate: #5b7290;
+  --color-amber: #e0a93b;
+  --color-danger: #d9534f;
+  --color-success: #2fa05a;
+}
+
+/* Scoped to :host, not body — this stylesheet is injected into the
+   widget's own shadow root (src/widget/content.tsx), which has no <body>
+   of its own. :host is the shadow root's attachment point in the page. */
+:host {
+  all: initial;
+  display: block;
+}

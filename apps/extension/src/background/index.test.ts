@@ -23,14 +23,19 @@ type OnMessageHandler = (
   sender: unknown,
   sendResponse: SendResponse,
 ) => boolean | undefined;
+type OnToggleWidgetHandler = (message: unknown, sender: { tab?: { id?: number } }) => void;
 
 let onClicked: (tab: { id?: number }) => void;
 let onMessage: OnMessageHandler;
+let onToggleWidgetMessage: OnToggleWidgetHandler;
 
 beforeAll(async () => {
   await import('./index');
   onClicked = onClickedAddListenerMock.mock.calls[0][0] as typeof onClicked;
-  onMessage = onMessageAddListenerMock.mock.calls[0][0] as OnMessageHandler;
+  // Registration order in background/index.ts: TOGGLE_WIDGET listener
+  // first, then API_FETCH.
+  onToggleWidgetMessage = onMessageAddListenerMock.mock.calls[0][0] as OnToggleWidgetHandler;
+  onMessage = onMessageAddListenerMock.mock.calls[1][0] as OnMessageHandler;
 });
 
 describe('background', () => {
@@ -52,6 +57,29 @@ describe('background', () => {
 
     it('does nothing when the clicked tab has no id, e.g. a devtools panel (edge case)', () => {
       onClicked({});
+
+      expect(executeScriptMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('TOGGLE_WIDGET messages (from the always-on launcher tab)', () => {
+    it('injects widget.js into the sending tab (happy path)', () => {
+      onToggleWidgetMessage({ type: 'TOGGLE_WIDGET' }, { tab: { id: 7 } });
+
+      expect(executeScriptMock).toHaveBeenCalledWith({
+        target: { tabId: 7 },
+        files: ['widget.js'],
+      });
+    });
+
+    it('does nothing when the message has no sending tab, e.g. from the popup context (edge case)', () => {
+      onToggleWidgetMessage({ type: 'TOGGLE_WIDGET' }, {});
+
+      expect(executeScriptMock).not.toHaveBeenCalled();
+    });
+
+    it('ignores messages of an unrelated type (negative case)', () => {
+      onToggleWidgetMessage({ type: 'SOME_OTHER_MESSAGE' }, { tab: { id: 7 } });
 
       expect(executeScriptMock).not.toHaveBeenCalled();
     });

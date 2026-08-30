@@ -29,20 +29,20 @@ export function Widget({
   const user = override !== undefined ? override : refreshedUser;
 
   return (
-    <div className="fixed inset-y-0 right-0 z-[2147483647] flex w-96 flex-col overflow-hidden border-l border-white/40 bg-paper/75 shadow-2xl backdrop-blur-2xl">
-      <div className="flex items-center justify-between border-b border-white/30 px-4 py-3">
+    <div className="fixed inset-y-0 right-0 z-[2147483647] flex w-[32rem] flex-col overflow-hidden border-l border-white/40 bg-paper/75 shadow-2xl backdrop-blur-2xl">
+      <div className="flex items-center justify-between border-b border-white/30 px-5 py-4">
         <a
           href={`${WEB_APP_URL}/dashboard`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm font-semibold text-ink hover:text-teal"
+          className="text-base font-semibold text-ink hover:text-teal"
         >
           Bewerbermanagementsystem
         </a>
         <div className="flex items-center gap-3">
           {user && (
             <button
-              className="text-xs text-slate hover:text-ink"
+              className="text-sm text-slate hover:text-ink"
               onClick={() => void logout().then(() => setOverride(null))}
             >
               Log out
@@ -51,7 +51,7 @@ export function Widget({
           <button
             type="button"
             aria-label="Close"
-            className="flex h-6 w-6 items-center justify-center rounded-full text-slate hover:bg-white/50 hover:text-ink"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-slate hover:bg-white/50 hover:text-ink"
             onClick={onClose}
           >
             ✕
@@ -60,7 +60,7 @@ export function Widget({
       </div>
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
-          <p className="p-4 text-sm text-slate">Loading…</p>
+          <p className="p-4 text-base text-slate">Loading…</p>
         ) : !user ? (
           <LoginView onLoggedIn={setOverride} />
         ) : (

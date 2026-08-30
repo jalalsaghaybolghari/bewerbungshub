@@ -93,11 +93,11 @@ export function CaptureForm({ url, extraction }: { url: string; extraction: Extr
   return (
     <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-3 p-4">
       {postedAt && (
-        <p className="text-xs text-slate">Posted {postedAt.toLocaleDateString()} (approximate)</p>
+        <p className="text-sm text-slate">Posted {postedAt.toLocaleDateString()} (approximate)</p>
       )}
 
       {duplicateId && (
-        <p className="rounded-lg bg-amber/15 px-3 py-2 text-xs text-amber">
+        <p className="rounded-lg bg-amber/15 px-3 py-2 text-sm text-amber">
           You already have an application saved for this link.
         </p>
       )}
@@ -122,7 +122,7 @@ export function CaptureForm({ url, extraction }: { url: string; extraction: Extr
               href={mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mb-1 text-xs text-teal hover:underline"
+              className="mb-1 text-sm text-teal hover:underline"
             >
               Open in Maps
             </a>
@@ -145,7 +145,7 @@ export function CaptureForm({ url, extraction }: { url: string; extraction: Extr
 
       <div>
         <Label htmlFor="jobDescription">Description</Label>
-        <Textarea id="jobDescription" rows={4} {...register('jobDescription')} />
+        <Textarea id="jobDescription" rows={12} {...register('jobDescription')} />
         <FieldError>{errors.jobDescription?.message}</FieldError>
       </div>
 

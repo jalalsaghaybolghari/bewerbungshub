@@ -12,7 +12,7 @@ export type ButtonVariant = 'primary' | 'secondary';
 
 export function buttonClasses(variant: ButtonVariant = 'primary', className?: string) {
   return clsx(
-    'inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+    'inline-flex items-center justify-center rounded-lg px-4 py-2 text-base font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
     variant === 'primary' && 'bg-teal text-white hover:bg-teal/90',
     variant === 'secondary' && 'border border-slate/30 bg-white text-ink hover:bg-slate/5',
     className,
@@ -31,7 +31,7 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
   return (
     <input
       className={clsx(
-        'w-full rounded-lg border border-slate/30 bg-white px-3 py-2 text-sm text-ink placeholder:text-slate/60 focus:border-teal focus:outline-none',
+        'w-full rounded-lg border border-slate/30 bg-white px-3 py-2 text-base text-ink placeholder:text-slate/60 focus:border-teal focus:outline-none',
         className,
       )}
       {...props}
@@ -43,7 +43,7 @@ export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTex
   return (
     <textarea
       className={clsx(
-        'w-full rounded-lg border border-slate/30 bg-white px-3 py-2 text-sm text-ink placeholder:text-slate/60 focus:border-teal focus:outline-none',
+        'w-full rounded-lg border border-slate/30 bg-white px-3 py-2 text-base text-ink placeholder:text-slate/60 focus:border-teal focus:outline-none',
         className,
       )}
       {...props}
@@ -55,7 +55,7 @@ export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectE
   return (
     <select
       className={clsx(
-        'w-full rounded-lg border border-slate/30 bg-white px-3 py-2 text-sm text-ink focus:border-teal focus:outline-none',
+        'w-full rounded-lg border border-slate/30 bg-white px-3 py-2 text-base text-ink focus:border-teal focus:outline-none',
         className,
       )}
       {...props}
@@ -65,7 +65,7 @@ export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectE
 
 export function Label({ className, ...props }: LabelHTMLAttributes<HTMLLabelElement>) {
   return (
-    <label className={clsx('mb-1 block text-xs font-medium text-slate', className)} {...props} />
+    <label className={clsx('mb-1 block text-sm font-medium text-slate', className)} {...props} />
   );
 }
 
@@ -77,5 +77,5 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
 
 export function FieldError({ children }: { children?: string }) {
   if (!children) return null;
-  return <p className="mt-1 text-xs text-danger">{children}</p>;
+  return <p className="mt-1 text-sm text-danger">{children}</p>;
 }

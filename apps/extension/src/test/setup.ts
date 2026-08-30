@@ -6,7 +6,12 @@ afterEach(cleanup);
 
 const sessionStore = new Map<string, unknown>();
 
-// jsdom has no chrome.* extension APIs — stub just what api-client.ts needs.
+// jsdom has no chrome.* extension APIs — stub just what each context needs.
+// storage.session is only ever touched by background/api.ts now (the
+// widget can't reach it); runtime.sendMessage/onMessage is the
+// widget<->background bridge (lib/messenger.ts, background/index.ts);
+// scripting.executeScript + action.onClicked back the toolbar-click toggle
+// (background/index.ts).
 Object.assign(globalThis, {
   chrome: {
     storage: {
@@ -19,6 +24,23 @@ Object.assign(globalThis, {
           sessionStore.delete(key);
         }),
       },
+    },
+    runtime: {
+      sendMessage: vi.fn(),
+      onMessage: {
+        addListener: vi.fn(),
+      },
+    },
+    scripting: {
+      executeScript: vi.fn(),
+    },
+    action: {
+      onClicked: {
+        addListener: vi.fn(),
+      },
+    },
+    tabs: {
+      query: vi.fn(),
     },
   },
 });

@@ -86,7 +86,10 @@ export const applicationQuerySchema = z.object({
   q: z.string().max(200).optional(),
   tag: z.string().max(60).optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
+  // 500 (not 100) so the Kanban board's "fetch everything, group client-side
+  // by status" query (apps/web/src/applications/KanbanBoard.tsx) fits under
+  // the cap — the list view's own pagination still uses a much smaller size.
+  pageSize: z.coerce.number().int().min(1).max(500).optional().default(20),
   sort: z
     .enum(['sentAt', '-sentAt', 'jobTitle', '-jobTitle', 'statusChangedAt', '-statusChangedAt'])
     .optional()

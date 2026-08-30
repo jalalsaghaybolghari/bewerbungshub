@@ -29,20 +29,20 @@ export function Widget({
   const user = override !== undefined ? override : refreshedUser;
 
   return (
-    <div className="fixed inset-y-0 right-0 z-[2147483647] flex w-96 flex-col overflow-hidden border-l border-slate/15 bg-paper shadow-xl">
-      <div className="flex items-center justify-between bg-ink px-4 py-3">
+    <div className="fixed inset-y-0 right-0 z-[2147483647] flex w-96 flex-col overflow-hidden border-l border-white/40 bg-paper/75 shadow-2xl backdrop-blur-2xl">
+      <div className="flex items-center justify-between border-b border-white/30 px-4 py-3">
         <a
           href={`${WEB_APP_URL}/dashboard`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm font-bold text-white hover:text-teal"
+          className="text-sm font-semibold text-ink hover:text-teal"
         >
           Bewerbermanagementsystem
         </a>
         <div className="flex items-center gap-3">
           {user && (
             <button
-              className="text-xs text-white/70 hover:text-white"
+              className="text-xs text-slate hover:text-ink"
               onClick={() => void logout().then(() => setOverride(null))}
             >
               Log out
@@ -51,7 +51,7 @@ export function Widget({
           <button
             type="button"
             aria-label="Close"
-            className="text-white/70 hover:text-white"
+            className="flex h-6 w-6 items-center justify-center rounded-full text-slate hover:bg-white/50 hover:text-ink"
             onClick={onClose}
           >
             ✕

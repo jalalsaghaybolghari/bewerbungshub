@@ -24,26 +24,31 @@ if (!document.getElementById(HOST_ID)) {
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 12px 8px;
-      background: #e0a93b;
+      padding: 14px 9px;
+      background: rgba(224, 169, 59, 0.35);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-right: none;
       color: #16233a;
-      font: 600 12px/1.2 system-ui, sans-serif;
-      letter-spacing: 0.02em;
-      border-radius: 8px 0 0 8px;
-      box-shadow: -1px 1px 4px rgba(0, 0, 0, 0.2);
+      font: 600 11px/1.2 system-ui, sans-serif;
+      letter-spacing: 0.03em;
+      border-radius: 12px 0 0 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
       cursor: pointer;
       writing-mode: vertical-rl;
       transform: translateY(-50%) rotate(180deg);
+      transition: background-color 0.15s ease;
     }
     button:hover {
-      background: #cf9a2f;
+      background: rgba(224, 169, 59, 0.55);
     }
   `;
   shadow.appendChild(style);
 
   const button = document.createElement('button');
   button.type = 'button';
-  button.textContent = 'Capture job';
+  button.textContent = 'Capture';
   button.addEventListener('click', () => {
     void chrome.runtime.sendMessage({ type: 'TOGGLE_WIDGET' });
   });

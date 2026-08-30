@@ -77,7 +77,40 @@ export function useMoveApplicationStatus() {
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       apiFetch<Application>(`/applications/${id}/status`, { method: 'POST', body: { status } }),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['applications'] }),
+    // Without this, the Kanban board still shows the pre-drag status until
+    // the request round-trips — the dropped card visibly snaps back to its
+    // old column, then jumps to the new one once the refetch lands. Update
+    // the cache immediately instead, and roll back only if the request
+    // actually fails. This touches every cached ['applications', ...] list
+    // query (the plain list page may also be mounted) — queries whose data
+    // isn't a paginated list (e.g. a single application's detail, or stats)
+    // have no `.items` and are left untouched.
+    onMutate: async ({ id, status }) => {
+      await queryClient.cancelQueries({ queryKey: ['applications'] });
+
+      const previous = queryClient.getQueriesData<ApplicationsListResponse>({
+        queryKey: ['applications'],
+      });
+
+      queryClient.setQueriesData<ApplicationsListResponse>(
+        { queryKey: ['applications'] },
+        (old) => {
+          if (!old?.items) return old;
+          return {
+            ...old,
+            items: old.items.map((app) =>
+              app._id === id ? { ...app, status: status as Application['status'] } : app,
+            ),
+          };
+        },
+      );
+
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      context?.previous.forEach(([key, data]) => queryClient.setQueryData(key, data));
+    },
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: ['applications'] }),
   });
 }
 

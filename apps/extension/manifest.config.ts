@@ -28,7 +28,15 @@ export default defineManifest({
   content_scripts: [
     {
       matches: ['<all_urls>'],
-      js: ['src/launcher/index.ts'],
+      // Named launcher.ts, not index.ts, deliberately: CRXJS's manifest
+      // rewriting collided when this and background/index.ts both resolved
+      // to a chunk named index.ts-<hash>.js — verified live, it wired
+      // service-worker-loader.js to import THIS script's bundle instead of
+      // the background's, which crashed the service worker outright
+      // ("Uncaught ReferenceError: document is not defined", since a
+      // service worker has no DOM). A distinct basename avoids the
+      // collision rather than working around it after the fact.
+      js: ['src/launcher/launcher.ts'],
       run_at: 'document_idle',
     },
   ],

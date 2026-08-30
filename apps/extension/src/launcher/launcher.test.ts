@@ -8,7 +8,7 @@ beforeEach(() => {
 
 describe('launcher content script', () => {
   it('mounts a shadow-DOM tab with a clickable button (happy path)', async () => {
-    await import('./index');
+    await import('./launcher');
 
     const host = document.getElementById('bewerber-launcher-host');
     expect(host).not.toBeNull();
@@ -16,7 +16,7 @@ describe('launcher content script', () => {
   });
 
   it('sends a TOGGLE_WIDGET message when clicked (happy path)', async () => {
-    await import('./index');
+    await import('./launcher');
 
     const button = document
       .getElementById('bewerber-launcher-host')
@@ -27,9 +27,9 @@ describe('launcher content script', () => {
   });
 
   it('does not mount a second tab if the script runs again on the same page (edge case)', async () => {
-    await import('./index');
+    await import('./launcher');
     vi.resetModules();
-    await import('./index');
+    await import('./launcher');
 
     expect(document.body.querySelectorAll('#bewerber-launcher-host').length).toBe(1);
   });

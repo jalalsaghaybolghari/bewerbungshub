@@ -1,5 +1,24 @@
 import { apiFetch, setAccessToken } from './api';
 import { ApiError } from '../lib/api-client';
+import { enqueue, flushQueue } from './queue';
+
+// The reliable trigger for retrying queued requests: MV3 service workers
+// get killed/evicted when idle, so a plain setInterval wouldn't survive —
+// an alarm wakes this one back up when it fires. `create` is idempotent
+// (recreating an alarm with the same name just resets its schedule), so
+// this can run unconditionally on every service worker startup.
+chrome.alarms.create('flush-offline-queue', { periodInMinutes: 2 });
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'flush-offline-queue') void flushQueue();
+});
+
+// A faster secondary trigger for when the service worker happens to
+// already be alive — service workers support the same online/offline
+// events as a window (NavigatorOnLine is part of the shared
+// WorkerGlobalScope/WindowOrWorkerGlobalScope mixin). Not a replacement
+// for the alarm above: this only fires if something else already woke the
+// worker up around the same time connectivity returned.
+self.addEventListener('online', () => void flushQueue());
 
 // Fire-and-forget: widget.js does its own DOM-presence check to decide
 // whether to mount or unmount, so there's no toggle state to track here —
@@ -39,6 +58,10 @@ interface ApiFetchMessage {
   path: string;
   method?: string;
   body?: unknown;
+  // Set only by createApplication (see lib/applications.ts) — the one call
+  // where losing the data actually matters. A failed duplicate-check or
+  // login attempt should just fail normally, not get queued.
+  queueOnNetworkFailure?: boolean;
 }
 
 type SerializedApiError = {
@@ -47,6 +70,8 @@ type SerializedApiError = {
   message: string;
   body?: unknown;
 };
+
+type QueuedResponse = { queued: true };
 
 function isApiFetchMessage(message: unknown): message is ApiFetchMessage {
   return (
@@ -85,6 +110,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       sendResponse({ ok: true, data });
     } catch (err) {
       if (message.path === '/auth/logout') await setAccessToken(null);
+
+      const isNetworkError = !(err instanceof ApiError);
+      if (isNetworkError && message.queueOnNetworkFailure) {
+        await enqueue(message.path, message.method ?? 'GET', message.body);
+        const response: QueuedResponse = { queued: true };
+        sendResponse(response);
+        return;
+      }
+
       const serialized: SerializedApiError =
         err instanceof ApiError
           ? { ok: false, status: err.status, message: err.message, body: err.body }

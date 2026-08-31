@@ -8,13 +8,23 @@ vi.mock('./api', () => ({
   setAccessToken: (...args: unknown[]) => setAccessTokenMock(...args),
 }));
 
+const enqueueMock = vi.fn();
+const flushQueueMock = vi.fn();
+vi.mock('./queue', () => ({
+  enqueue: (...args: unknown[]) => enqueueMock(...args),
+  flushQueue: (...args: unknown[]) => flushQueueMock(...args),
+}));
+
 const executeScriptMock = vi.fn();
 const onClickedAddListenerMock = vi.fn();
 const onMessageAddListenerMock = vi.fn();
+const alarmsCreateMock = vi.fn();
+const onAlarmAddListenerMock = vi.fn();
 Object.assign(globalThis.chrome, {
   scripting: { executeScript: executeScriptMock },
   action: { onClicked: { addListener: onClickedAddListenerMock } },
   runtime: { onMessage: { addListener: onMessageAddListenerMock } },
+  alarms: { create: alarmsCreateMock, onAlarm: { addListener: onAlarmAddListenerMock } },
 });
 
 type SendResponse = (response: unknown) => void;
@@ -28,6 +38,7 @@ type OnToggleWidgetHandler = (message: unknown, sender: { tab?: { id?: number } 
 let onClicked: (tab: { id?: number }) => void;
 let onMessage: OnMessageHandler;
 let onToggleWidgetMessage: OnToggleWidgetHandler;
+let onAlarm: (alarm: { name: string }) => void;
 
 beforeAll(async () => {
   await import('./index');
@@ -36,6 +47,7 @@ beforeAll(async () => {
   // first, then API_FETCH.
   onToggleWidgetMessage = onMessageAddListenerMock.mock.calls[0][0] as OnToggleWidgetHandler;
   onMessage = onMessageAddListenerMock.mock.calls[1][0] as OnMessageHandler;
+  onAlarm = onAlarmAddListenerMock.mock.calls[0][0] as typeof onAlarm;
 });
 
 describe('background', () => {
@@ -43,6 +55,28 @@ describe('background', () => {
     apiFetchMock.mockReset();
     setAccessTokenMock.mockReset();
     executeScriptMock.mockReset();
+    enqueueMock.mockReset();
+    flushQueueMock.mockReset();
+  });
+
+  describe('offline queue wiring', () => {
+    it('creates a periodic alarm to flush the queue (happy path)', () => {
+      expect(alarmsCreateMock).toHaveBeenCalledWith('flush-offline-queue', {
+        periodInMinutes: 2,
+      });
+    });
+
+    it('flushes the queue when the matching alarm fires (happy path)', () => {
+      onAlarm({ name: 'flush-offline-queue' });
+
+      expect(flushQueueMock).toHaveBeenCalled();
+    });
+
+    it('ignores an unrelated alarm (negative case)', () => {
+      onAlarm({ name: 'some-other-alarm' });
+
+      expect(flushQueueMock).not.toHaveBeenCalled();
+    });
   });
 
   describe('toolbar click', () => {
@@ -175,6 +209,57 @@ describe('background', () => {
       expect(result).toBeUndefined();
       expect(sendResponse).not.toHaveBeenCalled();
       expect(apiFetchMock).not.toHaveBeenCalled();
+    });
+
+    it('queues a network failure instead of erroring, when the sender opted in (happy path)', async () => {
+      apiFetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      const sendResponse = vi.fn();
+
+      onMessage(
+        {
+          type: 'API_FETCH',
+          path: '/applications',
+          method: 'POST',
+          body: { jobTitle: 'x' },
+          queueOnNetworkFailure: true,
+        },
+        {},
+        sendResponse,
+      );
+
+      await vi.waitFor(() => expect(sendResponse).toHaveBeenCalledWith({ queued: true }));
+      expect(enqueueMock).toHaveBeenCalledWith('/applications', 'POST', { jobTitle: 'x' });
+    });
+
+    it('does not queue a real ApiError even when the sender opted in (edge case)', async () => {
+      apiFetchMock.mockRejectedValueOnce(new ApiError(400, 'jobTitle is required'));
+      const sendResponse = vi.fn();
+
+      onMessage(
+        { type: 'API_FETCH', path: '/applications', method: 'POST', queueOnNetworkFailure: true },
+        {},
+        sendResponse,
+      );
+
+      await vi.waitFor(() =>
+        expect(sendResponse).toHaveBeenCalledWith({
+          ok: false,
+          status: 400,
+          message: 'jobTitle is required',
+          body: undefined,
+        }),
+      );
+      expect(enqueueMock).not.toHaveBeenCalled();
+    });
+
+    it('does not queue a network failure when the sender did not opt in (negative case)', async () => {
+      apiFetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      const sendResponse = vi.fn();
+
+      onMessage({ type: 'API_FETCH', path: '/auth/me' }, {}, sendResponse);
+
+      await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
+      expect(enqueueMock).not.toHaveBeenCalled();
     });
   });
 });

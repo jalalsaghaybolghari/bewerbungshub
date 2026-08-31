@@ -27,7 +27,7 @@ describe('CaptureForm', () => {
 
   it('prefills the form from the extraction and saves on submit (happy path)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
-    createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });
+    createApplicationMock.mockResolvedValueOnce({ status: 'saved', id: 'app-1' });
     render(
       <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
     );
@@ -46,9 +46,25 @@ describe('CaptureForm', () => {
     expect(await screen.findByText(/saved to your application tracker/i)).toBeInTheDocument();
   });
 
+  it('shows an offline message instead of a hard error when the save gets queued (edge case)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    createApplicationMock.mockResolvedValueOnce({ status: 'queued' });
+    render(
+      <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /save application/i }));
+
+    expect(await screen.findByText(/you're offline/i)).toBeInTheDocument();
+    expect(screen.queryByText(/saved to your application tracker/i)).not.toBeInTheDocument();
+    // Same follow-up actions as a real save — the data isn't lost, just deferred.
+    expect(screen.getByRole('button', { name: /show form again/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^close$/i })).toBeInTheDocument();
+  });
+
   it('calls onClose when the Close button is clicked after saving (happy path)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
-    createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });
+    createApplicationMock.mockResolvedValueOnce({ status: 'saved', id: 'app-1' });
     const onClose = vi.fn();
     render(
       <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={onClose} />,
@@ -62,7 +78,7 @@ describe('CaptureForm', () => {
 
   it('brings the filled-in form back when "Show form again" is clicked after saving (happy path)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
-    createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });
+    createApplicationMock.mockResolvedValueOnce({ status: 'saved', id: 'app-1' });
     render(
       <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
     );
@@ -76,7 +92,7 @@ describe('CaptureForm', () => {
 
   it('shows and saves an extracted posted date, and omits both when none was found (edge case)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
-    createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });
+    createApplicationMock.mockResolvedValueOnce({ status: 'saved', id: 'app-1' });
     const postedAt = new Date('2026-08-28T01:00:00.000Z');
     render(
       <CaptureForm
@@ -111,7 +127,7 @@ describe('CaptureForm', () => {
 
   it('saves the extracted off-site apply link instead of the tab URL, and duplicate-checks against it (edge case)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
-    createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });
+    createApplicationMock.mockResolvedValueOnce({ status: 'saved', id: 'app-1' });
     render(
       <CaptureForm
         url="https://www.linkedin.com/jobs/view/123"
@@ -180,7 +196,7 @@ describe('CaptureForm', () => {
 
   it('defaults status to draft, and saves it as-is when left alone (happy path)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
-    createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });
+    createApplicationMock.mockResolvedValueOnce({ status: 'saved', id: 'app-1' });
     render(
       <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
     );
@@ -195,7 +211,7 @@ describe('CaptureForm', () => {
 
   it('saves the status the user picks instead of the draft default (edge case)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
-    createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });
+    createApplicationMock.mockResolvedValueOnce({ status: 'saved', id: 'app-1' });
     render(
       <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
     );

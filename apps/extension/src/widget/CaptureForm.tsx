@@ -56,7 +56,7 @@ export function CaptureForm({
   onClose: () => void;
 }) {
   const [duplicateId, setDuplicateId] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState<'saved' | 'queued' | false>(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const applyLink = resolveApplyLink(url, extraction);
@@ -85,8 +85,8 @@ export function CaptureForm({
   async function onSubmit(input: CreateApplicationInput) {
     setServerError(null);
     try {
-      await createApplication(input);
-      setSaved(true);
+      const result = await createApplication(input);
+      setSaved(result.status);
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : 'Something went wrong.');
     }
@@ -95,7 +95,13 @@ export function CaptureForm({
   if (saved) {
     return (
       <div className="space-y-3 p-4">
-        <p className="text-sm font-medium text-success">Saved to your application tracker.</p>
+        {saved === 'saved' ? (
+          <p className="text-sm font-medium text-success">Saved to your application tracker.</p>
+        ) : (
+          <p className="text-sm font-medium text-amber">
+            You're offline — this will be saved automatically once you're back online.
+          </p>
+        )}
         <Button
           type="button"
           variant="secondary"

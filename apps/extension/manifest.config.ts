@@ -50,7 +50,11 @@ export default defineManifest({
   // UI (verified live: the launcher tab's click did nothing, silently,
   // because of exactly this). <all_urls> host_permissions below covers it
   // persistently instead, for both trigger paths.
-  permissions: ['activeTab', 'scripting', 'storage'],
+  // "alarms" backs the offline retry queue's periodic flush
+  // (background/queue.ts) — MV3 service workers don't stay alive for a
+  // setInterval to survive, but a chrome.alarms alarm wakes one back up
+  // when it fires.
+  permissions: ['activeTab', 'scripting', 'storage', 'alarms'],
   // Superset of the API origin this used to list on its own — already
   // covered by <all_urls>, and needed regardless now (see above), so it's
   // not listed separately anymore.

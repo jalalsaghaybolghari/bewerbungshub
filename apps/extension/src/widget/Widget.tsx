@@ -89,7 +89,13 @@ export function Widget({
                 reconcile new props into already-initialized form state,
                 which react-hook-form's defaultValues doesn't do on its
                 own after mount. */}
-            <CaptureView key={url} url={url} extraction={extraction} error={extractionError} />
+            <CaptureView
+              key={url}
+              url={url}
+              extraction={extraction}
+              error={extractionError}
+              onClose={onClose}
+            />
           </>
         )}
       </div>

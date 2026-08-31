@@ -46,7 +46,15 @@ function defaultValues(applyLink: string, extraction: ExtractedJobPosting): Capt
   };
 }
 
-export function CaptureForm({ url, extraction }: { url: string; extraction: ExtractedJobPosting }) {
+export function CaptureForm({
+  url,
+  extraction,
+  onClose,
+}: {
+  url: string;
+  extraction: ExtractedJobPosting;
+  onClose: () => void;
+}) {
   const [duplicateId, setDuplicateId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -86,8 +94,11 @@ export function CaptureForm({ url, extraction }: { url: string; extraction: Extr
 
   if (saved) {
     return (
-      <div className="p-4">
+      <div className="space-y-3 p-4">
         <p className="text-sm font-medium text-success">Saved to your application tracker.</p>
+        <Button type="button" onClick={onClose} className="w-full">
+          Close
+        </Button>
       </div>
     );
   }

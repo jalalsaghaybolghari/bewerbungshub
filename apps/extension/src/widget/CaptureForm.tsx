@@ -96,6 +96,14 @@ export function CaptureForm({
     return (
       <div className="space-y-3 p-4">
         <p className="text-sm font-medium text-success">Saved to your application tracker.</p>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setSaved(false)}
+          className="w-full"
+        >
+          Show form again
+        </Button>
         <Button type="button" onClick={onClose} className="w-full">
           Close
         </Button>

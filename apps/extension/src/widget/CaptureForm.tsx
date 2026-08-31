@@ -34,7 +34,10 @@ function defaultValues(applyLink: string, extraction: ExtractedJobPosting): Capt
     jobDescription: extraction.jobDescription?.value ?? '',
     applyLink,
     applyType: extraction.applyType?.value ?? 'website',
-    status: 'applied',
+    // Capturing a posting isn't the same as having applied to it — default
+    // to draft rather than createApplicationSchema's own 'applied' default,
+    // since clicking Save here just means "I found this," not "I applied."
+    status: 'draft',
     tags: [],
     // Not every source can find this (nullable) — an approximate posted/
     // reposted date when one was found, e.g. from LinkedIn's "11 hours ago".

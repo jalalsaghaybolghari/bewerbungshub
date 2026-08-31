@@ -61,7 +61,7 @@ export function InterviewsSection({
       <div className="mb-3 flex items-center justify-between">
         <h2 className="font-semibold text-ink">{t('interviews.title')}</h2>
         <button
-          className="text-sm text-teal hover:underline"
+          className="text-sm text-accent hover:underline"
           onClick={() => setShowForm((v) => !v)}
         >
           {showForm ? t('common.cancel') : t('interviews.schedule')}

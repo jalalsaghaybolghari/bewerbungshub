@@ -101,7 +101,7 @@ function CvRow({ cv, onDelete }: { cv: Cv; onDelete: () => void }) {
         <div className="font-semibold text-ink">
           {cv.label}
           {cv.isDefault && (
-            <span className="ml-2 rounded-full bg-teal/15 px-2 py-0.5 text-xs font-semibold text-teal">
+            <span className="ml-2 rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent">
               {t('cvs.default')}
             </span>
           )}
@@ -113,7 +113,7 @@ function CvRow({ cv, onDelete }: { cv: Cv; onDelete: () => void }) {
       <div className="flex items-center gap-3">
         {!cv.isDefault && (
           <button
-            className="text-sm text-teal hover:underline"
+            className="text-sm text-accent hover:underline"
             onClick={() => updateMutation.mutate({ isDefault: true })}
           >
             {t('cvs.setDefault')}

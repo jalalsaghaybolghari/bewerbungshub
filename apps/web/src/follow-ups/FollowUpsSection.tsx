@@ -60,7 +60,7 @@ export function FollowUpsSection({
       <div className="mb-3 flex items-center justify-between">
         <h2 className="font-semibold text-ink">{t('followUps.title')}</h2>
         <button
-          className="text-sm text-teal hover:underline"
+          className="text-sm text-accent hover:underline"
           onClick={() => setShowForm((v) => !v)}
         >
           {showForm ? t('common.cancel') : t('followUps.schedule')}
@@ -117,7 +117,7 @@ export function FollowUpsSection({
               <div className="flex items-center gap-3">
                 {followUp.status === 'scheduled' && (
                   <button
-                    className="text-xs text-teal hover:underline"
+                    className="text-xs text-accent hover:underline"
                     onClick={() => update.mutate({ id: followUp._id, input: { status: 'sent' } })}
                   >
                     {t('followUps.markSent')}

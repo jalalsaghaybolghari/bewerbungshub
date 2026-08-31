@@ -47,7 +47,7 @@ export function ApplicationDetailPage() {
           <StatusBadge status={application.status} />
           <Link
             to={`/applications/${application._id}/edit`}
-            className="text-sm text-teal hover:underline"
+            className="text-sm text-accent hover:underline"
           >
             {t('common.edit')}
           </Link>
@@ -82,7 +82,7 @@ export function ApplicationDetailPage() {
         <h2 className="mb-3 font-semibold text-ink">{t('applications.detail.timeline')}</h2>
         <ul className="space-y-3">
           {events.map((event) => (
-            <li key={event._id} className="border-l-2 border-teal/40 pl-3 text-sm">
+            <li key={event._id} className="border-l-2 border-accent/40 pl-3 text-sm">
               <div className="font-medium text-ink">{event.type}</div>
               <div className="text-xs text-slate">
                 {new Date(event.occurredAt).toLocaleString()}

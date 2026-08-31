@@ -5,9 +5,9 @@ import type { ApplicationStatus } from '@bewerber/shared';
 const COLORS: Record<ApplicationStatus, string> = {
   draft: 'bg-slate/15 text-slate',
   applied: 'bg-slate/15 text-slate',
-  acknowledged: 'bg-teal/15 text-teal',
-  screening: 'bg-teal/15 text-teal',
-  interview: 'bg-teal/15 text-teal',
+  acknowledged: 'bg-accent/15 text-accent',
+  screening: 'bg-accent/15 text-accent',
+  interview: 'bg-accent/15 text-accent',
   offer: 'bg-success/15 text-success',
   accepted: 'bg-success/15 text-success',
   rejected: 'bg-danger/15 text-danger',

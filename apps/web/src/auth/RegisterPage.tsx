@@ -52,7 +52,12 @@ export function RegisterPage() {
 
         <div className="mb-6">
           <Label htmlFor="password">{t('auth.password')}</Label>
-          <Input id="password" type="password" autoComplete="new-password" {...register('password')} />
+          <Input
+            id="password"
+            type="password"
+            autoComplete="new-password"
+            {...register('password')}
+          />
           <FieldError>{errors.password?.message}</FieldError>
         </div>
 
@@ -64,7 +69,7 @@ export function RegisterPage() {
 
         <p className="mt-4 text-center text-xs text-slate">
           {t('auth.haveAccount')}{' '}
-          <Link to="/login" className="font-semibold text-teal">
+          <Link to="/login" className="font-semibold text-accent">
             {t('auth.login')}
           </Link>
         </p>

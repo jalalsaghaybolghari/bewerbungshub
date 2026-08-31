@@ -58,13 +58,13 @@ export function ApplicationsListPage() {
         </div>
         <div className="flex overflow-hidden rounded-lg border border-slate/30 text-sm">
           <button
-            className={`px-3 py-1.5 ${view === 'list' ? 'bg-teal text-white' : 'bg-white text-ink hover:bg-slate/5'}`}
+            className={`px-3 py-1.5 ${view === 'list' ? 'bg-accent text-white' : 'bg-white text-ink hover:bg-slate/5'}`}
             onClick={() => setView('list')}
           >
             {t('applications.view.list')}
           </button>
           <button
-            className={`px-3 py-1.5 ${view === 'kanban' ? 'bg-teal text-white' : 'bg-white text-ink hover:bg-slate/5'}`}
+            className={`px-3 py-1.5 ${view === 'kanban' ? 'bg-accent text-white' : 'bg-white text-ink hover:bg-slate/5'}`}
             onClick={() => setView('kanban')}
           >
             {t('applications.view.kanban')}
@@ -103,7 +103,7 @@ export function ApplicationsListPage() {
                   <td className="px-4 py-3">
                     <Link
                       to={`/applications/${app._id}`}
-                      className="font-semibold text-ink hover:text-teal"
+                      className="font-semibold text-ink hover:text-accent"
                     >
                       {app.jobTitle}
                     </Link>

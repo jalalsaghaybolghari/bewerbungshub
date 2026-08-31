@@ -101,7 +101,7 @@ function KanbanColumn({
     <div
       ref={setNodeRef}
       className={`w-64 flex-shrink-0 rounded-xl border p-3 ${
-        isOver ? 'border-teal bg-teal/5' : 'border-slate/15 bg-slate/5'
+        isOver ? 'border-accent bg-accent/5' : 'border-slate/15 bg-slate/5'
       }`}
     >
       <div className="mb-3 flex items-center justify-between px-1 text-xs font-semibold uppercase tracking-wide text-slate">
@@ -151,7 +151,7 @@ function KanbanCardContent({
     >
       <Link
         to={`/applications/${application._id}`}
-        className="text-sm font-semibold text-ink hover:text-teal"
+        className="text-sm font-semibold text-ink hover:text-accent"
       >
         {application.jobTitle}
       </Link>

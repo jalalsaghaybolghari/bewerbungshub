@@ -46,7 +46,12 @@ export function LoginPage() {
 
         <div className="mb-6">
           <Label htmlFor="password">{t('auth.password')}</Label>
-          <Input id="password" type="password" autoComplete="current-password" {...register('password')} />
+          <Input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            {...register('password')}
+          />
           <FieldError>{errors.password?.message}</FieldError>
         </div>
 
@@ -58,7 +63,7 @@ export function LoginPage() {
 
         <p className="mt-4 text-center text-xs text-slate">
           {t('auth.noAccount')}{' '}
-          <Link to="/register" className="font-semibold text-teal">
+          <Link to="/register" className="font-semibold text-accent">
             {t('auth.register')}
           </Link>
         </p>

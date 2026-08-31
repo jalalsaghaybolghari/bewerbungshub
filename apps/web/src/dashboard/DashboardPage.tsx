@@ -83,7 +83,7 @@ export function DashboardPage() {
           <ul className="space-y-2">
             {stats.overdueFollowUps.map((app) => (
               <li key={app._id} className="flex items-center justify-between text-sm">
-                <Link to={`/applications/${app._id}`} className="text-teal hover:underline">
+                <Link to={`/applications/${app._id}`} className="text-accent hover:underline">
                   {app.jobTitle} · {app.company.name}
                 </Link>
                 <span className="text-xs text-slate">

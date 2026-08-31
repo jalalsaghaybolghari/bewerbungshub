@@ -90,7 +90,7 @@ export function SettingsPage() {
             <Button type="submit" disabled={isSubmitting}>
               {t('common.save')}
             </Button>
-            {saved && <span className="text-sm text-teal">{t('settings.saved')}</span>}
+            {saved && <span className="text-sm text-accent">{t('settings.saved')}</span>}
           </div>
         </form>
       </Card>

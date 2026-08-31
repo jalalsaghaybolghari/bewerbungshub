@@ -60,6 +60,20 @@ describe('CaptureForm', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('brings the filled-in form back when "Show form again" is clicked after saving (happy path)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });
+    render(
+      <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /save application/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /show form again/i }));
+
+    expect(screen.getByDisplayValue('Backend Engineer')).toBeInTheDocument();
+    expect(screen.queryByText(/saved to your application tracker/i)).not.toBeInTheDocument();
+  });
+
   it('shows and saves an extracted posted date, and omits both when none was found (edge case)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
     createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });

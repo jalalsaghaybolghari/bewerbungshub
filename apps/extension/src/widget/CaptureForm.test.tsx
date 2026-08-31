@@ -28,7 +28,9 @@ describe('CaptureForm', () => {
   it('prefills the form from the extraction and saves on submit (happy path)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
     createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });
-    render(<CaptureForm url="https://example.com/jobs/1" extraction={extraction} />);
+    render(
+      <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
+    );
 
     expect(await screen.findByDisplayValue('Backend Engineer')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Acme Corp')).toBeInTheDocument();
@@ -44,6 +46,20 @@ describe('CaptureForm', () => {
     expect(await screen.findByText(/saved to your application tracker/i)).toBeInTheDocument();
   });
 
+  it('calls onClose when the Close button is clicked after saving (happy path)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });
+    const onClose = vi.fn();
+    render(
+      <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={onClose} />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /save application/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /^close$/i }));
+
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it('shows and saves an extracted posted date, and omits both when none was found (edge case)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
     createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });
@@ -55,6 +71,7 @@ describe('CaptureForm', () => {
           ...extraction,
           postedAt: { value: postedAt, confidence: 0.7, source: 'site-adapter' },
         }}
+        onClose={vi.fn()}
       />,
     );
 
@@ -70,7 +87,9 @@ describe('CaptureForm', () => {
 
   it('omits the posted-date note when none was found (negative case)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
-    render(<CaptureForm url="https://example.com/jobs/1" extraction={extraction} />);
+    render(
+      <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
+    );
 
     await screen.findByLabelText(/job title/i);
     expect(screen.queryByText(/^Posted /)).not.toBeInTheDocument();
@@ -90,6 +109,7 @@ describe('CaptureForm', () => {
             source: 'site-adapter',
           },
         }}
+        onClose={vi.fn()}
       />,
     );
 
@@ -109,14 +129,16 @@ describe('CaptureForm', () => {
 
   it('shows a duplicate warning when the apply link is already tracked (edge case)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: true, id: 'app-existing' });
-    render(<CaptureForm url="https://example.com/jobs/1" extraction={{}} />);
+    render(<CaptureForm url="https://example.com/jobs/1" extraction={{}} onClose={vi.fn()} />);
 
     expect(await screen.findByText(/already have an application saved/i)).toBeInTheDocument();
   });
 
   it('links location to a Google Maps search, updating as the field is edited (edge case)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
-    render(<CaptureForm url="https://example.com/jobs/1" extraction={extraction} />);
+    render(
+      <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
+    );
 
     const mapsLink = await screen.findByRole('link', { name: /open in maps/i });
     expect(mapsLink).toHaveAttribute(
@@ -136,7 +158,7 @@ describe('CaptureForm', () => {
 
   it('hides the Maps link when location is empty (negative case)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
-    render(<CaptureForm url="https://example.com/jobs/1" extraction={{}} />);
+    render(<CaptureForm url="https://example.com/jobs/1" extraction={{}} onClose={vi.fn()} />);
 
     await screen.findByLabelText(/job title/i);
     expect(screen.queryByRole('link', { name: /open in maps/i })).not.toBeInTheDocument();
@@ -145,7 +167,9 @@ describe('CaptureForm', () => {
   it('defaults status to draft, and saves it as-is when left alone (happy path)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
     createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });
-    render(<CaptureForm url="https://example.com/jobs/1" extraction={extraction} />);
+    render(
+      <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
+    );
 
     expect(await screen.findByLabelText(/status/i)).toHaveValue('draft');
 
@@ -158,7 +182,9 @@ describe('CaptureForm', () => {
   it('saves the status the user picks instead of the draft default (edge case)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
     createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });
-    render(<CaptureForm url="https://example.com/jobs/1" extraction={extraction} />);
+    render(
+      <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
+    );
 
     await userEvent.selectOptions(await screen.findByLabelText(/status/i), 'applied');
     await userEvent.click(screen.getByRole('button', { name: /save application/i }));
@@ -170,7 +196,9 @@ describe('CaptureForm', () => {
   it('shows the server error and does not clear the form when saving fails (negative case)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
     createApplicationMock.mockRejectedValueOnce(new ApiError(400, 'jobTitle is required'));
-    render(<CaptureForm url="https://example.com/jobs/1" extraction={extraction} />);
+    render(
+      <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
+    );
 
     const jobTitleInput = await screen.findByDisplayValue('Backend Engineer');
     await userEvent.clear(jobTitleInput);

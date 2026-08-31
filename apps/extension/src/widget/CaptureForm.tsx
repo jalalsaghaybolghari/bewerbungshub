@@ -126,7 +126,7 @@ export function CaptureForm({ url, extraction }: { url: string; extraction: Extr
               href={mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mb-1 text-sm text-teal hover:underline"
+              className="mb-1 text-sm text-accent hover:underline"
             >
               Open in Maps
             </a>

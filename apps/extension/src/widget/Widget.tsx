@@ -45,9 +45,9 @@ export function Widget({
           href={`${WEB_APP_URL}/dashboard`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-base font-semibold text-ink hover:text-teal"
+          className="text-base font-semibold text-ink hover:text-accent"
         >
-          Bewerbermanagementsystem
+          BewerbungsHub
         </a>
         <div className="flex items-center gap-3">
           {user && (

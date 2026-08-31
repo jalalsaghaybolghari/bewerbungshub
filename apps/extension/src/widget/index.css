@@ -3,7 +3,10 @@
 @theme {
   --color-ink: #16233a;
   --color-paper: #f7f5f0;
-  --color-teal: #14b8a6;
+  /* BewerbungsHub brand indigo — kept in sync with the same tokens in
+     apps/web/src/index.css for one consistent identity across both apps. */
+  --color-accent: #4f46e5;
+  --color-accent-2: #818cf8;
   --color-slate: #5b7290;
   --color-amber: #e0a93b;
   --color-danger: #d9534f;

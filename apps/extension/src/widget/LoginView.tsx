@@ -27,7 +27,7 @@ export function LoginView({ onLoggedIn }: { onLoggedIn: (user: AuthUser) => void
 
   return (
     <div className="p-4">
-      <h1 className="mb-1 text-xl font-bold text-ink">Bewerbermanagementsystem</h1>
+      <h1 className="mb-1 text-xl font-bold text-ink">BewerbungsHub</h1>
       <p className="mb-4 text-base text-slate">Log in to capture this job posting.</p>
       <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-3">
         <div>

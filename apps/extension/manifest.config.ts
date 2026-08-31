@@ -3,7 +3,7 @@ import pkg from './package.json' with { type: 'json' };
 
 export default defineManifest({
   manifest_version: 3,
-  name: 'Bewerbermanagementsystem Capture',
+  name: 'BewerbungsHub Capture',
   description: 'Capture the job posting you are viewing and save it to your application tracker.',
   version: pkg.version,
   // No default_popup: clicking the toolbar icon fires action.onClicked

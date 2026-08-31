@@ -59,7 +59,7 @@ describe('Widget', () => {
     render(<Widget url="https://example.com/job" onClose={vi.fn()} />);
 
     expect(screen.getByText(/mock capture view/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /bewerbermanagementsystem/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /bewerbungshub/i })).toHaveAttribute(
       'href',
       'http://localhost:5173/dashboard',
     );

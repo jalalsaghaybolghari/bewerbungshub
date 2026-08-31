@@ -25,7 +25,11 @@ if (!document.getElementById(HOST_ID)) {
       align-items: center;
       justify-content: center;
       padding: 14px 9px;
-      background: rgba(224, 169, 59, 0.35);
+      /* BewerbungsHub brand indigo (#4f46e5) — kept in sync with
+         --color-accent in widget/index.css; this file stays plain CSS
+         (no Tailwind/theme import, see the file-level comment above), so
+         the value is duplicated here rather than shared. */
+      background: rgba(79, 70, 229, 0.35);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border: 1px solid rgba(255, 255, 255, 0.4);
@@ -33,7 +37,7 @@ if (!document.getElementById(HOST_ID)) {
       color: #16233a;
       font: 600 11px/1.2 system-ui, sans-serif;
       letter-spacing: 0.03em;
-      border-radius: 12px 0 0 12px;
+      border-radius: 0 12px 12px 0;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
       cursor: pointer;
       writing-mode: vertical-rl;
@@ -41,14 +45,14 @@ if (!document.getElementById(HOST_ID)) {
       transition: background-color 0.15s ease;
     }
     button:hover {
-      background: rgba(224, 169, 59, 0.55);
+      background: rgba(79, 70, 229, 0.55);
     }
   `;
   shadow.appendChild(style);
 
   const button = document.createElement('button');
   button.type = 'button';
-  button.textContent = 'Capture';
+  button.textContent = 'BewerbungsHub';
   button.addEventListener('click', () => {
     void chrome.runtime.sendMessage({ type: 'TOGGLE_WIDGET' });
   });

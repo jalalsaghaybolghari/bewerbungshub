@@ -142,6 +142,31 @@ describe('CaptureForm', () => {
     expect(screen.queryByRole('link', { name: /open in maps/i })).not.toBeInTheDocument();
   });
 
+  it('defaults status to draft, and saves it as-is when left alone (happy path)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });
+    render(<CaptureForm url="https://example.com/jobs/1" extraction={extraction} />);
+
+    expect(await screen.findByLabelText(/status/i)).toHaveValue('draft');
+
+    await userEvent.click(screen.getByRole('button', { name: /save application/i }));
+
+    await vi.waitFor(() => expect(createApplicationMock).toHaveBeenCalled());
+    expect(createApplicationMock.mock.calls[0][0]).toMatchObject({ status: 'draft' });
+  });
+
+  it('saves the status the user picks instead of the draft default (edge case)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    createApplicationMock.mockResolvedValueOnce({ _id: 'app-1' });
+    render(<CaptureForm url="https://example.com/jobs/1" extraction={extraction} />);
+
+    await userEvent.selectOptions(await screen.findByLabelText(/status/i), 'applied');
+    await userEvent.click(screen.getByRole('button', { name: /save application/i }));
+
+    await vi.waitFor(() => expect(createApplicationMock).toHaveBeenCalled());
+    expect(createApplicationMock.mock.calls[0][0]).toMatchObject({ status: 'applied' });
+  });
+
   it('shows the server error and does not clear the form when saving fails (negative case)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
     createApplicationMock.mockRejectedValueOnce(new ApiError(400, 'jobTitle is required'));

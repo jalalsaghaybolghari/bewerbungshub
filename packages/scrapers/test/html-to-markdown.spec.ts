@@ -48,4 +48,28 @@ describe('elementToMarkdown', () => {
 
     expect(elementToMarkdown(el)).toBe('');
   });
+
+  it('skips <button> elements entirely, since they are UI chrome rather than content (edge case)', () => {
+    const el = elementFromHtml(`
+      <p>Real content.</p>
+      <button>nach Oben</button>
+    `);
+
+    expect(elementToMarkdown(el)).toBe('Real content.');
+  });
+
+  it('does not throw on comment nodes interleaved between elements (negative case)', () => {
+    // Angular templates render `<!---->` placeholder comments between every
+    // conditionally-rendered element — real-world DOM, not a contrived
+    // input. This crashed live against a real AMS page before the fix.
+    const el = elementFromHtml(`
+      <!---->
+      <p>Real content.</p>
+      <!---->
+      <ul><!----><li>Item one</li><!----></ul>
+      <!---->
+    `);
+
+    expect(elementToMarkdown(el)).toBe('Real content.\n\n- Item one');
+  });
 });

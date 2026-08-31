@@ -28,8 +28,19 @@ function walk(node: Node, blocks: string[]): void {
     return;
   }
 
+  // Comment nodes (and anything else that isn't an element) have no
+  // `.children` — Angular templates litter the real DOM with `<!---->`
+  // placeholder comments between every conditionally-rendered element,
+  // so this isn't a hypothetical: without this guard, `el.children`
+  // below throws on the first one and the whole extraction is lost.
+  if (node.nodeType !== node.ELEMENT_NODE) return;
+
   const el = node as Element;
   const tag = el.tagName;
+
+  // UI chrome, never real content (e.g. AMS's detail page ends with a
+  // "nach Oben" / "back to top" button inside the content area).
+  if (tag === 'BUTTON') return;
 
   if (tag === 'UL' || tag === 'OL') {
     const items = Array.from(el.children)

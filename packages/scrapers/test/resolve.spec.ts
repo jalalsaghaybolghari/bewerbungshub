@@ -50,6 +50,20 @@ describe('resolveJobPosting', () => {
     expect(result.jobTitle?.value).toBe('Engineer');
   });
 
+  it('uses the AMS adapter for a jobs.ams.at job URL (happy path)', () => {
+    const doc = docFromHtml(
+      '<html><head><script type="application/ld+json">{"@type":"JobPosting","title":"Engineer"}</script></head></html>',
+    );
+
+    const result = resolveJobPosting(
+      'https://jobs.ams.at/public/emps/jobs/3fb9334a-edaf-38e3-83e6-c03c84fb4070',
+      doc,
+    );
+
+    expect(result.applyType?.value).toBe('ams');
+    expect(result.jobTitle?.value).toBe('Engineer');
+  });
+
   it('falls back to the generic pipeline for an unrecognized site (edge case)', () => {
     const doc = docFromHtml(
       '<html><head><script type="application/ld+json">{"@type":"JobPosting","title":"Engineer"}</script></head></html>',

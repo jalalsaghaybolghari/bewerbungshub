@@ -28,6 +28,7 @@ export const applyTypeValues = [
   'xing',
   'stepstone',
   'indeed',
+  'ams',
   'email',
   'website',
   'referral',

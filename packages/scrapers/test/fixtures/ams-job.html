@@ -1,0 +1,94 @@
+<!--
+  This fixture mirrors the REAL jobs.ams.at detail page structure — the
+  user pasted a real page's `document.body.innerHTML` (via DevTools),
+  since the site is client-rendered by Angular and has no JSON-LD or
+  usable meta tags (confirmed separately: og:title/og:description and
+  <meta name="description"> are static site-wide defaults, not per-job).
+  Trimmed down to just the elements extractAms() actually reads, keeping
+  the real ids/tags and the real "bei <company>" visually-hidden span in
+  the <h1> (used only as a fallback if these ids ever go missing). Other
+  chrome (breadcrumbs, share buttons, etc.) is omitted — not relevant to
+  extraction. `<lib-detail-content>` is trimmed to a representative subset
+  of the real page's sections (company description, job description,
+  competencies, contact) rather than every single field AMS shows, since
+  the point here is proving the whole-section Markdown conversion works,
+  not exhaustively mirroring every possible field.
+-->
+<!doctype html>
+<html>
+  <head>
+    <title>alle jobs - die Stellensuche des AMS</title>
+    <meta
+      name="description"
+      content="alle jobs - Mit einem Klick alle aktuellen Stellenangebote in ganz Österreich durchsuchen. Job suchen - schnell und einfach. Jetzt ausprobieren!"
+    />
+    <meta property="og:title" content="alle jobs - die Stellensuche des AMS" />
+    <meta
+      property="og:description"
+      content="alle jobs - Mit einem Klick alle aktuellen Stellenangebote in ganz Österreich durchsuchen. Job suchen - schnell und einfach. Jetzt ausprobieren!"
+    />
+  </head>
+  <body>
+    <h1 class="title-view">
+      <span class="fw-semibold" id="ams-detail-details-header"> SoftwareentwicklerIn </span>
+      <span class="visually-hidden" id="ams-detail-details-name"> bei ASING engineering e.U. </span>
+    </h1>
+
+    <ams-key-value-pair id="ams-detail-companyname">
+      <div data-testid="key-value-pair-label"><span>Unternehmen:</span></div>
+      <div data-testid="key-value-pair-content">
+        <span class="fw-bold" id="ams-detail-companyname-text">ASING engineering e.U.</span>
+      </div>
+    </ams-key-value-pair>
+
+    <ams-key-value-pair id="ams-detail-location">
+      <div data-testid="key-value-pair-label"><span>Arbeitsort:</span></div>
+      <div data-testid="key-value-pair-content"> Gusenleithnergasse 11/3, 1140, Wien,Penzing </div>
+    </ams-key-value-pair>
+
+    <!--
+      The `<!---->` placeholder comments below are real: Angular templates
+      litter the live DOM with these between conditionally-rendered
+      elements. This caused a genuine live crash (extraction threw,
+      widget showed a generic "Could not read this page" error) since
+      elementToMarkdown() didn't originally handle non-element nodes —
+      kept here so a regression can't slip back in unnoticed.
+    -->
+    <lib-detail-content>
+      <div class="container-fluid px-0">
+        <div class="row">
+          <div class="col-md-12">
+            <!---->
+            <h2 id="ams-detail-companydescription-header">Unternehmensbeschreibung</h2>
+            <p class="fs-s u-whitespace-prewrap" id="ams-detail-companydescription-text">
+              Wir sind ein Unternehmen in 1140 Wien und bieten Ingenieurleistungen an.
+            </p>
+            <!----><!---->
+
+            <h2 id="ams-detail-jobdescription-header">Stellenbeschreibung</h2>
+            <p class="fs-s u-whitespace-prewrap" id="ams-detail-jobdescription-text">
+              Unser Unternehmen sucht einen Softwareentwickler, der selbstständig eine App
+              programmiert.
+            </p>
+
+            <h3 id="ams-detail-competence-header">Kompetenzen</h3>
+            <ul id="ams-detail-competence-list">
+              <!----><li>App programmieren</li><!----><li>C++</li><!---->
+            </ul>
+            <!---->
+
+            <h3 id="ams-detail-addresscontact-header">Kontakt &amp; Adresse</h3>
+            <div class="row mt-050">
+              <div class="col-sm-12 col-md-6 c-detail-contact">
+                <div class="fw-bold" id="ams-detail-contact-text">Herr Arif Sahin</div>
+              </div>
+            </div>
+            <!----><!----><!---->
+
+            <button class="btn btn-secondary d-block d-md-none mt-100">nach Oben</button>
+          </div>
+        </div>
+      </div>
+    </lib-detail-content>
+  </body>
+</html>

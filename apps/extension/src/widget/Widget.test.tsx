@@ -81,4 +81,36 @@ describe('Widget', () => {
 
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('shows a refresh banner when a new job is detected, and calls onRefresh when clicked (happy path)', async () => {
+    authState = {
+      user: { id: '1', email: 'bob@example.com', displayName: 'Bob', locale: 'en' },
+      isLoading: false,
+    };
+    const onRefresh = vi.fn();
+    render(
+      <Widget
+        url="https://example.com/job"
+        newJobAvailable
+        onRefresh={onRefresh}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/a different job was found/i)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /refresh/i }));
+
+    expect(onRefresh).toHaveBeenCalled();
+  });
+
+  it('does not show the refresh banner when no new job was detected (negative case)', () => {
+    authState = {
+      user: { id: '1', email: 'bob@example.com', displayName: 'Bob', locale: 'en' },
+      isLoading: false,
+    };
+    render(<Widget url="https://example.com/job" onClose={vi.fn()} />);
+
+    expect(screen.queryByText(/a different job was found/i)).not.toBeInTheDocument();
+  });
 });

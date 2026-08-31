@@ -15,11 +15,21 @@ export function Widget({
   url,
   extraction,
   extractionError,
+  newJobAvailable,
+  onRefresh,
   onClose,
 }: {
   url: string;
   extraction?: ExtractedJobPosting;
   extractionError?: string;
+  // Set when content.tsx detects the page navigated (e.g. clicking a
+  // different job in LinkedIn's search results, which swaps content via
+  // the History API rather than a real page load) while this stayed open.
+  // Surfaced as a banner rather than auto-refreshing, so it doesn't
+  // silently overwrite anything already being edited below for the job
+  // currently shown.
+  newJobAvailable?: boolean;
+  onRefresh?: () => void;
   onClose: () => void;
 }) {
   const { user: refreshedUser, isLoading } = useAuthState();
@@ -64,7 +74,23 @@ export function Widget({
         ) : !user ? (
           <LoginView onLoggedIn={setOverride} />
         ) : (
-          <CaptureView url={url} extraction={extraction} error={extractionError} />
+          <>
+            {newJobAvailable && onRefresh && (
+              <div className="flex items-center justify-between gap-3 border-b border-amber/30 bg-amber/15 px-4 py-2 text-sm text-amber">
+                <span>A different job was found on this page.</span>
+                <button type="button" className="font-semibold underline" onClick={onRefresh}>
+                  Refresh
+                </button>
+              </div>
+            )}
+            {/* Keyed on url: when onRefresh swaps to the new job, this
+                remounts CaptureForm fresh (new defaultValues from the new
+                extraction, duplicate-check re-run) instead of trying to
+                reconcile new props into already-initialized form state,
+                which react-hook-form's defaultValues doesn't do on its
+                own after mount. */}
+            <CaptureView key={url} url={url} extraction={extraction} error={extractionError} />
+          </>
         )}
       </div>
     </div>

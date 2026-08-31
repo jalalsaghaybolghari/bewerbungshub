@@ -1,0 +1,29 @@
+<!--
+  Synthetic fixture, not a captured real page — unlike linkedin-job.html,
+  this adapter hasn't been verified against real StepStone markup (no
+  browser tool available). Standard shape of the schema.org/JobPosting
+  structured data StepStone is expected to publish for SEO, matching what
+  extractJsonLd already parses and is tested against elsewhere.
+-->
+<!doctype html>
+<html>
+  <head>
+    <title>Backend Entwickler (m/w/d) | StepStone</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org/",
+        "@type": "JobPosting",
+        "title": "Backend Entwickler (m/w/d)",
+        "hiringOrganization": { "@type": "Organization", "name": "Muster AG" },
+        "jobLocation": {
+          "@type": "Place",
+          "address": { "@type": "PostalAddress", "addressLocality": "Munich", "addressCountry": "DE" }
+        },
+        "description": "<p>We are looking for a Backend Engineer to join our team.</p>"
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Backend Entwickler (m/w/d)</h1>
+  </body>
+</html>

@@ -17,6 +17,39 @@ describe('resolveJobPosting', () => {
     expect(result.jobTitle?.value).toBe('Engineer');
   });
 
+  it('uses the Xing adapter for a Xing job URL (happy path)', () => {
+    const doc = docFromHtml(
+      '<html><head><script type="application/ld+json">{"@type":"JobPosting","title":"Engineer"}</script></head></html>',
+    );
+
+    const result = resolveJobPosting('https://www.xing.com/jobs/example-1', doc);
+
+    expect(result.applyType?.value).toBe('xing');
+    expect(result.jobTitle?.value).toBe('Engineer');
+  });
+
+  it('uses the StepStone adapter for any StepStone ccTLD (happy path)', () => {
+    const doc = docFromHtml(
+      '<html><head><script type="application/ld+json">{"@type":"JobPosting","title":"Engineer"}</script></head></html>',
+    );
+
+    const result = resolveJobPosting('https://www.stepstone.at/stellenangebote--1', doc);
+
+    expect(result.applyType?.value).toBe('stepstone');
+    expect(result.jobTitle?.value).toBe('Engineer');
+  });
+
+  it('uses the Indeed adapter for any Indeed ccTLD (happy path)', () => {
+    const doc = docFromHtml(
+      '<html><head><script type="application/ld+json">{"@type":"JobPosting","title":"Engineer"}</script></head></html>',
+    );
+
+    const result = resolveJobPosting('https://de.indeed.com/viewjob?jk=1', doc);
+
+    expect(result.applyType?.value).toBe('indeed');
+    expect(result.jobTitle?.value).toBe('Engineer');
+  });
+
   it('falls back to the generic pipeline for an unrecognized site (edge case)', () => {
     const doc = docFromHtml(
       '<html><head><script type="application/ld+json">{"@type":"JobPosting","title":"Engineer"}</script></head></html>',

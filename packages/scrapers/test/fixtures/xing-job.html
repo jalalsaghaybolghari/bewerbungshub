@@ -1,0 +1,29 @@
+<!--
+  Synthetic fixture, not a captured real page — unlike linkedin-job.html,
+  this adapter hasn't been verified against real Xing markup (no browser
+  tool available). Standard shape of the schema.org/JobPosting structured
+  data Xing is expected to publish for SEO, matching what extractJsonLd
+  already parses and is tested against elsewhere.
+-->
+<!doctype html>
+<html>
+  <head>
+    <title>Frontend Developer (m/w/d) | Xing</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org/",
+        "@type": "JobPosting",
+        "title": "Frontend Developer (m/w/d)",
+        "hiringOrganization": { "@type": "Organization", "name": "Beispiel GmbH" },
+        "jobLocation": {
+          "@type": "Place",
+          "address": { "@type": "PostalAddress", "addressLocality": "Vienna", "addressCountry": "AT" }
+        },
+        "description": "<p>We are looking for a Frontend Developer to join our team.</p>"
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Frontend Developer (m/w/d)</h1>
+  </body>
+</html>

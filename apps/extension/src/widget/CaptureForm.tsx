@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
+  applicationStatusValues,
   applyTypeValues,
   createApplicationSchema,
   type CreateApplicationInput,
@@ -141,6 +142,17 @@ export function CaptureForm({ url, extraction }: { url: string; extraction: Extr
           {applyTypeValues.map((type) => (
             <option key={type} value={type}>
               {type}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      <div>
+        <Label htmlFor="status">Status</Label>
+        <Select id="status" {...register('status')}>
+          {applicationStatusValues.map((status) => (
+            <option key={status} value={status}>
+              {status}
             </option>
           ))}
         </Select>

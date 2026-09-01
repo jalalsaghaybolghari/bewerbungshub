@@ -31,6 +31,8 @@
       "channel": "Channel",
       "posted": "Posted",
       "sent": "Sent",
+      "created": "Created",
+      "applyLink": "Apply link",
       "status": "Status",
       "actions": "Actions"
     },
@@ -63,6 +65,16 @@
       "delete": "Delete application",
       "confirmDelete": "Delete this application? This can't be undone.",
       "postedAt": "Posted {{date}} (approximate)"
+    },
+    "quickView": {
+      "openDetails": "View details",
+      "applyLink": "Open job posting",
+      "cv": "CV",
+      "openCv": "Open CV",
+      "noCv": "No CV attached",
+      "cvOpenError": "Couldn't open the CV file.",
+      "tags": "Tags",
+      "notes": "Notes"
     },
     "view": {
       "list": "List",
@@ -141,6 +153,7 @@
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
-    "edit": "Edit"
+    "edit": "Edit",
+    "close": "Close"
   }
 }

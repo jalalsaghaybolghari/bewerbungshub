@@ -1,0 +1,146 @@
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ApplicationsListPage } from './ApplicationsListPage';
+import type { Application, ApplicationsListResponse } from './types';
+
+let listData: ApplicationsListResponse | undefined;
+let isLoading = false;
+let isError = false;
+const deleteMock = vi.fn();
+
+vi.mock('./api', () => ({
+  useApplications: () => ({ data: listData, isLoading, isError }),
+  useDeleteApplication: () => ({ mutate: deleteMock }),
+}));
+
+// ApplicationQuickViewModal (rendered for real, not mocked) pulls in
+// useCvs — without this it'd hit react-query with no QueryClientProvider
+// in scope, since useApplications/useDeleteApplication above are mocked
+// away entirely and no provider is set up for this test file.
+vi.mock('../cvs/api', () => ({
+  useCvs: () => ({ data: [] }),
+  openCvFile: vi.fn(),
+}));
+
+function makeApplication(overrides: Partial<Application>): Application {
+  return {
+    _id: 'app-1',
+    jobTitle: 'Backend Engineer',
+    company: { name: 'Acme' },
+    location: { raw: 'Berlin' },
+    jobDescription: '',
+    applyLink: 'https://example.com/job',
+    applyType: 'linkedin',
+    status: 'applied',
+    statusChangedAt: '2026-01-01T00:00:00.000Z',
+    statusSetBy: 'user',
+    followUpCount: 0,
+    tags: [],
+    createdAt: '2026-01-02T00:00:00.000Z',
+    updatedAt: '2026-01-02T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <ApplicationsListPage />
+    </MemoryRouter>,
+  );
+}
+
+describe('ApplicationsListPage', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    listData = undefined;
+    isLoading = false;
+    isError = false;
+  });
+
+  it('shows the created date and an apply link for each application (happy path)', () => {
+    listData = {
+      items: [
+        makeApplication({
+          _id: 'app-1',
+          applyLink: 'https://example.com/jobs/123',
+          createdAt: '2026-01-02T00:00:00.000Z',
+        }),
+      ],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+    };
+    renderPage();
+
+    expect(
+      screen.getByText(new Date('2026-01-02T00:00:00.000Z').toLocaleDateString()),
+    ).toBeInTheDocument();
+    const link = screen.getByRole('link', { name: /apply link/i });
+    expect(link).toHaveAttribute('href', 'https://example.com/jobs/123');
+    expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  it('shows a dash in the Sent column for a draft application, not a fabricated date (edge case)', () => {
+    listData = {
+      items: [makeApplication({ status: 'draft', sentAt: undefined })],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+    };
+    renderPage();
+
+    // Both Sent and Posted are unset here, so two dashes are expected —
+    // this just confirms neither column invents a date from createdAt.
+    expect(screen.getAllByText('—')).toHaveLength(2);
+  });
+
+  it('deletes an application after the user confirms (happy path)', async () => {
+    listData = { items: [makeApplication({})], total: 1, page: 1, pageSize: 20 };
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: /delete/i }));
+
+    expect(deleteMock).toHaveBeenCalledWith('app-1');
+  });
+
+  it('does not delete when the user cancels the confirmation (negative case)', async () => {
+    listData = { items: [makeApplication({})], total: 1, page: 1, pageSize: 20 };
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: /delete/i }));
+
+    expect(deleteMock).not.toHaveBeenCalled();
+  });
+
+  it('opens the quick-view modal with the job description when the view icon is clicked (happy path)', async () => {
+    listData = {
+      items: [makeApplication({ jobDescription: 'We build great software.' })],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+    };
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: /view details/i }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('We build great software.')).toBeInTheDocument();
+  });
+
+  it('closes the quick-view modal when the close button is clicked (edge case)', async () => {
+    listData = { items: [makeApplication({})], total: 1, page: 1, pageSize: 20 };
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: /view details/i }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /close/i }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});

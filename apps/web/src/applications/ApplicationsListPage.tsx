@@ -2,10 +2,13 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { applicationStatusValues } from '@bewerber/shared';
-import { useApplications } from './api';
+import { useApplications, useDeleteApplication } from './api';
 import { Button, buttonClasses, Input, Select } from '../components/ui';
+import { EyeIcon, ExternalLinkIcon, TrashIcon } from '../components/icons';
 import { StatusBadge } from './StatusBadge';
 import { KanbanBoard } from './KanbanBoard';
+import { ApplicationQuickViewModal } from './ApplicationQuickViewModal';
+import type { Application } from './types';
 
 const PAGE_SIZE = 20;
 
@@ -17,6 +20,13 @@ export function ApplicationsListPage() {
   const [view, setView] = useState<'list' | 'kanban'>('list');
 
   const { data, isLoading, isError } = useApplications({ q, status, page, pageSize: PAGE_SIZE });
+  const deleteMutation = useDeleteApplication();
+  const [quickViewApp, setQuickViewApp] = useState<Application | null>(null);
+
+  function handleDelete(id: string) {
+    if (!confirm(t('applications.detail.confirmDelete'))) return;
+    deleteMutation.mutate(id);
+  }
 
   return (
     <div>
@@ -91,7 +101,9 @@ export function ApplicationsListPage() {
                 <th className="px-4 py-3">{t('applications.columns.channel')}</th>
                 <th className="px-4 py-3">{t('applications.columns.posted')}</th>
                 <th className="px-4 py-3">{t('applications.columns.sent')}</th>
+                <th className="px-4 py-3">{t('applications.columns.created')}</th>
                 <th className="px-4 py-3">{t('applications.columns.status')}</th>
+                <th className="px-4 py-3">{t('applications.columns.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -117,8 +129,40 @@ export function ApplicationsListPage() {
                   <td className="px-4 py-3 text-slate">
                     {app.sentAt ? new Date(app.sentAt).toLocaleDateString() : '—'}
                   </td>
+                  <td className="px-4 py-3 text-slate">
+                    {new Date(app.createdAt).toLocaleDateString()}
+                  </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={app.status} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3 text-slate">
+                      <button
+                        type="button"
+                        onClick={() => setQuickViewApp(app)}
+                        aria-label={t('applications.quickView.openDetails')}
+                        className="hover:text-accent"
+                      >
+                        <EyeIcon className="size-4" />
+                      </button>
+                      <a
+                        href={app.applyLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={t('applications.columns.applyLink')}
+                        className="hover:text-accent"
+                      >
+                        <ExternalLinkIcon className="size-4" />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(app._id)}
+                        aria-label={t('common.delete')}
+                        className="hover:text-danger"
+                      >
+                        <TrashIcon className="size-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -145,6 +189,13 @@ export function ApplicationsListPage() {
             </Button>
           </div>
         </div>
+      )}
+
+      {quickViewApp && (
+        <ApplicationQuickViewModal
+          application={quickViewApp}
+          onClose={() => setQuickViewApp(null)}
+        />
       )}
     </div>
   );

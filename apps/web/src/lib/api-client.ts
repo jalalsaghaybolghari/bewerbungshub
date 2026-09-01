@@ -23,7 +23,10 @@ async function refreshAccessToken(): Promise<boolean> {
   // Coalesce concurrent 401s into a single refresh call.
   refreshPromise ??= (async () => {
     try {
-      const res = await fetch(`${API_BASE}/auth/refresh`, { method: 'POST', credentials: 'include' });
+      const res = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
       if (!res.ok) return false;
       const data = (await res.json()) as { accessToken: string };
       setAccessToken(data.accessToken);
@@ -81,6 +84,25 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
+}
+
+// Only endpoint that isn't JSON in/out (CV file download). Mirrors
+// apiFetch's auth/refresh handling instead of extending apiFetch itself,
+// since forcing a `res.json()` vs `res.blob()` branch through one
+// generic function for a single caller isn't worth the added complexity.
+export async function apiFetchBlob(path: string, skipRefresh = false): Promise<Blob> {
+  const headers: Record<string, string> = {};
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+
+  const res = await fetch(`${API_BASE}${path}`, { headers, credentials: 'include' });
+
+  if (res.status === 401 && !skipRefresh) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) return apiFetchBlob(path, true);
+  }
+
+  if (!res.ok) throw new ApiError(res.status, `Request failed with status ${res.status}`);
+  return res.blob();
 }
 
 export { refreshAccessToken };

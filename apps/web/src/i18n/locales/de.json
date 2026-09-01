@@ -31,6 +31,8 @@
       "channel": "Kanal",
       "posted": "Veröffentlicht",
       "sent": "Gesendet",
+      "created": "Erstellt",
+      "applyLink": "Bewerbungslink",
       "status": "Status",
       "actions": "Aktionen"
     },
@@ -63,6 +65,16 @@
       "delete": "Bewerbung löschen",
       "confirmDelete": "Diese Bewerbung löschen? Das kann nicht rückgängig gemacht werden.",
       "postedAt": "Veröffentlicht {{date}} (ungefähr)"
+    },
+    "quickView": {
+      "openDetails": "Details anzeigen",
+      "applyLink": "Stellenanzeige öffnen",
+      "cv": "Lebenslauf",
+      "openCv": "Lebenslauf öffnen",
+      "noCv": "Kein Lebenslauf hinterlegt",
+      "cvOpenError": "Lebenslauf konnte nicht geöffnet werden.",
+      "tags": "Tags",
+      "notes": "Notizen"
     },
     "view": {
       "list": "Liste",
@@ -141,6 +153,7 @@
     "save": "Speichern",
     "cancel": "Abbrechen",
     "delete": "Löschen",
-    "edit": "Bearbeiten"
+    "edit": "Bearbeiten",
+    "close": "Schließen"
   }
 }

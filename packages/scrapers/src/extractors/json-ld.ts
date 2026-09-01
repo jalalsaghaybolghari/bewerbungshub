@@ -1,11 +1,21 @@
 import type { ExtractedJobPosting } from '../types';
 import { elementToMarkdown } from '../html-to-markdown';
 
+interface PlaceNode {
+  address?: { addressLocality?: string; addressCountry?: string };
+}
+
 interface JobPostingNode {
   '@type'?: string | string[];
   title?: string;
   hiringOrganization?: { name?: string } | string;
-  jobLocation?: { address?: { addressLocality?: string; addressCountry?: string } } | string;
+  // schema.org allows a single Place *or* an array of them (multi-location
+  // postings) — live-verified on Xing, whose jobLocation is always an
+  // array even for a single-location posting, unlike LinkedIn's fixture,
+  // which uses a bare object. Assuming only the object shape silently
+  // dropped Xing's location entirely (location.address was undefined on
+  // an array, not a thrown error, so nothing flagged it).
+  jobLocation?: PlaceNode | PlaceNode[] | string;
   description?: string;
 }
 
@@ -43,7 +53,11 @@ function descriptionMarkdown(document: Document, html: string): string {
 function locationText(location: JobPostingNode['jobLocation']): string | undefined {
   if (!location) return undefined;
   if (typeof location === 'string') return location;
-  const { addressLocality, addressCountry } = location.address ?? {};
+  // Only the first location for a multi-location posting — locationRaw is
+  // a single string field, and picking one consistently beats guessing at
+  // how to concatenate an unbounded list.
+  const place = Array.isArray(location) ? location[0] : location;
+  const { addressLocality, addressCountry } = place?.address ?? {};
   return [addressLocality, addressCountry].filter(Boolean).join(', ') || undefined;
 }
 

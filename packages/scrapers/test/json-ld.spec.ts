@@ -62,6 +62,31 @@ describe('extractJsonLd', () => {
     );
   });
 
+  it('extracts location when jobLocation is an array of Place objects, not a bare object (edge case)', () => {
+    // Live-verified on Xing: its jobLocation is always an array, even for
+    // a single-location posting — valid schema.org for multi-location
+    // postings, but this codebase originally only handled a bare object,
+    // which silently dropped the location entirely (no error, just an
+    // empty result) rather than throwing something that would get noticed.
+    const doc = docFromHtml(`
+      <html><head>
+        <script type="application/ld+json">
+          {
+            "@type": "JobPosting",
+            "title": "Software Developer",
+            "jobLocation": [
+              { "address": { "addressLocality": "Linz", "addressCountry": "AT" } }
+            ]
+          }
+        </script>
+      </head></html>
+    `);
+
+    const result = extractJsonLd(doc);
+
+    expect(result.locationRaw).toEqual({ value: 'Linz, AT', confidence: 0.85, source: 'json-ld' });
+  });
+
   it('finds a JobPosting node inside an @graph array (edge case)', () => {
     const doc = docFromHtml(`
       <html><head>

@@ -11,9 +11,7 @@
 
 import { ApiError } from '../lib/api-client';
 
-// TODO: point this at the deployed API origin before shipping past dev
-// (keep in sync with manifest.config.ts's host_permissions).
-const API_BASE = 'http://localhost:3000/api/v1';
+const API_BASE = 'https://bewerbungshub.com/api/v1';
 
 const ACCESS_TOKEN_KEY = 'accessToken';
 

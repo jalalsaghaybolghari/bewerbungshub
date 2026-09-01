@@ -1,5 +1,4 @@
-// TODO: point this at the deployed web app origin before shipping past dev.
-export const WEB_APP_URL = 'http://localhost:5173';
+export const WEB_APP_URL = 'https://bewerbungshub.com';
 
 // Kept here (rather than only in background/api.ts, where the real fetch
 // logic now lives) since the widget's own code needs to construct/catch

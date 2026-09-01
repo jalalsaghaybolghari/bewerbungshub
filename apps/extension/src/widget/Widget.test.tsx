@@ -61,7 +61,7 @@ describe('Widget', () => {
     expect(screen.getByText(/mock capture view/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /bewerbungshub/i })).toHaveAttribute(
       'href',
-      'http://localhost:5173/dashboard',
+      'https://bewerbungshub.com/dashboard',
     );
 
     await userEvent.click(screen.getByRole('button', { name: /log out/i }));

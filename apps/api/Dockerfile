@@ -22,6 +22,12 @@ RUN pnpm --filter api build
 # only, workspace deps like @bewerber/shared inlined as real files, not
 # symlinks) into one standalone directory.
 RUN pnpm --filter api deploy --prod --legacy /out/api
+# `pnpm deploy` packs files using npm's legacy pack-ignore list, which
+# always drops any directory literally named "cvs" (case-insensitive) —
+# a holdover exclusion for old CVS version-control metadata dirs. That
+# silently drops our src/cvs module's compiled output, so copy it back in
+# from the untouched build-stage dist.
+RUN cp -r apps/api/dist/cvs /out/api/dist/cvs
 
 FROM node:22-slim AS runtime
 ENV NODE_ENV=production

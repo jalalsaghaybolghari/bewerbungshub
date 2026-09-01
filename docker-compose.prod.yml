@@ -1,0 +1,33 @@
+# Production deploy — separate from docker-compose.yml, which is local-dev
+# infra only (mongo/redis/minio). Here mongo runs natively on the host
+# (not in a container), so only the app's own two services are defined.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    ports:
+      - '127.0.0.1:3000:3000'
+    # Lets the container reach MongoDB running on the host itself —
+    # 127.0.0.1 inside the container is the container's own loopback, not
+    # the host's, so this is the standard way to bridge that on Linux.
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - api_uploads:/app/uploads
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:8080:80'
+    depends_on:
+      - api
+
+volumes:
+  api_uploads:

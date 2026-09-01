@@ -4,6 +4,7 @@ import { applicationStatusValues } from '@bewerber/shared';
 import { useApplication, useChangeApplicationStatus, useDeleteApplication } from './api';
 import { StatusBadge } from './StatusBadge';
 import { Button, Card, Select } from '../components/ui';
+import { RichTextContent } from '../components/RichTextContent';
 import { InterviewsSection } from '../interviews/InterviewsSection';
 import { FollowUpsSection } from '../follow-ups/FollowUpsSection';
 
@@ -92,8 +93,8 @@ export function ApplicationDetailPage() {
         </ul>
       </Card>
 
-      <Card className="mb-6 whitespace-pre-wrap text-sm text-ink">
-        {application.jobDescription}
+      <Card className="mb-6">
+        <RichTextContent html={application.jobDescription} />
       </Card>
 
       <Button variant="danger" onClick={() => void handleDelete()}>

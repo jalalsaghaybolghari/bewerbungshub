@@ -21,3 +21,65 @@ body {
   background-color: var(--color-paper);
   color: var(--color-ink);
 }
+
+/* Shared styling for Tiptap-authored job-description HTML — both the
+   live editor's contentEditable area (RichTextEditor.tsx) and the
+   read-only sanitized render (RichTextContent.tsx) use this class, so
+   editing and viewing always look the same. No @tailwindcss/typography
+   plugin installed for one field's worth of styling. */
+.rich-text {
+  @apply text-sm text-ink;
+}
+.rich-text :first-child {
+  @apply mt-0;
+}
+.rich-text :last-child {
+  @apply mb-0;
+}
+.rich-text h1,
+.rich-text h2,
+.rich-text h3 {
+  @apply mt-3 mb-1 font-bold text-ink;
+}
+.rich-text h1 {
+  @apply text-lg;
+}
+.rich-text h2 {
+  @apply text-base;
+}
+.rich-text h3 {
+  @apply text-sm;
+}
+.rich-text p {
+  @apply mb-2;
+}
+.rich-text ul {
+  @apply mb-2 list-disc pl-5;
+}
+.rich-text ol {
+  @apply mb-2 list-decimal pl-5;
+}
+.rich-text strong {
+  @apply font-semibold;
+}
+.rich-text em {
+  @apply italic;
+}
+.rich-text blockquote {
+  @apply border-l-2 border-slate/30 pl-3 text-slate italic;
+}
+.rich-text code {
+  @apply rounded bg-slate/10 px-1 py-0.5 font-mono text-xs;
+}
+.rich-text pre {
+  @apply mb-2 overflow-x-auto rounded-lg bg-slate/10 p-3;
+}
+.rich-text pre code {
+  @apply bg-transparent p-0;
+}
+.rich-text a {
+  @apply text-accent underline;
+}
+.rich-text hr {
+  @apply my-3 border-slate/20;
+}

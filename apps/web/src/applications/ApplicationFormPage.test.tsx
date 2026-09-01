@@ -83,4 +83,40 @@ describe('ApplicationFormPage', () => {
 
     expect(screen.queryByText(/original posting/i)).not.toBeInTheDocument();
   });
+
+  it('loads an existing HTML job description into the rich-text editor (happy path)', async () => {
+    detailData = {
+      application: makeApplication({
+        jobDescription: '<p>Ship <strong>features</strong>.</p>',
+      }),
+      events: [],
+      interviews: [],
+      followUps: [],
+    };
+    renderAt('/applications/app-1/edit');
+
+    // Two async hops before it lands: ApplicationFormPage's own reset()
+    // effect, then RichTextEditor's own resync effect reacting to that.
+    // Custom matcher, not the plain string form: ProseMirror renders
+    // "Ship "/"features"/"." as sibling text nodes around <strong>, so no
+    // single node's own text content equals the full sentence.
+    expect(
+      await screen.findByText(
+        (_, el) => el?.tagName === 'P' && el.textContent === 'Ship features.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('loads an existing Markdown-ish job description (from the extension) with real formatting (happy path)', async () => {
+    detailData = {
+      application: makeApplication({ jobDescription: '## Responsibilities\n\n- Ship features' }),
+      events: [],
+      interviews: [],
+      followUps: [],
+    };
+    renderAt('/applications/app-1/edit');
+
+    expect(await screen.findByRole('heading', { name: 'Responsibilities' })).toBeInTheDocument();
+    expect(screen.queryByText(/## Responsibilities/)).not.toBeInTheDocument();
+  });
 });

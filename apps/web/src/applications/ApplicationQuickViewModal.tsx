@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal } from '../components/Modal';
 import { ExternalLinkIcon, DocumentIcon } from '../components/icons';
 import { CopyableUrlField } from '../components/CopyableUrlField';
+import { RichTextContent } from '../components/RichTextContent';
 import { openCvFile, useCvs } from '../cvs/api';
 import { StatusBadge } from './StatusBadge';
 import type { Application } from './types';
@@ -123,7 +124,7 @@ export function ApplicationQuickViewModal({
           <div className="mb-1 text-xs uppercase tracking-wide text-slate">
             {t('applications.form.jobDescription')}
           </div>
-          <p className="whitespace-pre-wrap text-sm text-ink">{application.jobDescription}</p>
+          <RichTextContent html={application.jobDescription} />
         </div>
 
         {/* Shown whenever present, even when it's identical to applyLink

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -13,6 +13,7 @@ import { useApplication, useCreateApplication, useUpdateApplication } from './ap
 import { useCvs } from '../cvs/api';
 import { Button, FieldError, Input, Label, Select, Textarea } from '../components/ui';
 import { CopyableUrlField } from '../components/CopyableUrlField';
+import { RichTextEditor } from '../components/RichTextEditor';
 
 // react-hook-form's form state is the schema's *input* shape (before Zod
 // applies `.default()`), not the `CreateApplicationInput` output type.
@@ -31,6 +32,7 @@ export function ApplicationFormPage() {
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
@@ -132,7 +134,20 @@ export function ApplicationFormPage() {
 
         <div>
           <Label htmlFor="jobDescription">{t('applications.form.jobDescription')}</Label>
-          <Textarea id="jobDescription" rows={6} {...register('jobDescription')} />
+          {/* RichTextEditor emits HTML (Tiptap's native format) via
+              onChange, but accepts either that or the "## heading" /
+              "**bold**" Markdown-ish text the extension's scrapers
+              produce — it converts the latter on the way in, so an
+              extension-captured description shows real formatting here
+              too, not raw ** or # syntax. Becomes real HTML in storage
+              the moment it's saved through this editor. */}
+          <Controller
+            name="jobDescription"
+            control={control}
+            render={({ field }) => (
+              <RichTextEditor value={field.value ?? ''} onChange={field.onChange} />
+            )}
+          />
           <FieldError>{errors.jobDescription?.message}</FieldError>
         </div>
 

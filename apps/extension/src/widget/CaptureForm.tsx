@@ -27,13 +27,24 @@ function resolveApplyLink(tabUrl: string, extraction: ExtractedJobPosting): stri
   return extraction.applyLink?.value ?? tabUrl;
 }
 
-function defaultValues(applyLink: string, extraction: ExtractedJobPosting): CaptureFormValues {
+function defaultValues(
+  url: string,
+  applyLink: string,
+  extraction: ExtractedJobPosting,
+): CaptureFormValues {
   return {
     jobTitle: extraction.jobTitle?.value ?? '',
     company: { name: extraction.companyName?.value ?? '' },
     location: { raw: extraction.locationRaw?.value ?? '' },
     jobDescription: extraction.jobDescription?.value ?? '',
     applyLink,
+    // The job posting's own page URL, always the captured tab — distinct
+    // from applyLink above, which can point off-site (e.g. LinkedIn's
+    // Easy Apply "Apply on company website" link). Not a visible field in
+    // this form (no input registered for it below); react-hook-form still
+    // carries an unregistered defaultValue through to submission, same as
+    // `tags`/`postedAt` already do here.
+    sourceUrl: url,
     applyType: extraction.applyType?.value ?? 'website',
     // Capturing a posting isn't the same as having applied to it — default
     // to draft rather than createApplicationSchema's own 'applied' default,
@@ -68,7 +79,7 @@ export function CaptureForm({
     formState: { errors, isSubmitting },
   } = useForm<CaptureFormValues, unknown, CreateApplicationInput>({
     resolver: zodResolver(createApplicationSchema),
-    defaultValues: defaultValues(applyLink, extraction),
+    defaultValues: defaultValues(url, applyLink, extraction),
   });
 
   const locationValue = watch('location.raw');

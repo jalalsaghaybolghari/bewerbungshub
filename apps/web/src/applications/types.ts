@@ -10,6 +10,7 @@ export interface Application {
   jobDescription: string;
   applyLink: string;
   applyType: ApplyType;
+  sourceUrl?: string;
   cvId?: string;
   status: ApplicationStatus;
   statusChangedAt: string;

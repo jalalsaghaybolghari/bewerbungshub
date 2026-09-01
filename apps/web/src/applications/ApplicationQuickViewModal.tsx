@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '../components/Modal';
 import { ExternalLinkIcon, DocumentIcon } from '../components/icons';
+import { CopyableUrlField } from '../components/CopyableUrlField';
 import { openCvFile, useCvs } from '../cvs/api';
 import { StatusBadge } from './StatusBadge';
 import type { Application } from './types';
@@ -124,6 +125,22 @@ export function ApplicationQuickViewModal({
           </div>
           <p className="whitespace-pre-wrap text-sm text-ink">{application.jobDescription}</p>
         </div>
+
+        {/* Shown whenever present, even when it's identical to applyLink
+            (true for every thin adapter — AMS/Xing/StepStone/Indeed never
+            find a distinct off-site apply URL, so applyLink just falls
+            back to the same captured page). Consistency beats deduping:
+            "was this ever captured from the extension" should always have
+            a predictable, visible answer. Copiable rather than just a
+            link: this is the one field that should never be hand-edited,
+            since it must stay exactly what was captured. Placed last —
+            it's reference metadata, not something you'd act on first. */}
+        {application.sourceUrl && (
+          <CopyableUrlField
+            label={t('applications.quickView.sourceUrl')}
+            value={application.sourceUrl}
+          />
+        )}
       </div>
     </Modal>
   );

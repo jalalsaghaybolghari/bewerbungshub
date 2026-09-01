@@ -46,6 +46,33 @@ describe('CaptureForm', () => {
     expect(await screen.findByText(/saved to your application tracker/i)).toBeInTheDocument();
   });
 
+  it('saves the captured tab URL as sourceUrl, always, even when applyLink points elsewhere (edge case)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    createApplicationMock.mockResolvedValueOnce({ status: 'saved', id: 'app-1' });
+    render(
+      <CaptureForm
+        url="https://www.linkedin.com/jobs/view/123"
+        extraction={{
+          ...extraction,
+          applyLink: {
+            value: 'https://acme.example.com/careers/backend-engineer',
+            confidence: 1,
+            source: 'site-adapter',
+          },
+        }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: /save application/i }));
+
+    await vi.waitFor(() => expect(createApplicationMock).toHaveBeenCalled());
+    expect(createApplicationMock.mock.calls[0][0]).toMatchObject({
+      applyLink: 'https://acme.example.com/careers/backend-engineer',
+      sourceUrl: 'https://www.linkedin.com/jobs/view/123',
+    });
+  });
+
   it('shows an offline message instead of a hard error when the save gets queued (edge case)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
     createApplicationMock.mockResolvedValueOnce({ status: 'queued' });

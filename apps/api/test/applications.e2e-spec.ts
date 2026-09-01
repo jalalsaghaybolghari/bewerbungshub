@@ -74,6 +74,32 @@ describe('Applications (e2e)', () => {
       });
     });
 
+    it('stores sourceUrl separately from applyLink when both are provided (happy path)', async () => {
+      const res = await authed
+        .post('/api/v1/applications')
+        .send(
+          sampleApplication({
+            applyLink: 'https://acme.example.com/careers/frontend',
+            sourceUrl: 'https://www.linkedin.com/jobs/view/123',
+          }),
+        )
+        .expect(201);
+
+      expect(res.body.applyLink).toBe(
+        'https://acme.example.com/careers/frontend',
+      );
+      expect(res.body.sourceUrl).toBe('https://www.linkedin.com/jobs/view/123');
+    });
+
+    it('leaves sourceUrl unset when not provided, e.g. a manually-created application (edge case)', async () => {
+      const res = await authed
+        .post('/api/v1/applications')
+        .send(sampleApplication())
+        .expect(201);
+
+      expect(res.body.sourceUrl).toBeFalsy();
+    });
+
     it('rejects a duplicate apply link for the same user (negative case)', async () => {
       await authed
         .post('/api/v1/applications')

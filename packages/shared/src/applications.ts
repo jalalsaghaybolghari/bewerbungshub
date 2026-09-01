@@ -61,6 +61,13 @@ export const createApplicationSchema = z.object({
   jobDescription: z.string().min(1),
   applyLink: z.string().url(),
   applyType: applyTypeSchema,
+  // The job posting's own page URL — distinct from `applyLink`, which can
+  // point somewhere else entirely (e.g. LinkedIn's Easy Apply flows carry
+  // a genuine external "Apply on company website" link, at which point
+  // the LinkedIn job page itself would otherwise never get saved
+  // anywhere). Set by the extension from the captured tab's URL; optional
+  // since a manually-created application has no browser tab to capture.
+  sourceUrl: z.string().url().optional(),
   cvId: z.string().optional(),
   status: applicationStatusSchema.optional().default('applied'),
   tags: z.array(z.string().max(60)).max(20).optional().default([]),

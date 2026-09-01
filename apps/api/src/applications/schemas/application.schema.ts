@@ -56,6 +56,11 @@ export class Application {
   @Prop({ required: true, type: String, enum: applyTypeValues })
   applyType: (typeof applyTypeValues)[number];
 
+  // The job posting's own page URL, distinct from applyLink — see the
+  // comment on createApplicationSchema in packages/shared.
+  @Prop()
+  sourceUrl?: string;
+
   @Prop({ type: MongooseSchema.Types.ObjectId })
   cvId?: Types.ObjectId;
 

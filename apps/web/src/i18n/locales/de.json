@@ -68,7 +68,8 @@
     },
     "quickView": {
       "openDetails": "Details anzeigen",
-      "applyLink": "Stellenanzeige öffnen",
+      "applyLink": "Bewerbungslink",
+      "sourceUrl": "Ursprüngliche Anzeige",
       "cv": "Lebenslauf",
       "openCv": "Lebenslauf öffnen",
       "noCv": "Kein Lebenslauf hinterlegt",
@@ -154,6 +155,8 @@
     "cancel": "Abbrechen",
     "delete": "Löschen",
     "edit": "Bearbeiten",
-    "close": "Schließen"
+    "close": "Schließen",
+    "copy": "Kopieren",
+    "copied": "Kopiert!"
   }
 }

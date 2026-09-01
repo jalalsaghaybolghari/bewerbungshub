@@ -4,10 +4,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
-import { applyTypeValues, createApplicationSchema, type CreateApplicationInput } from '@bewerber/shared';
+import {
+  applyTypeValues,
+  createApplicationSchema,
+  type CreateApplicationInput,
+} from '@bewerber/shared';
 import { useApplication, useCreateApplication, useUpdateApplication } from './api';
 import { useCvs } from '../cvs/api';
 import { Button, FieldError, Input, Label, Select, Textarea } from '../components/ui';
+import { CopyableUrlField } from '../components/CopyableUrlField';
 
 // react-hook-form's form state is the schema's *input* shape (before Zod
 // applies `.default()`), not the `CreateApplicationInput` output type.
@@ -50,7 +55,9 @@ export function ApplicationFormPage() {
   }, [detail, reset]);
 
   async function onSubmit(data: CreateApplicationInput) {
-    const result = isEdit ? await updateMutation.mutateAsync(data) : await createMutation.mutateAsync(data);
+    const result = isEdit
+      ? await updateMutation.mutateAsync(data)
+      : await createMutation.mutateAsync(data);
     navigate(`/applications/${result._id}`);
   }
 
@@ -62,7 +69,10 @@ export function ApplicationFormPage() {
         {isEdit ? t('common.edit') : t('applications.new')}
       </h1>
 
-      <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4 rounded-xl border border-slate/15 bg-white p-6">
+      <form
+        onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+        className="space-y-4 rounded-xl border border-slate/15 bg-white p-6"
+      >
         <div>
           <Label htmlFor="jobTitle">{t('applications.form.jobTitle')}</Label>
           <Input id="jobTitle" {...register('jobTitle')} />
@@ -98,6 +108,13 @@ export function ApplicationFormPage() {
             </Select>
           </div>
         </div>
+
+        {isEdit && detail?.application.sourceUrl && (
+          <CopyableUrlField
+            label={t('applications.quickView.sourceUrl')}
+            value={detail.application.sourceUrl}
+          />
+        )}
 
         {cvs && cvs.length > 0 && (
           <div>

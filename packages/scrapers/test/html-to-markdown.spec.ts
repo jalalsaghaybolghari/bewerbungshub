@@ -72,4 +72,27 @@ describe('elementToMarkdown', () => {
 
     expect(elementToMarkdown(el)).toBe('Real content.\n\n- Item one');
   });
+
+  it('finds a list nested inside a non-block wrapper, not just a direct child (edge case)', () => {
+    // Real LinkedIn markup: <p><span data-testid="expandable-text-box">
+    // <ul>...</ul></span></p> — the <ul> is the <span>'s direct child, but
+    // the <p>'s direct child is only the <span>, which isn't itself a
+    // block tag. A direct-children-only check never looks inside it, so
+    // the whole subtree (including the list) fell into the flat inline()
+    // path and lost its bullet points entirely — live-verified live via a
+    // real captured page, not a hypothetical.
+    const el = elementFromHtml(`
+      <p><span data-testid="expandable-text-box">
+        <strong>Intro line.</strong>
+        <ul>
+          <li>First responsibility</li>
+          <li>Second responsibility</li>
+        </ul>
+      </span></p>
+    `);
+
+    expect(elementToMarkdown(el)).toBe(
+      '**Intro line.**\n\n- First responsibility\n- Second responsibility',
+    );
+  });
 });

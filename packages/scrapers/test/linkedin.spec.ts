@@ -233,3 +233,37 @@ describe('extractLinkedIn (apply link)', () => {
     expect(extractLinkedIn(doc).applyLink).toBeUndefined();
   });
 });
+
+// Real captured structure (live-verified against a /jobs/search-results/
+// split-panel posting): the description sits in <p><span data-testid=
+// "expandable-text-box">...</span></p>, not directly in the <p> — see the
+// matching regression test in html-to-markdown.spec.ts for why that broke
+// bullet lists specifically. This confirms the fix holds through the
+// actual LinkedIn adapter, not just the underlying converter in isolation.
+describe('extractLinkedIn (description wrapped in a non-block span, real captured shape)', () => {
+  it('keeps bullet points when the real content sits inside a wrapping <span> (edge case)', () => {
+    const doc = new DOMParser().parseFromString(
+      `<html><body>
+        <div>
+          <div></div>
+          <div><h2>About the job</h2></div>
+          <p><span data-testid="expandable-text-box">
+            <strong>Intro line.</strong>
+            <ul>
+              <li>First responsibility</li>
+              <li>Second responsibility</li>
+            </ul>
+            <button aria-hidden="true" data-testid="expandable-text-button">… more</button>
+          </span></p>
+        </div>
+      </body></html>`,
+      'text/html',
+    );
+
+    const result = extractLinkedIn(doc);
+
+    expect(result.jobDescription?.value).toBe(
+      '**Intro line.**\n\n- First responsibility\n- Second responsibility',
+    );
+  });
+});

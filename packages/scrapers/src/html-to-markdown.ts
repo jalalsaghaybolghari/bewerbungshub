@@ -1,5 +1,14 @@
 const BLOCK_TAGS = new Set(['P', 'DIV', 'SECTION', 'ARTICLE', 'HEADER', 'FOOTER', 'UL', 'OL']);
 const HEADING_PATTERN = /^H[1-6]$/;
+// Real LinkedIn markup wraps a job description's actual block content
+// (paragraphs, <ul>/<li> lists) in a non-block <span> — e.g.
+// `<p><span data-testid="expandable-text-box"><ul>...</ul></span></p>`.
+// A direct-children-only check never finds the <ul> nested one level
+// inside that span, so the whole subtree fell into the flat inline()
+// path below and lost its bullet points entirely (verified live).
+const BLOCK_OR_HEADING_SELECTOR = [...BLOCK_TAGS, 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']
+  .join(',')
+  .toLowerCase();
 
 function inline(node: Node): string {
   if (node.nodeType === node.TEXT_NODE) {
@@ -57,10 +66,10 @@ function walk(node: Node, blocks: string[]): void {
     return;
   }
 
-  const hasBlockChild = Array.from(el.children).some(
-    (child) => BLOCK_TAGS.has(child.tagName) || HEADING_PATTERN.test(child.tagName),
-  );
-  if (hasBlockChild) {
+  // Anywhere in the subtree, not just direct children — see
+  // BLOCK_OR_HEADING_SELECTOR above for why.
+  const hasBlockDescendant = el.querySelector(BLOCK_OR_HEADING_SELECTOR) !== null;
+  if (hasBlockDescendant) {
     Array.from(el.childNodes).forEach((child) => walk(child, blocks));
     return;
   }

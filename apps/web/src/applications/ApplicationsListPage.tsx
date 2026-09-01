@@ -4,7 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { applicationStatusValues } from '@bewerber/shared';
 import { useApplications, useDeleteApplication } from './api';
 import { Button, buttonClasses, Input, Select } from '../components/ui';
-import { EyeIcon, ExternalLinkIcon, TrashIcon } from '../components/icons';
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  EyeIcon,
+  ExternalLinkIcon,
+  TrashIcon,
+} from '../components/icons';
 import { StatusBadge } from './StatusBadge';
 import { KanbanBoard } from './KanbanBoard';
 import { ApplicationQuickViewModal } from './ApplicationQuickViewModal';
@@ -12,20 +18,66 @@ import type { Application } from './types';
 
 const PAGE_SIZE = 20;
 
+// Only the columns the user asked to be able to sort by — Position/Sent/
+// Status/Actions stay static headers.
+type SortableColumn = 'location.raw' | 'applyType' | 'postedAt' | 'createdAt';
+
+function SortableHeader({
+  label,
+  column,
+  sort,
+  onSort,
+}: {
+  label: string;
+  column: SortableColumn;
+  sort: string;
+  onSort: (column: SortableColumn) => void;
+}) {
+  const isDesc = sort === `-${column}`;
+  const isActive = isDesc || sort === column;
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(column)}
+      className={`inline-flex items-center gap-1 hover:text-ink ${isActive ? 'text-ink' : ''}`}
+    >
+      {label}
+      {isActive &&
+        (isDesc ? <ChevronDownIcon className="size-3" /> : <ChevronUpIcon className="size-3" />)}
+    </button>
+  );
+}
+
 export function ApplicationsListPage() {
   const { t } = useTranslation();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [view, setView] = useState<'list' | 'kanban'>('list');
+  const [sort, setSort] = useState<string>('-createdAt');
 
-  const { data, isLoading, isError } = useApplications({ q, status, page, pageSize: PAGE_SIZE });
+  const { data, isLoading, isError } = useApplications({
+    q,
+    status,
+    page,
+    pageSize: PAGE_SIZE,
+    sort,
+  });
   const deleteMutation = useDeleteApplication();
   const [quickViewApp, setQuickViewApp] = useState<Application | null>(null);
 
   function handleDelete(id: string) {
     if (!confirm(t('applications.detail.confirmDelete'))) return;
     deleteMutation.mutate(id);
+  }
+
+  function handleSort(column: SortableColumn) {
+    setPage(1);
+    // Clicking the already-descending column flips to ascending; clicking
+    // anything else (a new column, or the currently-ascending one) always
+    // lands on descending first — that's the direction the user actually
+    // asked for as the default action.
+    setSort((current) => (current === `-${column}` ? column : `-${column}`));
   }
 
   return (
@@ -97,11 +149,39 @@ export function ApplicationsListPage() {
             <thead>
               <tr className="border-b border-slate/15 bg-slate/5 text-left text-xs uppercase tracking-wide text-slate">
                 <th className="px-4 py-3">{t('applications.columns.position')}</th>
-                <th className="px-4 py-3">{t('applications.columns.location')}</th>
-                <th className="px-4 py-3">{t('applications.columns.channel')}</th>
-                <th className="px-4 py-3">{t('applications.columns.posted')}</th>
+                <th className="px-4 py-3">
+                  <SortableHeader
+                    label={t('applications.columns.location')}
+                    column="location.raw"
+                    sort={sort}
+                    onSort={handleSort}
+                  />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader
+                    label={t('applications.columns.channel')}
+                    column="applyType"
+                    sort={sort}
+                    onSort={handleSort}
+                  />
+                </th>
+                <th className="px-4 py-3">
+                  <SortableHeader
+                    label={t('applications.columns.posted')}
+                    column="postedAt"
+                    sort={sort}
+                    onSort={handleSort}
+                  />
+                </th>
                 <th className="px-4 py-3">{t('applications.columns.sent')}</th>
-                <th className="px-4 py-3">{t('applications.columns.created')}</th>
+                <th className="px-4 py-3">
+                  <SortableHeader
+                    label={t('applications.columns.created')}
+                    column="createdAt"
+                    sort={sort}
+                    onSort={handleSort}
+                  />
+                </th>
                 <th className="px-4 py-3">{t('applications.columns.status')}</th>
                 <th className="px-4 py-3">{t('applications.columns.actions')}</th>
               </tr>

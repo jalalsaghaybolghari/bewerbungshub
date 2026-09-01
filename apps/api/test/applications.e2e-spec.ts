@@ -206,6 +206,67 @@ describe('Applications (e2e)', () => {
       const res = await authed.get('/api/v1/applications').expect(200);
       expect(res.body).toMatchObject({ items: [], total: 0 });
     });
+
+    it('defaults to newest-created first (happy path)', async () => {
+      await authed
+        .post('/api/v1/applications')
+        .send(sampleApplication({ jobTitle: 'First' }))
+        .expect(201);
+      await authed
+        .post('/api/v1/applications')
+        .send(
+          sampleApplication({
+            applyLink: 'https://example.com/jobs/456',
+            jobTitle: 'Second',
+          }),
+        )
+        .expect(201);
+
+      const res = await authed.get('/api/v1/applications').expect(200);
+      expect(
+        res.body.items.map((a: { jobTitle: string }) => a.jobTitle),
+      ).toEqual(['Second', 'First']);
+    });
+
+    it('sorts by location, channel, and posted date when asked (happy path)', async () => {
+      await authed
+        .post('/api/v1/applications')
+        .send(
+          sampleApplication({
+            jobTitle: 'Vienna job',
+            location: { raw: 'Vienna' },
+            applyType: 'linkedin',
+          }),
+        )
+        .expect(201);
+      await authed
+        .post('/api/v1/applications')
+        .send(
+          sampleApplication({
+            applyLink: 'https://example.com/jobs/456',
+            jobTitle: 'Berlin job',
+            location: { raw: 'Berlin' },
+            applyType: 'xing',
+          }),
+        )
+        .expect(201);
+
+      const byLocation = await authed
+        .get('/api/v1/applications?sort=location.raw')
+        .expect(200);
+      expect(
+        byLocation.body.items.map(
+          (a: { location: { raw: string } }) => a.location.raw,
+        ),
+      ).toEqual(['Berlin', 'Vienna']);
+
+      const byChannelDesc = await authed
+        .get('/api/v1/applications?sort=-applyType')
+        .expect(200);
+      expect(
+        byChannelDesc.body.items.map((a: { applyType: string }) => a.applyType),
+      ).toEqual(['xing', 'linkedin']);
+    });
   });
 
   describe('GET /applications/:id', () => {

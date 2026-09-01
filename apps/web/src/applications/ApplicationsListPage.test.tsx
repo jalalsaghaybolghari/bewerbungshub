@@ -9,9 +9,13 @@ let listData: ApplicationsListResponse | undefined;
 let isLoading = false;
 let isError = false;
 const deleteMock = vi.fn();
+const useApplicationsMock = vi.fn();
 
 vi.mock('./api', () => ({
-  useApplications: () => ({ data: listData, isLoading, isError }),
+  useApplications: (...args: unknown[]) => {
+    useApplicationsMock(...args);
+    return { data: listData, isLoading, isError };
+  },
   useDeleteApplication: () => ({ mutate: deleteMock }),
 }));
 
@@ -142,5 +146,37 @@ describe('ApplicationsListPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /close/i }));
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('defaults to sorting by newest-created first (happy path)', () => {
+    listData = { items: [makeApplication({})], total: 1, page: 1, pageSize: 20 };
+    renderPage();
+
+    expect(useApplicationsMock).toHaveBeenCalledWith(
+      expect.objectContaining({ sort: '-createdAt' }),
+    );
+  });
+
+  it('clicking a sortable column header sorts descending by that column first (happy path)', async () => {
+    listData = { items: [makeApplication({})], total: 1, page: 1, pageSize: 20 };
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Location' }));
+
+    expect(useApplicationsMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sort: '-location.raw' }),
+    );
+  });
+
+  it('clicking the already-descending column a second time flips to ascending (edge case)', async () => {
+    listData = { items: [makeApplication({})], total: 1, page: 1, pageSize: 20 };
+    renderPage();
+
+    // Created starts descending by default (the page's initial sort).
+    await userEvent.click(screen.getByRole('button', { name: 'Created' }));
+
+    expect(useApplicationsMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sort: 'createdAt' }),
+    );
   });
 });

@@ -99,8 +99,29 @@ export const applicationQuerySchema = z.object({
   // the cap — the list view's own pagination still uses a much smaller size.
   pageSize: z.coerce.number().int().min(1).max(500).optional().default(20),
   sort: z
-    .enum(['sentAt', '-sentAt', 'jobTitle', '-jobTitle', 'statusChangedAt', '-statusChangedAt'])
+    .enum([
+      'sentAt',
+      '-sentAt',
+      'jobTitle',
+      '-jobTitle',
+      'statusChangedAt',
+      '-statusChangedAt',
+      'createdAt',
+      '-createdAt',
+      // 'location.raw'/'applyType'/'postedAt' back the list table's
+      // sortable Location/Channel/Posted column headers.
+      'location.raw',
+      '-location.raw',
+      'applyType',
+      '-applyType',
+      'postedAt',
+      '-postedAt',
+    ])
     .optional()
-    .default('-sentAt'),
+    // Newest-captured first by default — most recently added applications
+    // are what a user coming back to the list wants to see, not sorted by
+    // sentAt (which stays undefined for drafts, so those would otherwise
+    // sort inconsistently against sent ones).
+    .default('-createdAt'),
 });
 export type ApplicationQuery = z.infer<typeof applicationQuerySchema>;

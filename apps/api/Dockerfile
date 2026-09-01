@@ -21,7 +21,7 @@ RUN pnpm --filter api build
 # the built dist/ plus a pruned, self-contained node_modules (prod deps
 # only, workspace deps like @bewerber/shared inlined as real files, not
 # symlinks) into one standalone directory.
-RUN pnpm --filter api deploy --prod /out/api
+RUN pnpm --filter api deploy --prod --legacy /out/api
 
 FROM node:22-slim AS runtime
 ENV NODE_ENV=production

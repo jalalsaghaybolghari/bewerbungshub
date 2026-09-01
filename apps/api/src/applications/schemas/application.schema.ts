@@ -73,7 +73,11 @@ export class Application {
   @Prop({ type: String, enum: ['user', 'system'], default: 'user' })
   statusSetBy: 'user' | 'system';
 
-  @Prop({ default: Date.now })
+  // No default — this must reflect when the application actually left
+  // 'draft' (either at creation, if created with a later status, or via a
+  // status change), never just when the record was created. See
+  // ApplicationsService.create/changeStatus.
+  @Prop()
   sentAt?: Date;
 
   @Prop()

@@ -111,6 +111,26 @@ describe('Applications (e2e)', () => {
         .send(sampleApplication())
         .expect(201);
     });
+
+    it('sets sentAt immediately when created with a non-draft status (happy path)', async () => {
+      const res = await authed
+        .post('/api/v1/applications')
+        .send(sampleApplication())
+        .expect(201);
+
+      expect(res.body.status).toBe('applied');
+      expect(res.body.sentAt).toBeTruthy();
+    });
+
+    it('leaves sentAt unset when created as a draft (edge case)', async () => {
+      const res = await authed
+        .post('/api/v1/applications')
+        .send(sampleApplication({ status: 'draft' }))
+        .expect(201);
+
+      expect(res.body.status).toBe('draft');
+      expect(res.body.sentAt).toBeFalsy();
+    });
   });
 
   describe('GET /applications', () => {
@@ -233,6 +253,37 @@ describe('Applications (e2e)', () => {
         .expect(200);
       expect(detail.body.application.status).toBe('applied');
       expect(detail.body.events).toHaveLength(1); // only "created" — no status_changed event
+    });
+
+    it('sets sentAt the first time a draft leaves draft, not before (happy path)', async () => {
+      const created = await authed
+        .post('/api/v1/applications')
+        .send(sampleApplication({ status: 'draft' }))
+        .expect(201);
+      expect(created.body.sentAt).toBeFalsy();
+
+      const res = await authed
+        .post(`/api/v1/applications/${created.body._id}/status`)
+        .send({ status: 'applied' })
+        .expect(201);
+
+      expect(res.body.sentAt).toBeTruthy();
+    });
+
+    it('does not overwrite sentAt on a later status change (edge case)', async () => {
+      const created = await authed
+        .post('/api/v1/applications')
+        .send(sampleApplication())
+        .expect(201);
+      const originalSentAt = created.body.sentAt;
+      expect(originalSentAt).toBeTruthy();
+
+      const res = await authed
+        .post(`/api/v1/applications/${created.body._id}/status`)
+        .send({ status: 'interview' })
+        .expect(201);
+
+      expect(res.body.sentAt).toBe(originalSentAt);
     });
   });
 

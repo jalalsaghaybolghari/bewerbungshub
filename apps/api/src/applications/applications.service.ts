@@ -36,6 +36,11 @@ export class ApplicationsService {
       const application = await this.applicationModel.create({
         ...input,
         userId: new Types.ObjectId(userId),
+        // 'draft' means "captured, not sent yet" (e.g. the extension's
+        // default) — sentAt should stay unset until it actually leaves
+        // draft, either right here (created directly as e.g. 'applied')
+        // or later via changeStatus.
+        sentAt: input.status === 'draft' ? undefined : new Date(),
       });
       await this.writeEvent(application._id, userId, 'created', 'user', {
         status: application.status,
@@ -132,6 +137,11 @@ export class ApplicationsService {
     application.status = input.status;
     application.statusChangedAt = new Date();
     application.statusSetBy = 'user';
+    // First time it leaves 'draft' — same rule as create(). Never
+    // overwritten again on later transitions (e.g. applied -> interview).
+    if (!application.sentAt && input.status !== 'draft') {
+      application.sentAt = new Date();
+    }
     await application.save();
 
     await this.writeEvent(application._id, userId, 'status_changed', 'user', {

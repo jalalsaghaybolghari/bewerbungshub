@@ -80,6 +80,13 @@
     "view": {
       "list": "Liste",
       "kanban": "Kanban"
+    },
+    "duplicates": {
+      "findSimilar": "Ähnliche finden",
+      "title": "Mögliche Duplikate",
+      "empty": "Keine wahrscheinlichen Duplikate gefunden.",
+      "keepThis": "Dieses behalten",
+      "similarityNote": "Titel-Übereinstimmung {{title}}% · Firma {{company}}%"
     }
   },
   "interviews": {

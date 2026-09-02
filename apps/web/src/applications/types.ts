@@ -64,3 +64,14 @@ export interface ApplicationStats {
   byApplyType: Partial<Record<ApplyType, number>>;
   overdueFollowUps: OverdueFollowUpApplication[];
 }
+
+export interface DuplicatePair {
+  a: Application;
+  b: Application;
+  titleSimilarity: number;
+  companySimilarity: number;
+}
+
+export interface DuplicateGroupsResponse {
+  pairs: DuplicatePair[];
+}

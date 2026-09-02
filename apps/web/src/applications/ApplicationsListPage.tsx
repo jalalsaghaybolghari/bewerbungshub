@@ -14,6 +14,7 @@ import {
 import { StatusBadge } from './StatusBadge';
 import { KanbanBoard } from './KanbanBoard';
 import { ApplicationQuickViewModal } from './ApplicationQuickViewModal';
+import { DuplicatesReviewModal } from './DuplicatesReviewModal';
 import type { Application } from './types';
 
 const PAGE_SIZE = 20;
@@ -65,6 +66,7 @@ export function ApplicationsListPage() {
   });
   const deleteMutation = useDeleteApplication();
   const [quickViewApp, setQuickViewApp] = useState<Application | null>(null);
+  const [showDuplicates, setShowDuplicates] = useState(false);
 
   function handleDelete(id: string) {
     if (!confirm(t('applications.detail.confirmDelete'))) return;
@@ -84,9 +86,14 @@ export function ApplicationsListPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-ink">{t('applications.title')}</h1>
-        <Link to="/applications/new" className={buttonClasses()}>
-          {t('applications.new')}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" onClick={() => setShowDuplicates(true)}>
+            {t('applications.duplicates.findSimilar')}
+          </Button>
+          <Link to="/applications/new" className={buttonClasses()}>
+            {t('applications.new')}
+          </Link>
+        </div>
       </div>
 
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -277,6 +284,8 @@ export function ApplicationsListPage() {
           onClose={() => setQuickViewApp(null)}
         />
       )}
+
+      {showDuplicates && <DuplicatesReviewModal onClose={() => setShowDuplicates(false)} />}
     </div>
   );
 }

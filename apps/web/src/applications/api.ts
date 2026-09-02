@@ -10,6 +10,7 @@ import type {
   ApplicationDetailResponse,
   ApplicationsListResponse,
   ApplicationStats,
+  DuplicateGroupsResponse,
 } from './types';
 
 export interface ApplicationsQuery {
@@ -129,6 +130,22 @@ export function useDeleteApplication() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => apiFetch<void>(`/applications/${id}`, { method: 'DELETE' }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['applications'] }),
+  });
+}
+
+export function useDuplicatePairs() {
+  return useQuery({
+    queryKey: ['applications', 'duplicate-groups'],
+    queryFn: () => apiFetch<DuplicateGroupsResponse>('/applications/duplicate-groups'),
+  });
+}
+
+export function useMergeApplications() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ keepId, mergeId }: { keepId: string; mergeId: string }) =>
+      apiFetch<Application>(`/applications/${keepId}/merge/${mergeId}`, { method: 'POST' }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['applications'] }),
   });
 }

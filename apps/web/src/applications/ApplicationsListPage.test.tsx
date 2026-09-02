@@ -17,6 +17,11 @@ vi.mock('./api', () => ({
     return { data: listData, isLoading, isError };
   },
   useDeleteApplication: () => ({ mutate: deleteMock }),
+  // DuplicatesReviewModal only mounts once "Find similar" is clicked, but
+  // it shares this same './api' module — an empty result is enough for the
+  // one test below that opens it.
+  useDuplicatePairs: () => ({ data: { pairs: [] }, isLoading: false, isError: false }),
+  useMergeApplications: () => ({ mutate: vi.fn() }),
 }));
 
 // ApplicationQuickViewModal (rendered for real, not mocked) pulls in
@@ -166,6 +171,15 @@ describe('ApplicationsListPage', () => {
     expect(useApplicationsMock).toHaveBeenLastCalledWith(
       expect.objectContaining({ sort: '-location.raw' }),
     );
+  });
+
+  it('opens the duplicates review modal when "Find similar" is clicked (happy path)', async () => {
+    listData = { items: [makeApplication({})], total: 1, page: 1, pageSize: 20 };
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: /find similar/i }));
+
+    expect(screen.getByText(/possible duplicates/i)).toBeInTheDocument();
   });
 
   it('clicking the already-descending column a second time flips to ascending (edge case)', async () => {

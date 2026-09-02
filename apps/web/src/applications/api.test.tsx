@@ -1,8 +1,8 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { useMoveApplicationStatus } from './api';
-import type { Application, ApplicationsListResponse } from './types';
+import { useDuplicatePairs, useMergeApplications, useMoveApplicationStatus } from './api';
+import type { Application, ApplicationsListResponse, DuplicateGroupsResponse } from './types';
 
 function jsonResponse(body: unknown, init: { status?: number; ok?: boolean } = {}) {
   const status = init.status ?? 200;
@@ -111,5 +111,72 @@ describe('useMoveApplicationStatus', () => {
     expect(client.getQueryData(['applications', 'app-1'])).toEqual({
       note: 'not a paginated list',
     });
+  });
+});
+
+function renderWithClient<T>(
+  hook: () => T,
+  client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  }),
+) {
+  return renderHook(hook, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    ),
+  });
+}
+
+describe('useDuplicatePairs', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('fetches the duplicate-groups endpoint (happy path)', async () => {
+    const pairs: DuplicateGroupsResponse = {
+      pairs: [
+        {
+          a: makeApplication({ _id: 'app-1' }),
+          b: makeApplication({ _id: 'app-2' }),
+          titleSimilarity: 0.9,
+          companySimilarity: 1,
+        },
+      ],
+    };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(pairs));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderWithClient(() => useDuplicatePairs());
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual(pairs);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/applications/duplicate-groups'),
+      expect.anything(),
+    );
+  });
+});
+
+describe('useMergeApplications', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('posts to the merge endpoint with keepId and mergeId and invalidates the applications cache (happy path)', async () => {
+    const client = seedClient([makeApplication({ _id: 'app-1' })]);
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(makeApplication({ _id: 'app-1' })));
+    vi.stubGlobal('fetch', fetchMock);
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+
+    const { result } = renderWithClient(() => useMergeApplications(), client);
+
+    result.current.mutate({ keepId: 'app-1', mergeId: 'app-2' });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/applications/app-1/merge/app-2'),
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['applications'] });
   });
 });

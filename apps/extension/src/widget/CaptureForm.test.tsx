@@ -1,15 +1,17 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CaptureForm } from './CaptureForm';
 import { ApiError } from '../lib/api-client';
 import type { ExtractedJobPosting } from '@bewerber/scrapers';
 
 const checkDuplicateMock = vi.fn();
+const checkSimilarMock = vi.fn();
 const createApplicationMock = vi.fn();
 
 vi.mock('../lib/applications', () => ({
   checkDuplicate: (...args: unknown[]) => checkDuplicateMock(...args),
+  checkSimilar: (...args: unknown[]) => checkSimilarMock(...args),
   createApplication: (...args: unknown[]) => createApplicationMock(...args),
 }));
 
@@ -21,6 +23,12 @@ const extraction: ExtractedJobPosting = {
 };
 
 describe('CaptureForm', () => {
+  beforeEach(() => {
+    // Default baseline for every test not specifically exercising the
+    // similar-match confirm flow below — no matches, nothing blocks Save.
+    checkSimilarMock.mockResolvedValue([]);
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
   });
@@ -264,5 +272,93 @@ describe('CaptureForm', () => {
 
     expect(await screen.findByText('jobTitle is required')).toBeInTheDocument();
     expect(screen.getByDisplayValue('QA Engineer')).toBeInTheDocument();
+  });
+
+  it('blocks Save and shows a confirm panel when a similar application is found (happy path)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    checkSimilarMock.mockResolvedValueOnce([
+      { _id: 'app-similar', jobTitle: 'Backend Engineer', company: { name: 'Acme Corp' } },
+    ]);
+    render(
+      <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
+    );
+
+    expect(
+      await screen.findByText(/looks similar to an application you already saved/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/backend engineer.*acme corp/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^save application$/i })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /save anyway/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /^save application$/i }));
+
+    await vi.waitFor(() => expect(createApplicationMock).toHaveBeenCalled());
+  });
+
+  it('editing the job title after confirming re-blocks Save (edge case)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    checkSimilarMock.mockResolvedValueOnce([
+      { _id: 'app-similar', jobTitle: 'Backend Engineer', company: { name: 'Acme Corp' } },
+    ]);
+    render(
+      <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: /save anyway/i }));
+    expect(await screen.findByRole('button', { name: /^save application$/i })).toBeInTheDocument();
+
+    const jobTitleInput = screen.getByDisplayValue('Backend Engineer');
+    await userEvent.type(jobTitleInput, ' II');
+
+    expect(await screen.findByRole('button', { name: /save anyway/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^save application$/i })).not.toBeInTheDocument();
+  });
+
+  it('debounces the similarity check instead of firing on every keystroke (edge case)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    render(
+      <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
+    );
+    await screen.findByDisplayValue('Backend Engineer');
+    checkSimilarMock.mockClear();
+
+    vi.useFakeTimers();
+    const jobTitleInput = screen.getByDisplayValue('Backend Engineer');
+    fireEvent.change(jobTitleInput, { target: { value: 'Backend Engineer I' } });
+    fireEvent.change(jobTitleInput, { target: { value: 'Backend Engineer II' } });
+
+    expect(checkSimilarMock).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(400);
+
+    expect(checkSimilarMock).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it('saves immediately when no similar application is found (negative case)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    createApplicationMock.mockResolvedValueOnce({ status: 'saved', id: 'app-1' });
+    render(
+      <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: /^save application$/i }));
+
+    await vi.waitFor(() => expect(createApplicationMock).toHaveBeenCalled());
+    expect(screen.queryByRole('button', { name: /save anyway/i })).not.toBeInTheDocument();
+  });
+
+  it('fails open and saves immediately when the similarity check errors (negative case)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    checkSimilarMock.mockReset();
+    checkSimilarMock.mockRejectedValueOnce(new Error('network down'));
+    createApplicationMock.mockResolvedValueOnce({ status: 'saved', id: 'app-1' });
+    render(
+      <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: /^save application$/i }));
+
+    await vi.waitFor(() => expect(createApplicationMock).toHaveBeenCalled());
   });
 });

@@ -56,7 +56,7 @@ describe('ApplicationsController', () => {
 
   describe('merge', () => {
     it('delegates to the service with keepId and mergeId (happy path)', () => {
-      controller.merge(user, 'keep-1', 'merge-1');
+      void controller.merge(user, 'keep-1', 'merge-1');
 
       expect(service.merge).toHaveBeenCalledWith('user-1', 'keep-1', 'merge-1');
     });

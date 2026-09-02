@@ -41,6 +41,28 @@ export class ApplicationsController {
     return this.applicationsService.checkDuplicate(user.userId, applyLink);
   }
 
+  @Get('duplicate-groups')
+  async findDuplicateGroups(@CurrentUser() user: RequestUser) {
+    return {
+      pairs: await this.applicationsService.findDuplicateGroups(user.userId),
+    };
+  }
+
+  @Get('check-similar')
+  async checkSimilar(
+    @CurrentUser() user: RequestUser,
+    @Query('jobTitle') jobTitle: string,
+    @Query('company') company: string,
+  ) {
+    return {
+      matches: await this.applicationsService.findSimilarApplications(
+        user.userId,
+        jobTitle,
+        company,
+      ),
+    };
+  }
+
   @Get('stats')
   getStats(@CurrentUser() user: RequestUser) {
     return this.applicationsService.getStats(user.userId);
@@ -78,5 +100,14 @@ export class ApplicationsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@CurrentUser() user: RequestUser, @Param('id') id: string) {
     return this.applicationsService.remove(user.userId, id);
+  }
+
+  @Post(':keepId/merge/:mergeId')
+  merge(
+    @CurrentUser() user: RequestUser,
+    @Param('keepId') keepId: string,
+    @Param('mergeId') mergeId: string,
+  ) {
+    return this.applicationsService.merge(user.userId, keepId, mergeId);
   }
 }

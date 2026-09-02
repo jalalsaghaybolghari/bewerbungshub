@@ -11,6 +11,11 @@ import type {
   CreateApplicationInput,
   UpdateApplicationInput,
 } from '@bewerber/shared';
+import {
+  isLikelyDuplicate,
+  normalizeForSimilarity,
+  scoreJobSimilarity,
+} from '@bewerber/shared';
 import { Application, ApplicationDocument } from './schemas/application.schema';
 import { Event, EventDocument } from './schemas/event.schema';
 import { InterviewsService } from '../interviews/interviews.service';
@@ -265,6 +270,152 @@ export class ApplicationsService {
       .findOne({ userId: new Types.ObjectId(userId), applyLink })
       .exec();
     return { exists: !!application, id: application?._id.toString() ?? null };
+  }
+
+  // Fuzzy near-duplicate scan across the user's own active applications.
+  // Buckets by exact normalized company name first, then only scores title
+  // similarity pairwise *within* each bucket — keeps this cheap (no O(n^2)
+  // comparison across the whole list) and matches the requirement ("similar
+  // according to title and company"), at the deliberate cost that two
+  // companies whose normalized names don't land in the same bucket (e.g.
+  // "Acme Inc." vs "Acme Incorporated" — the suffix list doesn't cover
+  // "Incorporated") never get compared. Acceptable precision/recall
+  // tradeoff for a first pass.
+  async findDuplicateGroups(userId: string): Promise<
+    Array<{
+      a: ApplicationDocument;
+      b: ApplicationDocument;
+      titleSimilarity: number;
+      companySimilarity: number;
+    }>
+  > {
+    const applications = await this.applicationModel
+      .find({
+        userId: new Types.ObjectId(userId),
+        archivedAt: { $exists: false },
+      })
+      .exec();
+
+    const buckets = new Map<string, ApplicationDocument[]>();
+    for (const app of applications) {
+      const key = normalizeForSimilarity(app.company.name, {
+        stripCompanySuffixes: true,
+      });
+      const bucket = buckets.get(key);
+      if (bucket) bucket.push(app);
+      else buckets.set(key, [app]);
+    }
+
+    const pairs: Array<{
+      a: ApplicationDocument;
+      b: ApplicationDocument;
+      titleSimilarity: number;
+      companySimilarity: number;
+    }> = [];
+    for (const bucket of buckets.values()) {
+      if (bucket.length < 2) continue;
+      for (let i = 0; i < bucket.length; i++) {
+        for (let j = i + 1; j < bucket.length; j++) {
+          const score = scoreJobSimilarity(
+            {
+              jobTitle: bucket[i].jobTitle,
+              companyName: bucket[i].company.name,
+            },
+            {
+              jobTitle: bucket[j].jobTitle,
+              companyName: bucket[j].company.name,
+            },
+          );
+          if (isLikelyDuplicate(score)) {
+            pairs.push({
+              a: bucket[i],
+              b: bucket[j],
+              titleSimilarity: score.titleSimilarity,
+              companySimilarity: score.companySimilarity,
+            });
+          }
+        }
+      }
+    }
+    return pairs;
+  }
+
+  // Used by the extension's pre-save check against a candidate that hasn't
+  // been saved yet — a single candidate against the user's whole active
+  // list, so this is already O(n) and needs no bucketing.
+  async findSimilarApplications(
+    userId: string,
+    jobTitle: string,
+    companyName: string,
+  ): Promise<ApplicationDocument[]> {
+    const active = await this.applicationModel
+      .find({
+        userId: new Types.ObjectId(userId),
+        archivedAt: { $exists: false },
+      })
+      .exec();
+
+    return active.filter((app) =>
+      isLikelyDuplicate(
+        scoreJobSimilarity(
+          { jobTitle, companyName },
+          { jobTitle: app.jobTitle, companyName: app.company.name },
+        ),
+      ),
+    );
+  }
+
+  async merge(
+    userId: string,
+    keepId: string,
+    mergeId: string,
+  ): Promise<ApplicationDocument> {
+    if (keepId === mergeId) {
+      throw new ConflictException('Cannot merge an application into itself');
+    }
+
+    const userObjectId = new Types.ObjectId(userId);
+    const [keep, merged] = await Promise.all([
+      this.applicationModel
+        .findOne({ _id: keepId, userId: userObjectId })
+        .exec(),
+      this.applicationModel
+        .findOne({ _id: mergeId, userId: userObjectId })
+        .exec(),
+    ]);
+    if (!keep || !merged) throw new NotFoundException('Application not found');
+
+    await this.interviewsService.reassignToApplication(mergeId, keepId);
+    await this.followUpsService.reassignToApplication(mergeId, keepId);
+    await this.eventModel
+      .updateMany(
+        { applicationId: merged._id },
+        { $set: { applicationId: keep._id } },
+      )
+      .exec();
+
+    keep.tags = Array.from(new Set([...keep.tags, ...merged.tags]));
+    keep.followUpCount += merged.followUpCount;
+    keep.notes =
+      [keep.notes, merged.notes].filter(Boolean).join('\n\n') || undefined;
+    keep.sourceUrl ??= merged.sourceUrl;
+    keep.cvId ??= merged.cvId;
+    keep.postedAt ??= merged.postedAt;
+    keep.location.remoteType ??= merged.location.remoteType;
+    keep.company.website ??= merged.company.website;
+    keep.company.domain ??= merged.company.domain;
+    await keep.save();
+
+    merged.archivedAt = new Date();
+    await merged.save();
+
+    await this.writeEvent(keep._id, userId, 'note', 'user', {
+      mergedApplicationId: mergeId,
+      mergedJobTitle: merged.jobTitle,
+      mergedCompany: merged.company.name,
+    });
+
+    return keep;
   }
 
   private async writeEvent(

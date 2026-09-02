@@ -140,6 +140,7 @@ describe('useDuplicatePairs', () => {
           b: makeApplication({ _id: 'app-2' }),
           titleSimilarity: 0.9,
           companySimilarity: 1,
+          locationSimilarity: 1,
         },
       ],
     };

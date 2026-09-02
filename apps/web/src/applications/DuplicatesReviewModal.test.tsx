@@ -52,6 +52,7 @@ describe('DuplicatesReviewModal', () => {
           b: makeApplication({ _id: 'app-2', jobTitle: 'Backend Engineer, Senior' }),
           titleSimilarity: 0.7,
           companySimilarity: 1,
+          locationSimilarity: 1,
         },
       ],
     };
@@ -71,6 +72,7 @@ describe('DuplicatesReviewModal', () => {
           b: makeApplication({ _id: 'app-2' }),
           titleSimilarity: 0.9,
           companySimilarity: 1,
+          locationSimilarity: 1,
         },
       ],
     };
@@ -94,6 +96,7 @@ describe('DuplicatesReviewModal', () => {
           b: makeApplication({ _id: 'app-2' }),
           titleSimilarity: 0.9,
           companySimilarity: 1,
+          locationSimilarity: 1,
         },
       ],
     };
@@ -115,12 +118,14 @@ describe('DuplicatesReviewModal', () => {
           b: makeApplication({ _id: 'app-2', jobTitle: 'Backend Engineer' }),
           titleSimilarity: 1,
           companySimilarity: 1,
+          locationSimilarity: 1,
         },
         {
           a: makeApplication({ _id: 'app-3', jobTitle: 'Frontend Engineer' }),
           b: makeApplication({ _id: 'app-4', jobTitle: 'Frontend Engineer' }),
           titleSimilarity: 1,
           companySimilarity: 1,
+          locationSimilarity: 1,
         },
       ],
     };

@@ -76,6 +76,7 @@ export function DuplicatesReviewModal({ onClose }: { onClose: () => void }) {
                 {t('applications.duplicates.similarityNote', {
                   title: Math.round(pair.titleSimilarity * 100),
                   company: Math.round(pair.companySimilarity * 100),
+                  location: Math.round(pair.locationSimilarity * 100),
                 })}
               </p>
             </div>

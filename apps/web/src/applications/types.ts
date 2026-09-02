@@ -70,6 +70,7 @@ export interface DuplicatePair {
   b: Application;
   titleSimilarity: number;
   companySimilarity: number;
+  locationSimilarity: number;
 }
 
 export interface DuplicateGroupsResponse {

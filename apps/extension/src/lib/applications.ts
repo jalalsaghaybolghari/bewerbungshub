@@ -18,12 +18,16 @@ export interface SimilarApplication {
   company: { name: string };
 }
 
-// Fuzzy title+company match, unlike checkDuplicate's exact applyLink match
-// above — used to warn about a likely-same job captured under a different
-// URL, before it gets saved as a new application.
-export function checkSimilar(jobTitle: string, companyName: string): Promise<SimilarApplication[]> {
+// Fuzzy title+company+location match, unlike checkDuplicate's exact
+// applyLink match above — used to warn about a likely-same job captured
+// under a different URL, before it gets saved as a new application.
+export function checkSimilar(
+  jobTitle: string,
+  companyName: string,
+  locationRaw: string,
+): Promise<SimilarApplication[]> {
   return callApi<{ matches: SimilarApplication[] }>(
-    `/applications/check-similar?jobTitle=${encodeURIComponent(jobTitle)}&company=${encodeURIComponent(companyName)}`,
+    `/applications/check-similar?jobTitle=${encodeURIComponent(jobTitle)}&company=${encodeURIComponent(companyName)}&location=${encodeURIComponent(locationRaw)}`,
   ).then((res) => res.matches);
 }
 

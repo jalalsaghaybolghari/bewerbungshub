@@ -105,21 +105,21 @@ export function CaptureForm({
   useEffect(() => {
     // Any edit to the fields a prior confirmation was based on must
     // re-require confirmation — a stale "save anyway" must never silently
-    // authorize a save against a since-edited title/company.
+    // authorize a save against a since-edited title/company/location.
     setConfirmedDespiteSimilar(false);
-    if (!jobTitleValue?.trim() || !companyNameValue?.trim()) {
+    if (!jobTitleValue?.trim() || !companyNameValue?.trim() || !locationValue?.trim()) {
       setSimilarMatches([]);
       return;
     }
     const handle = setTimeout(() => {
-      checkSimilar(jobTitleValue, companyNameValue)
+      checkSimilar(jobTitleValue, companyNameValue, locationValue)
         .then(setSimilarMatches)
         // Fails open, same as checkDuplicate above — an availability blip
         // in this fuzzy check must never trap the user unable to save.
         .catch(() => setSimilarMatches([]));
     }, 400);
     return () => clearTimeout(handle);
-  }, [jobTitleValue, companyNameValue]);
+  }, [jobTitleValue, companyNameValue, locationValue]);
 
   async function onSubmit(input: CreateApplicationInput) {
     if (similarMatches.length > 0 && !confirmedDespiteSimilar) return;

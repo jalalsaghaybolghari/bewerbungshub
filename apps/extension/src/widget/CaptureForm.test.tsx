@@ -295,6 +295,31 @@ describe('CaptureForm', () => {
     await vi.waitFor(() => expect(createApplicationMock).toHaveBeenCalled());
   });
 
+  it('checks similarity against title, company, and location together (happy path)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    render(
+      <CaptureForm url="https://example.com/jobs/1" extraction={extraction} onClose={vi.fn()} />,
+    );
+
+    await vi.waitFor(() =>
+      expect(checkSimilarMock).toHaveBeenCalledWith('Backend Engineer', 'Acme Corp', 'Berlin'),
+    );
+  });
+
+  it('does not check similarity while the location field is empty (edge case)', async () => {
+    checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
+    render(
+      <CaptureForm
+        url="https://example.com/jobs/1"
+        extraction={{ ...extraction, locationRaw: undefined }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await screen.findByDisplayValue('Backend Engineer');
+    expect(checkSimilarMock).not.toHaveBeenCalled();
+  });
+
   it('editing the job title after confirming re-blocks Save (edge case)', async () => {
     checkDuplicateMock.mockResolvedValueOnce({ exists: false, id: null });
     checkSimilarMock.mockResolvedValueOnce([

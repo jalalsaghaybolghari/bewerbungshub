@@ -75,6 +75,23 @@ export class FollowUpsService {
     await this.recomputeNextFollowUp(existing.applicationId.toString());
   }
 
+  // Used by ApplicationsService.merge — the caller has already validated
+  // both applications belong to the requesting user, so no ownership check
+  // here. Recomputes the target's nextFollowUpAt afterward, since moved-in
+  // follow-ups can change what the soonest scheduled one is.
+  async reassignToApplication(
+    fromApplicationId: string,
+    toApplicationId: string,
+  ): Promise<void> {
+    await this.followUpModel
+      .updateMany(
+        { applicationId: new Types.ObjectId(fromApplicationId) },
+        { $set: { applicationId: new Types.ObjectId(toApplicationId) } },
+      )
+      .exec();
+    await this.recomputeNextFollowUp(toApplicationId);
+  }
+
   /** Keeps Application.nextFollowUpAt in sync with the soonest still-scheduled follow-up. */
   private async recomputeNextFollowUp(applicationId: string): Promise<void> {
     const next = await this.followUpModel

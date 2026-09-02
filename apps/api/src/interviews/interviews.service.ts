@@ -60,6 +60,21 @@ export class InterviewsService {
       throw new NotFoundException('Interview not found');
   }
 
+  // Used by ApplicationsService.merge — the caller has already validated
+  // both applications belong to the requesting user, so no ownership check
+  // here.
+  async reassignToApplication(
+    fromApplicationId: string,
+    toApplicationId: string,
+  ): Promise<void> {
+    await this.interviewModel
+      .updateMany(
+        { applicationId: new Types.ObjectId(fromApplicationId) },
+        { $set: { applicationId: new Types.ObjectId(toApplicationId) } },
+      )
+      .exec();
+  }
+
   private async assertApplicationOwnership(
     userId: string,
     applicationId: string,

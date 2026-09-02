@@ -394,28 +394,38 @@ export class ApplicationsService {
       )
       .exec();
 
-    keep.tags = Array.from(new Set([...keep.tags, ...merged.tags]));
-    keep.followUpCount += merged.followUpCount;
-    keep.notes =
-      [keep.notes, merged.notes].filter(Boolean).join('\n\n') || undefined;
-    keep.sourceUrl ??= merged.sourceUrl;
-    keep.cvId ??= merged.cvId;
-    keep.postedAt ??= merged.postedAt;
-    keep.location.remoteType ??= merged.location.remoteType;
-    keep.company.website ??= merged.company.website;
-    keep.company.domain ??= merged.company.domain;
-    await keep.save();
+    // followUpsService.reassignToApplication just wrote keep's
+    // nextFollowUpAt directly in the DB (via recomputeNextFollowUp) — the
+    // in-memory `keep` loaded above predates that write, so reload it
+    // before layering on the rest of the merge changes below.
+    const refreshedKeep = await this.applicationModel.findById(keep._id).exec();
+    if (!refreshedKeep) throw new NotFoundException('Application not found');
+
+    refreshedKeep.tags = Array.from(
+      new Set([...refreshedKeep.tags, ...merged.tags]),
+    );
+    refreshedKeep.followUpCount += merged.followUpCount;
+    refreshedKeep.notes =
+      [refreshedKeep.notes, merged.notes].filter(Boolean).join('\n\n') ||
+      undefined;
+    refreshedKeep.sourceUrl ??= merged.sourceUrl;
+    refreshedKeep.cvId ??= merged.cvId;
+    refreshedKeep.postedAt ??= merged.postedAt;
+    refreshedKeep.location.remoteType ??= merged.location.remoteType;
+    refreshedKeep.company.website ??= merged.company.website;
+    refreshedKeep.company.domain ??= merged.company.domain;
+    await refreshedKeep.save();
 
     merged.archivedAt = new Date();
     await merged.save();
 
-    await this.writeEvent(keep._id, userId, 'note', 'user', {
+    await this.writeEvent(refreshedKeep._id, userId, 'note', 'user', {
       mergedApplicationId: mergeId,
       mergedJobTitle: merged.jobTitle,
       mergedCompany: merged.company.name,
     });
 
-    return keep;
+    return refreshedKeep;
   }
 
   private async writeEvent(

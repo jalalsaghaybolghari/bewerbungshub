@@ -9,7 +9,12 @@ import {
   type CreateApplicationInput,
 } from '@bewerber/shared';
 import type { ExtractedJobPosting } from '@bewerber/scrapers';
-import { checkDuplicate, createApplication } from '../lib/applications';
+import {
+  checkDuplicate,
+  checkSimilar,
+  createApplication,
+  type SimilarApplication,
+} from '../lib/applications';
 import { ApiError } from '../lib/api-client';
 import { Button, FieldError, Input, Label, Select, Textarea } from '../components/ui';
 
@@ -67,6 +72,8 @@ export function CaptureForm({
   onClose: () => void;
 }) {
   const [duplicateId, setDuplicateId] = useState<string | null>(null);
+  const [similarMatches, setSimilarMatches] = useState<SimilarApplication[]>([]);
+  const [confirmedDespiteSimilar, setConfirmedDespiteSimilar] = useState(false);
   const [saved, setSaved] = useState<'saved' | 'queued' | false>(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -86,6 +93,8 @@ export function CaptureForm({
   const mapsUrl = locationValue?.trim()
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationValue)}`
     : null;
+  const jobTitleValue = watch('jobTitle');
+  const companyNameValue = watch('company.name');
 
   useEffect(() => {
     checkDuplicate(applyLink)
@@ -93,7 +102,27 @@ export function CaptureForm({
       .catch(() => setDuplicateId(null));
   }, [applyLink]);
 
+  useEffect(() => {
+    // Any edit to the fields a prior confirmation was based on must
+    // re-require confirmation — a stale "save anyway" must never silently
+    // authorize a save against a since-edited title/company.
+    setConfirmedDespiteSimilar(false);
+    if (!jobTitleValue?.trim() || !companyNameValue?.trim()) {
+      setSimilarMatches([]);
+      return;
+    }
+    const handle = setTimeout(() => {
+      checkSimilar(jobTitleValue, companyNameValue)
+        .then(setSimilarMatches)
+        // Fails open, same as checkDuplicate above — an availability blip
+        // in this fuzzy check must never trap the user unable to save.
+        .catch(() => setSimilarMatches([]));
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [jobTitleValue, companyNameValue]);
+
   async function onSubmit(input: CreateApplicationInput) {
+    if (similarMatches.length > 0 && !confirmedDespiteSimilar) return;
     setServerError(null);
     try {
       const result = await createApplication(input);
@@ -202,9 +231,33 @@ export function CaptureForm({
 
       {serverError && <p className="text-sm text-danger">{serverError}</p>}
 
-      <Button type="submit" disabled={isSubmitting} className="w-full">
-        Save application
-      </Button>
+      {similarMatches.length > 0 && !confirmedDespiteSimilar ? (
+        <div className="space-y-2 rounded-lg bg-amber/15 p-3">
+          <p className="text-sm font-medium text-amber">
+            This looks similar to {similarMatches.length === 1 ? 'an application' : 'applications'}{' '}
+            you already saved:
+          </p>
+          <ul className="space-y-1 text-sm text-ink">
+            {similarMatches.map((m) => (
+              <li key={m._id}>
+                {m.jobTitle} · {m.company.name}
+              </li>
+            ))}
+          </ul>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setConfirmedDespiteSimilar(true)}
+            className="w-full"
+          >
+            Save anyway
+          </Button>
+        </div>
+      ) : (
+        <Button type="submit" disabled={isSubmitting} className="w-full">
+          Save application
+        </Button>
+      )}
     </form>
   );
 }

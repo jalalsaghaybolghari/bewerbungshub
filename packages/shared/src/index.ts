@@ -12,3 +12,4 @@ export * from './cvs';
 export * from './interviews';
 export * from './follow-ups';
 export * from './settings';
+export * from './similarity';

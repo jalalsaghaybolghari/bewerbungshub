@@ -87,34 +87,60 @@ export function bigramDiceCoefficient(a: string, b: string): number {
 export interface SimilarityScore {
   titleSimilarity: number;
   companySimilarity: number;
+  locationSimilarity: number;
 }
 
 export function scoreJobSimilarity(
-  a: { jobTitle: string; companyName: string },
-  b: { jobTitle: string; companyName: string },
+  a: { jobTitle: string; companyName: string; locationRaw: string },
+  b: { jobTitle: string; companyName: string; locationRaw: string },
 ): SimilarityScore {
   const titleA = normalizeForSimilarity(a.jobTitle);
   const titleB = normalizeForSimilarity(b.jobTitle);
   const companyA = normalizeForSimilarity(a.companyName, { stripCompanySuffixes: true });
   const companyB = normalizeForSimilarity(b.companyName, { stripCompanySuffixes: true });
+  const locationA = normalizeForSimilarity(a.locationRaw);
+  const locationB = normalizeForSimilarity(b.locationRaw);
 
   return {
     titleSimilarity: titleA === titleB ? 1 : bigramDiceCoefficient(titleA, titleB),
     companySimilarity: companyA === companyB ? 1 : bigramDiceCoefficient(companyA, companyB),
+    locationSimilarity: isLocationMatch(locationA, locationB)
+      ? 1
+      : bigramDiceCoefficient(locationA, locationB),
   };
+}
+
+// Plain Dice coefficient penalizes length differences heavily, which makes
+// it a poor fit for locations specifically: "Vienna" vs "Vienna, Austria"
+// is an extremely common real pattern (same place, one source adds detail
+// the other doesn't) and would otherwise score well under this module's
+// title/company thresholds — treating a substring match as a full match
+// covers that directly, the same way the exact-equality fast path above
+// covers formatting-only differences elsewhere.
+function isLocationMatch(a: string, b: string): boolean {
+  if (!a || !b) return a === b;
+  return a === b || a.includes(b) || b.includes(a);
 }
 
 // Company names must match tightly (typo/suffix variance only); titles are
 // allowed to match more loosely since the same role often gets phrased
-// differently across sites/postings.
+// differently across sites/postings. Location sits with title — the same
+// place gets written with different amounts of detail ("Vienna" vs
+// "Vienna, Austria"), so it needs the same forgiving threshold rather than
+// company's tight one. Note this still won't catch the same place written
+// in two different languages (e.g. "Vienna" vs "Wien") — bigram overlap
+// can't bridge that; an acceptable first-pass gap, same category as the
+// company-bucketing tradeoff noted in ApplicationsService.
 export const SIMILARITY_THRESHOLDS = {
   company: 0.82,
   title: 0.6,
+  location: 0.6,
 } as const;
 
 export function isLikelyDuplicate(score: SimilarityScore): boolean {
   return (
     score.companySimilarity >= SIMILARITY_THRESHOLDS.company &&
-    score.titleSimilarity >= SIMILARITY_THRESHOLDS.title
+    score.titleSimilarity >= SIMILARITY_THRESHOLDS.title &&
+    score.locationSimilarity >= SIMILARITY_THRESHOLDS.location
   );
 }

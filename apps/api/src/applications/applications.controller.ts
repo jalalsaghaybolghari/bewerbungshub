@@ -53,12 +53,14 @@ export class ApplicationsController {
     @CurrentUser() user: RequestUser,
     @Query('jobTitle') jobTitle: string,
     @Query('company') company: string,
+    @Query('location') location: string,
   ) {
     return {
       matches: await this.applicationsService.findSimilarApplications(
         user.userId,
         jobTitle,
         company,
+        location,
       ),
     };
   }

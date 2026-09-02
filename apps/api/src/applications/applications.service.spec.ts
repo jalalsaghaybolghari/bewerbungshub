@@ -141,6 +141,23 @@ describe('ApplicationsService', () => {
       expect(pairs).toHaveLength(0);
     });
 
+    it('does not pair the same company and title in different locations (edge case)', async () => {
+      await createApplication({
+        jobTitle: 'Backend Engineer',
+        company: { name: 'Acme' },
+        location: { raw: 'Vienna' },
+      });
+      await createApplication({
+        jobTitle: 'Backend Engineer',
+        company: { name: 'Acme' },
+        location: { raw: 'Berlin' },
+      });
+
+      const pairs = await service.findDuplicateGroups(userId);
+
+      expect(pairs).toHaveLength(0);
+    });
+
     it('excludes archived applications (negative case)', async () => {
       const a = await createApplication({ jobTitle: 'Backend Engineer' });
       const b = await createApplication({ jobTitle: 'Backend Engineer' });
@@ -164,12 +181,14 @@ describe('ApplicationsService', () => {
       await createApplication({
         jobTitle: 'Backend Engineer',
         company: { name: 'Acme GmbH' },
+        location: { raw: 'Vienna' },
       });
 
       const matches = await service.findSimilarApplications(
         userId,
         'Backend Engineer',
         'Acme',
+        'Vienna',
       );
 
       expect(matches).toHaveLength(1);
@@ -179,12 +198,14 @@ describe('ApplicationsService', () => {
       await createApplication({
         jobTitle: 'Backend Engineer',
         company: { name: 'Acme' },
+        location: { raw: 'Vienna' },
       });
 
       const matches = await service.findSimilarApplications(
         userId,
         'Backend Engineer',
         'Acme',
+        'Vienna',
       );
 
       expect(matches).toHaveLength(1);
@@ -194,15 +215,51 @@ describe('ApplicationsService', () => {
       await createApplication({
         jobTitle: 'Backend Engineer',
         company: { name: 'Acme' },
+        location: { raw: 'Vienna' },
       });
 
       const matches = await service.findSimilarApplications(
         userId,
         'Marketing Intern',
         'Globex',
+        'Berlin',
       );
 
       expect(matches).toEqual([]);
+    });
+
+    it('does not match when the location differs, even with the same title and company (edge case)', async () => {
+      await createApplication({
+        jobTitle: 'Backend Engineer',
+        company: { name: 'Acme' },
+        location: { raw: 'Vienna' },
+      });
+
+      const matches = await service.findSimilarApplications(
+        userId,
+        'Backend Engineer',
+        'Acme',
+        'Berlin',
+      );
+
+      expect(matches).toEqual([]);
+    });
+
+    it('still matches when one location is the other plus extra detail (edge case)', async () => {
+      await createApplication({
+        jobTitle: 'Backend Engineer',
+        company: { name: 'Acme' },
+        location: { raw: 'Vienna' },
+      });
+
+      const matches = await service.findSimilarApplications(
+        userId,
+        'Backend Engineer',
+        'Acme',
+        'Vienna, Austria',
+      );
+
+      expect(matches).toHaveLength(1);
     });
   });
 

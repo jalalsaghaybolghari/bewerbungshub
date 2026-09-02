@@ -34,7 +34,7 @@ describe('ApplicationsController', () => {
   });
 
   describe('checkSimilar', () => {
-    it('passes jobTitle and company through and wraps the result in a matches envelope (happy path)', async () => {
+    it('passes jobTitle, company, and location through and wraps the result in a matches envelope (happy path)', async () => {
       service.findSimilarApplications.mockResolvedValueOnce([
         { jobTitle: 'x' },
       ]);
@@ -43,12 +43,14 @@ describe('ApplicationsController', () => {
         user,
         'Backend Engineer',
         'Acme',
+        'Vienna',
       );
 
       expect(service.findSimilarApplications).toHaveBeenCalledWith(
         'user-1',
         'Backend Engineer',
         'Acme',
+        'Vienna',
       );
       expect(result).toEqual({ matches: [{ jobTitle: 'x' }] });
     });

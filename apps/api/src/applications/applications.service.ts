@@ -287,6 +287,7 @@ export class ApplicationsService {
       b: ApplicationDocument;
       titleSimilarity: number;
       companySimilarity: number;
+      locationSimilarity: number;
     }>
   > {
     const applications = await this.applicationModel
@@ -311,6 +312,7 @@ export class ApplicationsService {
       b: ApplicationDocument;
       titleSimilarity: number;
       companySimilarity: number;
+      locationSimilarity: number;
     }> = [];
     for (const bucket of buckets.values()) {
       if (bucket.length < 2) continue;
@@ -320,10 +322,12 @@ export class ApplicationsService {
             {
               jobTitle: bucket[i].jobTitle,
               companyName: bucket[i].company.name,
+              locationRaw: bucket[i].location.raw,
             },
             {
               jobTitle: bucket[j].jobTitle,
               companyName: bucket[j].company.name,
+              locationRaw: bucket[j].location.raw,
             },
           );
           if (isLikelyDuplicate(score)) {
@@ -332,6 +336,7 @@ export class ApplicationsService {
               b: bucket[j],
               titleSimilarity: score.titleSimilarity,
               companySimilarity: score.companySimilarity,
+              locationSimilarity: score.locationSimilarity,
             });
           }
         }
@@ -347,6 +352,7 @@ export class ApplicationsService {
     userId: string,
     jobTitle: string,
     companyName: string,
+    locationRaw: string,
   ): Promise<ApplicationDocument[]> {
     const active = await this.applicationModel
       .find({
@@ -358,8 +364,12 @@ export class ApplicationsService {
     return active.filter((app) =>
       isLikelyDuplicate(
         scoreJobSimilarity(
-          { jobTitle, companyName },
-          { jobTitle: app.jobTitle, companyName: app.company.name },
+          { jobTitle, companyName, locationRaw },
+          {
+            jobTitle: app.jobTitle,
+            companyName: app.company.name,
+            locationRaw: app.location.raw,
+          },
         ),
       ),
     );

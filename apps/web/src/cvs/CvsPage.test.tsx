@@ -13,11 +13,14 @@ const updateMutate = vi.fn();
 const disconnectMutate = vi.fn();
 const connectGoogleDriveMock = vi.fn();
 
+const openMutate = vi.fn();
+
 vi.mock('./api', () => ({
   useCvs: () => ({ data: cvsData, isLoading: false }),
   useUploadCv: () => ({ mutateAsync: uploadMutateAsync, error: null, isPending: false }),
   useDeleteCv: () => ({ mutate: deleteMutate }),
   useUpdateCv: () => ({ mutate: updateMutate }),
+  useOpenCv: () => ({ mutate: openMutate, isPending: false, isError: false }),
   useGoogleDriveStatus: () => ({ data: driveStatus }),
   useDisconnectGoogleDrive: () => ({ mutate: disconnectMutate, isPending: false }),
   connectGoogleDrive: () => connectGoogleDriveMock(),
@@ -154,5 +157,76 @@ describe('CvsPage — Google Drive connection', () => {
     renderAt();
 
     expect(screen.queryByText('Drive')).not.toBeInTheDocument();
+  });
+});
+
+describe('CvsPage — delete confirmation', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    cvsData = [];
+    driveStatus = undefined;
+  });
+
+  it('deletes the CV after the user confirms (happy path)', async () => {
+    driveStatus = { connected: false };
+    cvsData = [makeCv({})];
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    renderAt();
+
+    await userEvent.click(screen.getByRole('button', { name: /delete/i }));
+
+    expect(deleteMutate).toHaveBeenCalledWith('cv-1');
+  });
+
+  it('does not delete when the user cancels the confirmation (negative case)', async () => {
+    driveStatus = { connected: false };
+    cvsData = [makeCv({})];
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    renderAt();
+
+    await userEvent.click(screen.getByRole('button', { name: /delete/i }));
+
+    expect(deleteMutate).not.toHaveBeenCalled();
+  });
+});
+
+describe('CvsPage — open and unattached state', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    cvsData = [];
+    driveStatus = undefined;
+  });
+
+  it('opens the CV when "Open" is clicked (happy path)', async () => {
+    driveStatus = { connected: false };
+    cvsData = [makeCv({})];
+    renderAt();
+
+    await userEvent.click(screen.getByRole('button', { name: /^open$/i }));
+
+    expect(openMutate).toHaveBeenCalledWith('cv-1');
+  });
+
+  it('shows an "Unattached" badge and hides "Open" once a Drive file is missing (edge case)', () => {
+    driveStatus = { connected: true };
+    cvsData = [
+      makeCv({ storageProvider: 'google-drive', unattachedAt: '2026-01-01T00:00:00.000Z' }),
+    ];
+    renderAt();
+
+    expect(screen.getByText(/unattached/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^open$/i })).not.toBeInTheDocument();
+    // Deleting a broken record must still work — that's the whole point
+    // of surfacing it instead of leaving the user stuck.
+    expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
+  });
+
+  it('shows no "Unattached" badge for a normal, still-attached CV (negative case)', () => {
+    driveStatus = { connected: true };
+    cvsData = [makeCv({ storageProvider: 'google-drive' })];
+    renderAt();
+
+    expect(screen.queryByText(/unattached/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^open$/i })).toBeInTheDocument();
   });
 });

@@ -18,7 +18,17 @@
     "noAccount": "Don't have an account?",
     "haveAccount": "Already have an account?",
     "loginError": "Invalid email or password.",
-    "registerError": "Could not create your account."
+    "registerError": "Could not create your account.",
+    "verifyEmail": {
+      "title": "Verify your email",
+      "checkInbox": "We sent a 6-digit code to your email — enter it below to finish creating your account.",
+      "codeLabel": "Verification code",
+      "verify": "Verify",
+      "resend": "Resend code",
+      "resendCooldown": "Resend code in {{seconds}}s",
+      "resent": "A new code has been sent.",
+      "error": "Something went wrong. Please try again."
+    }
   },
   "applications": {
     "title": "Applications",

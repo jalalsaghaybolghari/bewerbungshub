@@ -18,7 +18,17 @@
     "noAccount": "Noch kein Konto?",
     "haveAccount": "Bereits ein Konto?",
     "loginError": "E-Mail oder Passwort ist falsch.",
-    "registerError": "Konto konnte nicht erstellt werden."
+    "registerError": "Konto konnte nicht erstellt werden.",
+    "verifyEmail": {
+      "title": "E-Mail bestätigen",
+      "checkInbox": "Wir haben einen 6-stelligen Code an deine E-Mail-Adresse gesendet — gib ihn unten ein, um dein Konto zu aktivieren.",
+      "codeLabel": "Bestätigungscode",
+      "verify": "Bestätigen",
+      "resend": "Code erneut senden",
+      "resendCooldown": "Erneut senden in {{seconds}}s",
+      "resent": "Ein neuer Code wurde gesendet.",
+      "error": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+    }
   },
   "applications": {
     "title": "Bewerbungen",

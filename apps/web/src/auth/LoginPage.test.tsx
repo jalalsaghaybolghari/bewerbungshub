@@ -9,7 +9,15 @@ const loginMock = vi.fn();
 const navigateMock = vi.fn();
 
 vi.mock('./AuthContext', () => ({
-  useAuth: () => ({ login: loginMock, register: vi.fn(), logout: vi.fn(), user: null, isLoading: false }),
+  useAuth: () => ({
+    login: loginMock,
+    register: vi.fn(),
+    confirmEmail: vi.fn(),
+    resendCode: vi.fn(),
+    logout: vi.fn(),
+    user: null,
+    isLoading: false,
+  }),
 }));
 
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -47,7 +55,10 @@ describe('LoginPage', () => {
     await userEvent.type(screen.getByLabelText(/password/i), 'a very strong password');
     await userEvent.click(screen.getByRole('button', { name: /log in/i }));
 
-    expect(loginMock).toHaveBeenCalledWith({ email: 'alice@example.com', password: 'a very strong password' });
+    expect(loginMock).toHaveBeenCalledWith({
+      email: 'alice@example.com',
+      password: 'a very strong password',
+    });
     await vi.waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/applications'));
   });
 
@@ -61,5 +72,25 @@ describe('LoginPage', () => {
 
     expect(await screen.findByText('Invalid email or password')).toBeInTheDocument();
     expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it('redirects to /verify-email with the email when login rejects as unverified (edge case)', async () => {
+    loginMock.mockRejectedValueOnce(
+      new ApiError(403, 'Please verify your email before logging in.', {
+        code: 'EMAIL_NOT_VERIFIED',
+        email: 'alice@example.com',
+      }),
+    );
+    renderLoginPage();
+
+    await userEvent.type(screen.getByLabelText(/email/i), 'alice@example.com');
+    await userEvent.type(screen.getByLabelText(/password/i), 'a very strong password');
+    await userEvent.click(screen.getByRole('button', { name: /log in/i }));
+
+    await vi.waitFor(() =>
+      expect(navigateMock).toHaveBeenCalledWith('/verify-email', {
+        state: { email: 'alice@example.com' },
+      }),
+    );
   });
 });

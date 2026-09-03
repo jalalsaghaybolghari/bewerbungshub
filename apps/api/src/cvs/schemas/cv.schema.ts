@@ -12,8 +12,14 @@ export class Cv {
   @Prop({ required: true, type: String, enum: ['de', 'en'] })
   language: 'de' | 'en';
 
+  // Opaque storage-provider key — an app-internal path/S3 key for
+  // 'app', or the Drive file id for 'google-drive'. Drive file ids are
+  // globally unique, so this stays a safe unique index either way.
   @Prop({ required: true, unique: true })
   fileKey: string;
+
+  @Prop({ type: String, enum: ['app', 'google-drive'], default: 'app' })
+  storageProvider: 'app' | 'google-drive';
 
   @Prop({ required: true })
   fileName: string;

@@ -10,6 +10,27 @@ class UserSettings {
   ghostedAfterDays: number;
 }
 
+// Tokens are encrypted (TokenEncryptionService) before ever reaching here —
+// never stored in plaintext. folderId is the app's dedicated "BewerbungsHub
+// CVs" folder in this user's Drive, created once on first connect.
+@Schema({ _id: false })
+class GoogleDriveConnection {
+  @Prop({ required: true })
+  accessTokenEncrypted: string;
+
+  @Prop({ required: true })
+  refreshTokenEncrypted: string;
+
+  @Prop({ required: true })
+  accessTokenExpiresAt: Date;
+
+  @Prop({ required: true })
+  folderId: string;
+
+  @Prop({ required: true, default: Date.now })
+  connectedAt: Date;
+}
+
 @Schema({ timestamps: true })
 export class User {
   @Prop({ required: true, unique: true, lowercase: true, trim: true })
@@ -31,6 +52,9 @@ export class User {
   // logout; replaced on every refresh (rotation).
   @Prop()
   refreshTokenHash?: string;
+
+  @Prop({ type: GoogleDriveConnection })
+  googleDrive?: GoogleDriveConnection;
 }
 
 export type UserDocument = HydratedDocument<User>;

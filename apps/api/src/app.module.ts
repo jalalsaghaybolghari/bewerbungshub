@@ -13,6 +13,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CvsModule } from './cvs/cvs.module';
 import { ApplicationsModule } from './applications/applications.module';
+import { GoogleDriveModule } from './google-drive/google-drive.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { ApplicationsModule } from './applications/applications.module';
     UsersModule,
     CvsModule,
     ApplicationsModule,
+    GoogleDriveModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService, { provide: APP_PIPE, useClass: ZodValidationPipe }],

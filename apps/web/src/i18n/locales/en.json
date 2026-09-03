@@ -153,7 +153,16 @@
     "language": "Language",
     "setDefault": "Set as default",
     "default": "Default",
-    "delete": "Delete"
+    "delete": "Delete",
+    "googleDrive": {
+      "connect": "Connect Google Drive",
+      "disconnect": "Disconnect",
+      "connected": "Google Drive connected",
+      "saveToGoogleDrive": "Save to Google Drive",
+      "badge": "Drive",
+      "connectedBanner": "Google Drive connected.",
+      "errorBanner": "Couldn't connect Google Drive. Please try again."
+    }
   },
   "common": {
     "loading": "Loading…",

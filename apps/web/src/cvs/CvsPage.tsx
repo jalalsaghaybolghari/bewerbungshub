@@ -1,18 +1,100 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import { createCvMetadataSchema, type CreateCvMetadataInput } from '@bewerber/shared';
-import { useCvs, useDeleteCv, useUpdateCv, useUploadCv } from './api';
+import {
+  connectGoogleDrive,
+  useCvs,
+  useDeleteCv,
+  useDisconnectGoogleDrive,
+  useGoogleDriveStatus,
+  useUpdateCv,
+  useUploadCv,
+} from './api';
 import type { Cv } from './types';
 import { Button, Card, FieldError, Input, Label, Select } from '../components/ui';
 
 type CvFormValues = z.input<typeof createCvMetadataSchema>;
 
+function GoogleDriveConnectionBanner() {
+  const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Captured once, on mount, via a lazy initializer — reading directly
+  // from `searchParams` on every render would make the banner disappear
+  // the instant the effect below strips the params (which happens on the
+  // very next render), rather than staying visible for the user to read.
+  const [status] = useState(() => ({
+    connected: searchParams.get('driveConnected'),
+    error: searchParams.get('driveError'),
+  }));
+
+  useEffect(() => {
+    if (!status.connected && !status.error) return;
+    // Strip the query params once shown, so a page refresh doesn't
+    // re-display the same one-time banner.
+    const next = new URLSearchParams(searchParams);
+    next.delete('driveConnected');
+    next.delete('driveError');
+    setSearchParams(next, { replace: true });
+    // Runs once on mount only — status is captured once above, and
+    // searchParams/setSearchParams get new references every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (status.connected) {
+    return (
+      <p className="mb-4 rounded-lg bg-success/15 px-3 py-2 text-sm text-success">
+        {t('cvs.googleDrive.connectedBanner')}
+      </p>
+    );
+  }
+  if (status.error) {
+    return (
+      <p className="mb-4 rounded-lg bg-danger/15 px-3 py-2 text-sm text-danger">
+        {t('cvs.googleDrive.errorBanner')}
+      </p>
+    );
+  }
+  return null;
+}
+
+function GoogleDriveConnection() {
+  const { t } = useTranslation();
+  const { data: status } = useGoogleDriveStatus();
+  const disconnect = useDisconnectGoogleDrive();
+
+  if (status?.connected) {
+    return (
+      <div className="mb-6 flex items-center justify-between rounded-lg border border-slate/15 bg-white px-4 py-3">
+        <span className="text-sm text-ink">{t('cvs.googleDrive.connected')}</span>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => disconnect.mutate()}
+          disabled={disconnect.isPending}
+        >
+          {t('cvs.googleDrive.disconnect')}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-6">
+      <Button type="button" variant="secondary" onClick={() => void connectGoogleDrive()}>
+        {t('cvs.googleDrive.connect')}
+      </Button>
+    </div>
+  );
+}
+
 export function CvsPage() {
   const { t } = useTranslation();
   const { data: cvs, isLoading } = useCvs();
+  const { data: driveStatus } = useGoogleDriveStatus();
   const upload = useUploadCv();
   const deleteMutation = useDeleteCv();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,7 +107,7 @@ export function CvsPage() {
     formState: { errors },
   } = useForm<CvFormValues, unknown, CreateCvMetadataInput>({
     resolver: zodResolver(createCvMetadataSchema),
-    defaultValues: { language: 'en', isDefault: false },
+    defaultValues: { language: 'en', isDefault: false, useGoogleDrive: false },
   });
 
   async function onSubmit(metadata: CreateCvMetadataInput) {
@@ -39,6 +121,9 @@ export function CvsPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-6 text-2xl font-bold text-ink">{t('cvs.title')}</h1>
+
+      <GoogleDriveConnectionBanner />
+      <GoogleDriveConnection />
 
       <Card className="mb-6">
         <h2 className="mb-4 font-semibold text-ink">{t('cvs.upload')}</h2>
@@ -72,6 +157,12 @@ export function CvsPage() {
             <input type="checkbox" {...register('isDefault')} />
             {t('cvs.setDefault')}
           </label>
+          {driveStatus?.connected && (
+            <label className="flex items-center gap-2 text-sm text-slate">
+              <input type="checkbox" {...register('useGoogleDrive')} />
+              {t('cvs.googleDrive.saveToGoogleDrive')}
+            </label>
+          )}
           {upload.error && <p className="text-sm text-danger">{upload.error.message}</p>}
           <Button type="submit" disabled={!selectedFile || upload.isPending}>
             {t('cvs.upload')}
@@ -103,6 +194,11 @@ function CvRow({ cv, onDelete }: { cv: Cv; onDelete: () => void }) {
           {cv.isDefault && (
             <span className="ml-2 rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent">
               {t('cvs.default')}
+            </span>
+          )}
+          {cv.storageProvider === 'google-drive' && (
+            <span className="ml-2 rounded-full bg-slate/15 px-2 py-0.5 text-xs font-semibold text-slate">
+              {t('cvs.googleDrive.badge')}
             </span>
           )}
         </div>

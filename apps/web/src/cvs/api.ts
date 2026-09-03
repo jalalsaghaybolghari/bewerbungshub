@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CreateCvMetadataInput, UpdateCvInput } from '@bewerber/shared';
 import { apiFetch, apiFetchBlob } from '../lib/api-client';
-import type { Cv } from './types';
+import type { Cv, GoogleDriveStatus } from './types';
 
 // The file endpoint requires the same Bearer-token auth as everything
 // else apiFetch calls — a plain <a href> can't attach that header, so
@@ -51,5 +51,31 @@ export function useDeleteCv() {
   return useMutation({
     mutationFn: (id: string) => apiFetch<void>(`/cvs/${id}`, { method: 'DELETE' }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['cvs'] }),
+  });
+}
+
+export function useGoogleDriveStatus() {
+  return useQuery({
+    queryKey: ['cvs', 'google-drive-status'],
+    queryFn: () => apiFetch<GoogleDriveStatus>('/google-drive/status'),
+  });
+}
+
+// Not a mutation — it never resolves in the normal sense, since a
+// successful call ends with the page navigating away entirely to Google's
+// consent screen. The API call itself (fetching the signed connect URL)
+// is the only part that needs the usual Bearer-authenticated apiFetch;
+// the actual redirect is a plain browser navigation.
+export async function connectGoogleDrive(): Promise<void> {
+  const { url } = await apiFetch<{ url: string }>('/google-drive/connect-url');
+  window.location.href = url;
+}
+
+export function useDisconnectGoogleDrive() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiFetch<void>('/google-drive/disconnect', { method: 'DELETE' }),
+    onSuccess: () =>
+      void queryClient.invalidateQueries({ queryKey: ['cvs', 'google-drive-status'] }),
   });
 }

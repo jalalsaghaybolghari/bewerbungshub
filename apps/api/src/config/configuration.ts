@@ -15,6 +15,8 @@ export default () => ({
   storage: {
     // 'local' needs no external service — files land under storage.localDir.
     // 's3' talks to any S3-compatible endpoint (MinIO locally, real S3/R2/Azure Blob in prod).
+    // 'google-drive' is per-user, opted into per-CV — see cvs.storageProvider,
+    // not selected here the way local/s3 are.
     driver:
       (process.env.STORAGE_DRIVER as 'local' | 's3' | undefined) ?? 'local',
     localDir: process.env.STORAGE_LOCAL_DIR ?? './uploads',
@@ -26,5 +28,20 @@ export default () => ({
       region: process.env.S3_REGION ?? 'us-east-1',
       forcePathStyle: true,
     },
+  },
+  googleDrive: {
+    clientId: process.env.GOOGLE_OAUTH_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+    redirectUri: process.env.GOOGLE_OAUTH_REDIRECT_URI,
+  },
+  // Where the Google Drive OAuth callback (and anything else that needs to
+  // land the browser back in the web app) redirects to after finishing.
+  webAppUrl: process.env.WEB_APP_URL ?? 'http://localhost:5173',
+  security: {
+    // 64 hex chars = 32 bytes, required by TokenEncryptionService (AES-256).
+    // Dev-only fallback, same "insecure but works out of the box" spirit
+    // as the JWT secrets above — real deployments must set a random one:
+    //   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+    tokenEncryptionKey: process.env.TOKEN_ENCRYPTION_KEY ?? '0'.repeat(64),
   },
 });

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CreateCvMetadataInput, UpdateCvInput } from '@bewerber/shared';
-import { apiFetch, apiFetchBlob } from '../lib/api-client';
+import { apiFetch, apiFetchBlob, ApiError } from '../lib/api-client';
 import type { Cv, GoogleDriveStatus } from './types';
 
 // The file endpoint requires the same Bearer-token auth as everything
@@ -60,7 +60,10 @@ export function useUpdateCv(id: string) {
 
 export function useDeleteCv() {
   const queryClient = useQueryClient();
-  return useMutation({
+  // Typed against ApiError (not the default Error) so a blocked deletion's
+  // 409 body — { message, applications } — is readable via error.body,
+  // letting the UI link to the application(s) still holding the CV.
+  return useMutation<void, ApiError, string>({
     mutationFn: (id: string) => apiFetch<void>(`/cvs/${id}`, { method: 'DELETE' }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['cvs'] }),
   });

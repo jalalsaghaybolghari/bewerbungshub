@@ -22,3 +22,10 @@ export interface GoogleDriveStatus {
   connected: boolean;
   connectedAt?: string;
 }
+
+// Shape of the 409 response body when deleting a CV is blocked because an
+// application still references it — see CvsService.remove on the API.
+export interface CvDeleteConflictBody {
+  message: string;
+  applications: Array<{ id: string; jobTitle: string; company: string }>;
+}

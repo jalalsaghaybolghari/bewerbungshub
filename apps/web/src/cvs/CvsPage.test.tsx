@@ -9,6 +9,7 @@ let cvsData: Cv[] | undefined;
 let driveStatus: GoogleDriveStatus | undefined;
 const uploadMutateAsync = vi.fn();
 const deleteMutate = vi.fn();
+let deleteError: { message: string; body?: unknown } | null = null;
 const updateMutate = vi.fn();
 const disconnectMutate = vi.fn();
 const connectGoogleDriveMock = vi.fn();
@@ -18,7 +19,12 @@ const openMutate = vi.fn();
 vi.mock('./api', () => ({
   useCvs: () => ({ data: cvsData, isLoading: false }),
   useUploadCv: () => ({ mutateAsync: uploadMutateAsync, error: null, isPending: false }),
-  useDeleteCv: () => ({ mutate: deleteMutate }),
+  useDeleteCv: () => ({
+    mutate: deleteMutate,
+    isPending: false,
+    isError: !!deleteError,
+    error: deleteError,
+  }),
   useUpdateCv: () => ({ mutate: updateMutate }),
   useOpenCv: () => ({ mutate: openMutate, isPending: false, isError: false }),
   useGoogleDriveStatus: () => ({ data: driveStatus }),
@@ -165,6 +171,7 @@ describe('CvsPage — delete confirmation', () => {
     vi.clearAllMocks();
     cvsData = [];
     driveStatus = undefined;
+    deleteError = null;
   });
 
   it('deletes the CV after the user confirms (happy path)', async () => {
@@ -187,6 +194,31 @@ describe('CvsPage — delete confirmation', () => {
     await userEvent.click(screen.getByRole('button', { name: /delete/i }));
 
     expect(deleteMutate).not.toHaveBeenCalled();
+  });
+
+  it('shows the server error when deletion is blocked by an attached application (negative case)', () => {
+    driveStatus = { connected: false };
+    cvsData = [makeCv({})];
+    deleteError = { message: 'This CV is attached to an application.' };
+    renderAt();
+
+    expect(screen.getByText('This CV is attached to an application.')).toBeInTheDocument();
+  });
+
+  it('links to each application referencing the CV in the conflict body (happy path)', () => {
+    driveStatus = { connected: false };
+    cvsData = [makeCv({})];
+    deleteError = {
+      message: 'This CV is attached to one or more applications.',
+      body: {
+        message: 'This CV is attached to one or more applications.',
+        applications: [{ id: 'app-1', jobTitle: 'Backend Engineer', company: 'Acme' }],
+      },
+    };
+    renderAt();
+
+    const link = screen.getByRole('link', { name: /backend engineer.*acme/i });
+    expect(link).toHaveAttribute('href', '/applications/app-1');
   });
 });
 

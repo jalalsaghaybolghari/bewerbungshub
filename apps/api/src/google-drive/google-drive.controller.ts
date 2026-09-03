@@ -1,4 +1,13 @@
-import { Controller, Delete, Get, Query, Res, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { Response } from 'express';
@@ -90,6 +99,7 @@ export class GoogleDriveController {
 
   @Delete('disconnect')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
   async disconnect(@CurrentUser() user: RequestUser) {
     await this.googleDriveService.disconnect(user.userId);
   }

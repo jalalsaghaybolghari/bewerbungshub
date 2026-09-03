@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import { createCvMetadataSchema, type CreateCvMetadataInput } from '@bewerber/shared';
 import {
@@ -15,8 +15,14 @@ import {
   useUpdateCv,
   useUploadCv,
 } from './api';
-import type { Cv } from './types';
+import type { Cv, CvDeleteConflictBody } from './types';
 import { Button, Card, FieldError, Input, Label, Select } from '../components/ui';
+
+function isCvDeleteConflict(body: unknown): body is CvDeleteConflictBody {
+  return (
+    !!body && typeof body === 'object' && Array.isArray((body as CvDeleteConflictBody).applications)
+  );
+}
 
 type CvFormValues = z.input<typeof createCvMetadataSchema>;
 
@@ -97,7 +103,6 @@ export function CvsPage() {
   const { data: cvs, isLoading } = useCvs();
   const { data: driveStatus } = useGoogleDriveStatus();
   const upload = useUploadCv();
-  const deleteMutation = useDeleteCv();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -195,22 +200,23 @@ export function CvsPage() {
 
       <div className="space-y-3">
         {cvs?.map((cv) => (
-          <CvRow key={cv._id} cv={cv} onDelete={() => deleteMutation.mutate(cv._id)} />
+          <CvRow key={cv._id} cv={cv} />
         ))}
       </div>
     </div>
   );
 }
 
-function CvRow({ cv, onDelete }: { cv: Cv; onDelete: () => void }) {
+function CvRow({ cv }: { cv: Cv }) {
   const { t } = useTranslation();
   const updateMutation = useUpdateCv(cv._id);
   const openMutation = useOpenCv();
+  const deleteMutation = useDeleteCv();
   const isUnattached = !!cv.unattachedAt;
 
   function handleDelete() {
     if (!confirm(t('cvs.confirmDelete'))) return;
-    onDelete();
+    deleteMutation.mutate(cv._id);
   }
 
   return (
@@ -240,6 +246,22 @@ function CvRow({ cv, onDelete }: { cv: Cv; onDelete: () => void }) {
         {openMutation.isError && (
           <p className="mt-1 text-xs text-danger">{openMutation.error.message}</p>
         )}
+        {deleteMutation.isError && (
+          <div className="mt-1 text-xs text-danger">
+            <p>{deleteMutation.error.message}</p>
+            {isCvDeleteConflict(deleteMutation.error.body) && (
+              <ul className="mt-1 list-disc pl-4">
+                {deleteMutation.error.body.applications.map((app) => (
+                  <li key={app.id}>
+                    <Link to={`/applications/${app.id}`} className="underline hover:no-underline">
+                      {app.jobTitle} · {app.company}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-3">
         {!isUnattached && (
@@ -259,7 +281,11 @@ function CvRow({ cv, onDelete }: { cv: Cv; onDelete: () => void }) {
             {t('cvs.setDefault')}
           </button>
         )}
-        <button className="text-sm text-danger hover:underline" onClick={handleDelete}>
+        <button
+          className="text-sm text-danger hover:underline disabled:opacity-50"
+          onClick={handleDelete}
+          disabled={deleteMutation.isPending}
+        >
           {t('cvs.delete')}
         </button>
       </div>

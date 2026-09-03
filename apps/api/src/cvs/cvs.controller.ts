@@ -4,6 +4,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -54,6 +56,7 @@ export class CvsController {
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   remove(@CurrentUser() user: RequestUser, @Param('id') id: string) {
     return this.cvsService.remove(user.userId, id);
   }

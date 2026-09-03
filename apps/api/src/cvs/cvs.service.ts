@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -17,6 +18,7 @@ import {
   GoogleDriveFileNotFoundError,
   GoogleDriveService,
 } from '../google-drive/google-drive.service';
+import { ApplicationsService } from '../applications/applications.service';
 import { Cv, CvDocument } from './schemas/cv.schema';
 
 @Injectable()
@@ -25,6 +27,7 @@ export class CvsService {
     @InjectModel(Cv.name) private readonly cvModel: Model<CvDocument>,
     private readonly storage: StorageService,
     private readonly googleDrive: GoogleDriveService,
+    private readonly applications: ApplicationsService,
   ) {}
 
   findAllForUser(userId: string) {
@@ -131,6 +134,19 @@ export class CvsService {
 
   async remove(userId: string, id: string): Promise<void> {
     const cv = await this.findOneForUser(userId, id);
+    const referencingApplications =
+      await this.applications.findReferencingApplications(userId, id);
+    if (referencingApplications.length > 0) {
+      throw new ConflictException({
+        message:
+          'This CV is attached to one or more applications. Remove it from the application(s) before deleting.',
+        applications: referencingApplications.map((app) => ({
+          id: app._id.toString(),
+          jobTitle: app.jobTitle,
+          company: app.company.name,
+        })),
+      });
+    }
     if (cv.storageProvider === 'google-drive') {
       await this.googleDrive.deleteFile(userId, cv.fileKey);
     } else {

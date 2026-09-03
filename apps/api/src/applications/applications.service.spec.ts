@@ -77,6 +77,11 @@ describe('ApplicationsService', () => {
     eventModel = module.get(getModelToken(Event.name));
     interviewModel = module.get(getModelToken(Interview.name));
     followUpModel = module.get(getModelToken(FollowUp.name));
+    // Mongoose builds indexes in the background after model registration —
+    // without waiting for them, the unique (userId, applyLink) index isn't
+    // live yet when the earliest tests run, so a duplicate-key test would
+    // flakily pass through instead of throwing.
+    await applicationModel.init();
   });
 
   afterAll(async () => {
@@ -97,6 +102,77 @@ describe('ApplicationsService', () => {
   ): Promise<ApplicationDocument> {
     return service.create(forUserId, baseApplicationInput(overrides));
   }
+
+  describe('update', () => {
+    it('updates the given fields (happy path)', async () => {
+      const app = await createApplication({ jobTitle: 'Backend Engineer' });
+
+      const updated = await service.update(userId, app._id.toString(), {
+        jobTitle: 'Senior Backend Engineer',
+      });
+
+      expect(updated.jobTitle).toBe('Senior Backend Engineer');
+    });
+
+    it('throws ConflictException instead of a raw 500 when the new applyLink collides with another application (negative case)', async () => {
+      await createApplication({ applyLink: 'https://example.com/jobs/taken' });
+      const app = await createApplication({
+        applyLink: 'https://example.com/jobs/free',
+      });
+
+      await expect(
+        service.update(userId, app._id.toString(), {
+          applyLink: 'https://example.com/jobs/taken',
+        }),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('allows two different applications to share the same email apply address (happy path)', async () => {
+      await createApplication({
+        applyType: 'email',
+        applyLink: 'jobs@company.com',
+      });
+      const second = await createApplication({
+        applyType: 'email',
+        applyLink: 'jobs@company.com',
+      });
+
+      expect(second.applyType).toBe('email');
+    });
+
+    it('lets a re-typed application share an email address after changing to applyType: email (edge case)', async () => {
+      await createApplication({
+        applyType: 'email',
+        applyLink: 'jobs@company.com',
+      });
+      const app = await createApplication({
+        applyType: 'website',
+        applyLink: 'https://example.com/jobs/other',
+      });
+
+      const updated = await service.update(userId, app._id.toString(), {
+        applyType: 'email',
+        applyLink: 'jobs@company.com',
+      });
+
+      expect(updated.applyType).toBe('email');
+    });
+
+    it('re-enforces uniqueness once an application switches away from applyType: email (edge case)', async () => {
+      await createApplication({
+        applyType: 'website',
+        applyLink: 'https://example.com/jobs/taken',
+      });
+      const app = await createApplication({
+        applyType: 'email',
+        applyLink: 'https://example.com/jobs/taken',
+      });
+
+      await expect(
+        service.update(userId, app._id.toString(), { applyType: 'website' }),
+      ).rejects.toThrow(ConflictException);
+    });
+  });
 
   describe('findDuplicateGroups', () => {
     it('finds a pair with the same company and a similar title (happy path)', async () => {
@@ -260,6 +336,52 @@ describe('ApplicationsService', () => {
       );
 
       expect(matches).toHaveLength(1);
+    });
+  });
+
+  describe('findReferencingApplications', () => {
+    it('returns the active application(s) that reference the CV (happy path)', async () => {
+      const cvId = new Types.ObjectId().toString();
+      const app = await createApplication({
+        cvId,
+        jobTitle: 'Backend Engineer',
+        company: { name: 'Acme' },
+      });
+
+      const results = await service.findReferencingApplications(userId, cvId);
+
+      expect(results).toHaveLength(1);
+      expect(results[0]._id.toString()).toBe(app._id.toString());
+      expect(results[0].jobTitle).toBe('Backend Engineer');
+      expect(results[0].company.name).toBe('Acme');
+    });
+
+    it('returns an empty array when no application references the CV (negative case)', async () => {
+      const cvId = new Types.ObjectId().toString();
+      await createApplication({ cvId: new Types.ObjectId().toString() });
+
+      await expect(
+        service.findReferencingApplications(userId, cvId),
+      ).resolves.toEqual([]);
+    });
+
+    it('excludes an archived application that references the CV (edge case)', async () => {
+      const cvId = new Types.ObjectId().toString();
+      const app = await createApplication({ cvId });
+      await service.remove(userId, app._id.toString());
+
+      await expect(
+        service.findReferencingApplications(userId, cvId),
+      ).resolves.toEqual([]);
+    });
+
+    it("ignores another user's applications (negative case)", async () => {
+      const cvId = new Types.ObjectId().toString();
+      await createApplication({ cvId }, otherUserId);
+
+      await expect(
+        service.findReferencingApplications(userId, cvId),
+      ).resolves.toEqual([]);
     });
   });
 

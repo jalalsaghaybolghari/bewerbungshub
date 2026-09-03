@@ -54,12 +54,17 @@ export const locationSchema = z.object({
   remoteType: remoteTypeSchema.optional(),
 });
 
-export const createApplicationSchema = z.object({
+const applicationBaseSchema = z.object({
   jobTitle: z.string().min(1).max(200),
   company: companySchema,
   location: locationSchema,
   jobDescription: z.string().min(1),
-  applyLink: z.string().url(),
+  // Format depends on applyType — a real URL for everything except
+  // 'email', where the user is applying by sending mail to an address
+  // (e.g. "jobs@company.com"), not visiting a link. Enforced below via
+  // validateApplyLink rather than here, since the right check depends on
+  // a sibling field.
+  applyLink: z.string().min(1),
   applyType: applyTypeSchema,
   // The job posting's own page URL — distinct from `applyLink`, which can
   // point somewhere else entirely (e.g. LinkedIn's Easy Apply flows carry
@@ -68,7 +73,16 @@ export const createApplicationSchema = z.object({
   // anywhere). Set by the extension from the captured tab's URL; optional
   // since a manually-created application has no browser tab to capture.
   sourceUrl: z.string().url().optional(),
-  cvId: z.string().optional(),
+  // The web form's "—" (no CV) option submits an empty string rather than
+  // omitting the field — preprocessed to undefined so it doesn't reach
+  // Mongoose as "" and blow up ObjectId casting with an uncaught 500.
+  cvId: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z
+      .string()
+      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid CV id')
+      .optional(),
+  ),
   status: applicationStatusSchema.optional().default('applied'),
   tags: z.array(z.string().max(60)).max(20).optional().default([]),
   notes: z.string().max(5000).optional(),
@@ -77,9 +91,34 @@ export const createApplicationSchema = z.object({
   // it's optional rather than defaulted.
   postedAt: z.coerce.date().optional(),
 });
+
+// Skips validation when either field is absent — true for a partial update
+// payload that doesn't touch these fields, in which case there's nothing
+// here to check.
+function validateApplyLink(
+  data: { applyLink?: string; applyType?: ApplyType },
+  ctx: z.RefinementCtx,
+) {
+  if (data.applyLink === undefined || data.applyType === undefined) return;
+  const isValid =
+    data.applyType === 'email'
+      ? z.string().trim().email().safeParse(data.applyLink).success
+      : z.string().url().safeParse(data.applyLink).success;
+  if (!isValid) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['applyLink'],
+      message: data.applyType === 'email' ? 'Invalid email address' : 'Invalid url',
+    });
+  }
+}
+
+export const createApplicationSchema = applicationBaseSchema.superRefine(validateApplyLink);
 export type CreateApplicationInput = z.infer<typeof createApplicationSchema>;
 
-export const updateApplicationSchema = createApplicationSchema.partial();
+export const updateApplicationSchema = applicationBaseSchema
+  .partial()
+  .superRefine(validateApplyLink);
 export type UpdateApplicationInput = z.infer<typeof updateApplicationSchema>;
 
 export const changeApplicationStatusSchema = z.object({

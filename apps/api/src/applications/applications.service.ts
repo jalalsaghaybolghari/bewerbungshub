@@ -46,6 +46,10 @@ export class ApplicationsService {
         // draft, either right here (created directly as e.g. 'applied')
         // or later via changeStatus.
         sentAt: input.status === 'draft' ? undefined : new Date(),
+        // Left undefined (not stored) for 'email' — see the sparse-index
+        // comment on the schema.
+        applyLinkDedupeKey:
+          input.applyType === 'email' ? undefined : input.applyLink,
       });
       await this.writeEvent(application._id, userId, 'created', 'user', {
         status: application.status,
@@ -117,13 +121,44 @@ export class ApplicationsService {
     // from a general PATCH keeps that the only way to move the pipeline.
     const fields = { ...input };
     delete fields.status;
-    const application = await this.applicationModel
-      .findOneAndUpdate(
-        { _id: id, userId: new Types.ObjectId(userId) },
-        { $set: fields },
-        { returnDocument: 'after' },
-      )
-      .exec();
+    const set: Record<string, unknown> = { ...fields };
+    let unset: Record<string, 1> | undefined;
+
+    // A partial PATCH might touch just one of applyType/applyLink (or
+    // neither) — re-derive applyLinkDedupeKey from the *resulting* state,
+    // not just whatever this one request happened to include, so it never
+    // drifts out of sync with the field it mirrors.
+    if (fields.applyLink !== undefined || fields.applyType !== undefined) {
+      const current = await this.applicationModel
+        .findOne({ _id: id, userId: new Types.ObjectId(userId) })
+        .exec();
+      if (!current) throw new NotFoundException('Application not found');
+      const effectiveApplyType = fields.applyType ?? current.applyType;
+      const effectiveApplyLink = fields.applyLink ?? current.applyLink;
+      if (effectiveApplyType === 'email') {
+        unset = { applyLinkDedupeKey: 1 };
+      } else {
+        set.applyLinkDedupeKey = effectiveApplyLink;
+      }
+    }
+
+    let application: ApplicationDocument | null;
+    try {
+      application = await this.applicationModel
+        .findOneAndUpdate(
+          { _id: id, userId: new Types.ObjectId(userId) },
+          unset ? { $set: set, $unset: unset } : { $set: set },
+          { returnDocument: 'after' },
+        )
+        .exec();
+    } catch (err) {
+      if (this.isDuplicateKeyError(err)) {
+        throw new ConflictException(
+          'An application with this apply link already exists',
+        );
+      }
+      throw err;
+    }
     if (!application) throw new NotFoundException('Application not found');
     return application;
   }
@@ -167,6 +202,28 @@ export class ApplicationsService {
       .exec();
     if (result.matchedCount === 0)
       throw new NotFoundException('Application not found');
+  }
+
+  // Checked before a CV is deleted, so deleting it can be blocked instead
+  // of silently leaving an application to fall back to whichever CV
+  // happens to be first in the <select> list. Archived applications don't
+  // count — they're not visible to the user day-to-day, so blocking a
+  // delete because of one would be confusing rather than protective.
+  // Returns just enough to link back to each one (id, jobTitle, company).
+  async findReferencingApplications(
+    userId: string,
+    cvId: string,
+  ): Promise<Pick<ApplicationDocument, '_id' | 'jobTitle' | 'company'>[]> {
+    return this.applicationModel
+      .find(
+        {
+          userId: new Types.ObjectId(userId),
+          cvId: new Types.ObjectId(cvId),
+          archivedAt: { $exists: false },
+        },
+        { jobTitle: 1, company: 1 },
+      )
+      .exec();
   }
 
   async getStats(userId: string) {

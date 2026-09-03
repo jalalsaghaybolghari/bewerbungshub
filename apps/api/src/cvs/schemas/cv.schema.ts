@@ -33,6 +33,12 @@ export class Cv {
   @Prop({ default: false })
   isDefault: boolean;
 
+  // Set when opening a Google Drive-backed file finds it's gone (e.g. the
+  // user deleted it directly in Drive, outside the app) — undefined means
+  // still attached. Detected reactively on open, not checked proactively.
+  @Prop()
+  unattachedAt?: Date;
+
   // Populated by the CV parsing pipeline (Phase 7) — empty until then.
   @Prop({ default: '' })
   parsedText: string;

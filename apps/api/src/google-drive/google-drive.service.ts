@@ -16,6 +16,23 @@ type OAuth2Client = InstanceType<typeof google.auth.OAuth2>;
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const APP_FOLDER_NAME = 'BewerbungsHub CVs';
 
+// Thrown when Google reports the file itself is gone — e.g. the user
+// deleted it directly in Drive, outside the app. Distinct from every
+// other failure mode (auth, network, quota) so CvsService can react to
+// this one specifically (mark the CV "unattached") instead of surfacing
+// a generic error.
+export class GoogleDriveFileNotFoundError extends Error {
+  constructor(driveFileId: string) {
+    super(`Google Drive file not found: ${driveFileId}`);
+  }
+}
+
+function isNotFoundError(err: unknown): boolean {
+  const code = (err as { code?: number; response?: { status?: number } })?.code;
+  const status = (err as { response?: { status?: number } })?.response?.status;
+  return code === 404 || status === 404;
+}
+
 @Injectable()
 export class GoogleDriveService {
   constructor(
@@ -96,17 +113,30 @@ export class GoogleDriveService {
   async downloadFile(userId: string, driveFileId: string): Promise<Buffer> {
     const { client } = await this.getAuthenticatedClient(userId);
     const drive = google.drive({ version: 'v3', auth: client });
-    const result = await drive.files.get(
-      { fileId: driveFileId, alt: 'media' },
-      { responseType: 'arraybuffer' },
-    );
-    return Buffer.from(result.data as ArrayBuffer);
+    try {
+      const result = await drive.files.get(
+        { fileId: driveFileId, alt: 'media' },
+        { responseType: 'arraybuffer' },
+      );
+      return Buffer.from(result.data as ArrayBuffer);
+    } catch (err) {
+      if (isNotFoundError(err))
+        throw new GoogleDriveFileNotFoundError(driveFileId);
+      throw err;
+    }
   }
 
   async deleteFile(userId: string, driveFileId: string): Promise<void> {
     const { client } = await this.getAuthenticatedClient(userId);
     const drive = google.drive({ version: 'v3', auth: client });
-    await drive.files.delete({ fileId: driveFileId });
+    try {
+      await drive.files.delete({ fileId: driveFileId });
+    } catch (err) {
+      // Already gone (e.g. the user deleted it directly in Drive) is a
+      // no-op, not a failure — the end state delete() exists to guarantee
+      // ("this file is no longer under our control") is already true.
+      if (!isNotFoundError(err)) throw err;
+    }
   }
 
   async disconnect(userId: string): Promise<void> {

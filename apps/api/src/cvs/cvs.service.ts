@@ -13,7 +13,10 @@ import {
   UpdateCvInput,
 } from '@bewerber/shared';
 import { StorageService } from '../storage/storage.service';
-import { GoogleDriveService } from '../google-drive/google-drive.service';
+import {
+  GoogleDriveFileNotFoundError,
+  GoogleDriveService,
+} from '../google-drive/google-drive.service';
 import { Cv, CvDocument } from './schemas/cv.schema';
 
 @Injectable()
@@ -150,13 +153,27 @@ export class CvsService {
       // Drive has no presigned-URL equivalent this app uses — always
       // proxy the bytes through the API, same shape the local-storage
       // path already returns (url: null).
-      const buffer = await this.googleDrive.downloadFile(userId, cv.fileKey);
-      return {
-        url: null,
-        buffer,
-        mimeType: cv.mimeType,
-        fileName: cv.fileName,
-      };
+      try {
+        const buffer = await this.googleDrive.downloadFile(userId, cv.fileKey);
+        return {
+          url: null,
+          buffer,
+          mimeType: cv.mimeType,
+          fileName: cv.fileName,
+        };
+      } catch (err) {
+        if (err instanceof GoogleDriveFileNotFoundError) {
+          // Detected reactively, on this exact open attempt — not checked
+          // proactively for every CV on every list load. Persist it so the
+          // list shows "unattached" from here on without re-checking.
+          cv.unattachedAt = new Date();
+          await cv.save();
+          throw new NotFoundException(
+            'This file is no longer available in Google Drive',
+          );
+        }
+        throw err;
+      }
     }
     const url = await this.storage.getDownloadUrl(cv.fileKey);
     const buffer = url ? null : await this.storage.read(cv.fileKey);

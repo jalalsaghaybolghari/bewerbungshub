@@ -12,6 +12,10 @@ export default () => ({
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '30d',
     refreshCookieMaxAgeMs: 30 * 24 * 60 * 60 * 1000,
   },
+  mail: {
+    resendApiKey: process.env.RESEND_API_KEY,
+    from: process.env.MAIL_FROM ?? 'BewerbungsHub <onboarding@resend.dev>',
+  },
   storage: {
     // 'local' needs no external service — files land under storage.localDir.
     // 's3' talks to any S3-compatible endpoint (MinIO locally, real S3/R2/Azure Blob in prod).

@@ -14,6 +14,8 @@ import type { Request, Response } from 'express';
 import { AuthService, TokenPair } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ConfirmEmailDto } from './dto/confirm-email.dto';
+import { ResendCodeDto } from './dto/resend-code.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { RequestUser } from './decorators/current-user.decorator';
@@ -30,13 +32,27 @@ export class AuthController {
   ) {}
 
   @Post('register')
-  async register(
-    @Body() dto: RegisterDto,
+  register(@Body() dto: RegisterDto) {
+    // No cookie/tokens here — registering doesn't log the user in until
+    // they confirm the code that was just emailed to them.
+    return this.authService.register(dto);
+  }
+
+  @Post('confirm-email')
+  @HttpCode(HttpStatus.OK)
+  async confirmEmail(
+    @Body() dto: ConfirmEmailDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { user, tokens } = await this.authService.register(dto);
+    const { user, tokens } = await this.authService.confirmEmail(dto);
     this.setRefreshCookie(res, tokens);
     return { user, accessToken: tokens.accessToken };
+  }
+
+  @Post('resend-code')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async resendCode(@Body() dto: ResendCodeDto) {
+    await this.authService.resendCode(dto);
   }
 
   @Post('login')

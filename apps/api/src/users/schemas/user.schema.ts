@@ -31,6 +31,26 @@ export class User {
   // logout; replaced on every refresh (rotation).
   @Prop()
   refreshTokenHash?: string;
+
+  // An unverified account never receives a session (see AuthService) —
+  // register() creates the user with this false and no tokens; only a
+  // successful confirm-email flips it. Code is hashed (never stored
+  // plain), same mechanism as refreshTokenHash above.
+  @Prop({ default: false })
+  emailVerified: boolean;
+
+  @Prop()
+  emailVerificationCodeHash?: string;
+
+  @Prop()
+  emailVerificationCodeExpiresAt?: Date;
+
+  @Prop({ default: 0 })
+  emailVerificationAttempts: number;
+
+  // Powers the resend cooldown — see AuthService.resendCode.
+  @Prop()
+  emailVerificationLastSentAt?: Date;
 }
 
 export type UserDocument = HydratedDocument<User>;

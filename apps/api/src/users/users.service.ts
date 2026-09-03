@@ -44,4 +44,63 @@ export class UsersService {
         : { $unset: { refreshTokenHash: '' } };
     return this.userModel.updateOne({ _id: userId }, update).exec();
   }
+
+  // Used by both the initial register() send and every resend — resets
+  // attempts and stamps lastSentAt so a fresh code always gets its own
+  // full attempt budget and cooldown window.
+  setEmailVerificationCode(userId: string, codeHash: string, expiresAt: Date) {
+    return this.userModel
+      .updateOne(
+        { _id: userId },
+        {
+          $set: {
+            emailVerificationCodeHash: codeHash,
+            emailVerificationCodeExpiresAt: expiresAt,
+            emailVerificationAttempts: 0,
+            emailVerificationLastSentAt: new Date(),
+          },
+        },
+      )
+      .exec();
+  }
+
+  incrementEmailVerificationAttempts(userId: string) {
+    return this.userModel
+      .updateOne({ _id: userId }, { $inc: { emailVerificationAttempts: 1 } })
+      .exec();
+  }
+
+  markEmailVerified(userId: string) {
+    return this.userModel
+      .updateOne(
+        { _id: userId },
+        {
+          $set: { emailVerified: true },
+          $unset: {
+            emailVerificationCodeHash: '',
+            emailVerificationCodeExpiresAt: '',
+            emailVerificationAttempts: '',
+            emailVerificationLastSentAt: '',
+          },
+        },
+      )
+      .exec();
+  }
+
+  // Used when a code expires or attempts are exhausted — clears just the
+  // code itself (not emailVerified/lastSentAt) so the account is left
+  // needing a resend, not silently re-verified or freed from the cooldown.
+  invalidateEmailVerificationCode(userId: string) {
+    return this.userModel
+      .updateOne(
+        { _id: userId },
+        {
+          $unset: {
+            emailVerificationCodeHash: '',
+            emailVerificationCodeExpiresAt: '',
+          },
+        },
+      )
+      .exec();
+  }
 }

@@ -162,6 +162,23 @@ describe('ApplicationsListPage', () => {
     );
   });
 
+  it('defaults the status filter to Draft (happy path)', () => {
+    listData = { items: [makeApplication({ status: 'draft' })], total: 1, page: 1, pageSize: 20 };
+    renderPage();
+
+    expect(useApplicationsMock).toHaveBeenCalledWith(expect.objectContaining({ status: 'draft' }));
+    expect(screen.getByRole('combobox')).toHaveValue('draft');
+  });
+
+  it('switching the status filter updates the query (happy path)', async () => {
+    listData = { items: [makeApplication({})], total: 1, page: 1, pageSize: 20 };
+    renderPage();
+
+    await userEvent.selectOptions(screen.getByRole('combobox'), '');
+
+    expect(useApplicationsMock).toHaveBeenLastCalledWith(expect.objectContaining({ status: '' }));
+  });
+
   it('clicking a sortable column header sorts descending by that column first (happy path)', async () => {
     listData = { items: [makeApplication({})], total: 1, page: 1, pageSize: 20 };
     renderPage();

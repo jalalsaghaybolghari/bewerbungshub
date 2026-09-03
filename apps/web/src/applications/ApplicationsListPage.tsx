@@ -52,7 +52,7 @@ function SortableHeader({
 export function ApplicationsListPage() {
   const { t } = useTranslation();
   const [q, setQ] = useState('');
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState('draft');
   const [page, setPage] = useState(1);
   const [view, setView] = useState<'list' | 'kanban'>('list');
   const [sort, setSort] = useState<string>('-createdAt');

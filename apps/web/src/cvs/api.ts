@@ -31,6 +31,7 @@ export function useUploadCv() {
       formData.append('label', metadata.label);
       formData.append('language', metadata.language);
       if (metadata.isDefault) formData.append('isDefault', 'true');
+      if (metadata.useGoogleDrive) formData.append('useGoogleDrive', 'true');
       return apiFetch<Cv>('/cvs', { method: 'POST', body: formData, isFormData: true });
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['cvs'] }),

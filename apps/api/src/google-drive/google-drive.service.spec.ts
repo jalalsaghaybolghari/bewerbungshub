@@ -1,6 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleDriveService } from './google-drive.service';
+import {
+  GoogleDriveFileNotFoundError,
+  GoogleDriveService,
+} from './google-drive.service';
 import {
   UsersService,
   GoogleDriveConnectionInput,
@@ -252,6 +255,42 @@ describe('GoogleDriveService', () => {
       await service.deleteFile('user-1', 'file-abc');
 
       expect(mockFilesDelete).toHaveBeenCalledWith({ fileId: 'file-abc' });
+    });
+
+    it('throws GoogleDriveFileNotFoundError when the file is already gone on download (edge case)', async () => {
+      mockConnectedUser();
+      mockFilesGet.mockRejectedValue({ code: 404 });
+
+      await expect(service.downloadFile('user-1', 'file-abc')).rejects.toThrow(
+        GoogleDriveFileNotFoundError,
+      );
+    });
+
+    it('re-throws an unrelated download error as-is (negative case)', async () => {
+      mockConnectedUser();
+      mockFilesGet.mockRejectedValue({ code: 500 });
+
+      await expect(
+        service.downloadFile('user-1', 'file-abc'),
+      ).rejects.not.toThrow(GoogleDriveFileNotFoundError);
+    });
+
+    it('treats deleting an already-gone file as success, not a failure (edge case)', async () => {
+      mockConnectedUser();
+      mockFilesDelete.mockRejectedValue({ code: 404 });
+
+      await expect(
+        service.deleteFile('user-1', 'file-abc'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('re-throws an unrelated delete error (negative case)', async () => {
+      mockConnectedUser();
+      mockFilesDelete.mockRejectedValue({ code: 500 });
+
+      await expect(service.deleteFile('user-1', 'file-abc')).rejects.toEqual({
+        code: 500,
+      });
     });
 
     it('persists a rotated access token when the OAuth client refreshes it (edge case)', async () => {

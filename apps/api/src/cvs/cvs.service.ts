@@ -13,6 +13,7 @@ import {
   UpdateCvInput,
 } from '@bewerber/shared';
 import { StorageService } from '../storage/storage.service';
+import { GoogleDriveService } from '../google-drive/google-drive.service';
 import { Cv, CvDocument } from './schemas/cv.schema';
 
 @Injectable()
@@ -20,6 +21,7 @@ export class CvsService {
   constructor(
     @InjectModel(Cv.name) private readonly cvModel: Model<CvDocument>,
     private readonly storage: StorageService,
+    private readonly googleDrive: GoogleDriveService,
   ) {}
 
   findAllForUser(userId: string) {
@@ -62,8 +64,24 @@ export class CvsService {
       );
     }
 
-    const fileKey = `cvs/${userId}/${randomUUID()}.pdf`;
-    await this.storage.save(fileKey, file.buffer, file.mimetype);
+    let fileKey: string;
+    let storageProvider: 'app' | 'google-drive' = 'app';
+    if (metadata.useGoogleDrive) {
+      if (!(await this.googleDrive.isConnected(userId))) {
+        throw new BadRequestException('Google Drive is not connected');
+      }
+      const uploaded = await this.googleDrive.uploadFile(
+        userId,
+        file.buffer,
+        file.originalname,
+        file.mimetype,
+      );
+      fileKey = uploaded.driveFileId;
+      storageProvider = 'google-drive';
+    } else {
+      fileKey = `cvs/${userId}/${randomUUID()}.pdf`;
+      await this.storage.save(fileKey, file.buffer, file.mimetype);
+    }
 
     if (metadata.isDefault) {
       await this.cvModel
@@ -79,6 +97,7 @@ export class CvsService {
       label: metadata.label,
       language: metadata.language,
       fileKey,
+      storageProvider,
       fileName: file.originalname,
       mimeType: file.mimetype,
       sizeBytes: file.size,
@@ -109,7 +128,11 @@ export class CvsService {
 
   async remove(userId: string, id: string): Promise<void> {
     const cv = await this.findOneForUser(userId, id);
-    await this.storage.delete(cv.fileKey);
+    if (cv.storageProvider === 'google-drive') {
+      await this.googleDrive.deleteFile(userId, cv.fileKey);
+    } else {
+      await this.storage.delete(cv.fileKey);
+    }
     await cv.deleteOne();
   }
 
@@ -123,6 +146,18 @@ export class CvsService {
     fileName: string;
   }> {
     const cv = await this.findOneForUser(userId, id);
+    if (cv.storageProvider === 'google-drive') {
+      // Drive has no presigned-URL equivalent this app uses — always
+      // proxy the bytes through the API, same shape the local-storage
+      // path already returns (url: null).
+      const buffer = await this.googleDrive.downloadFile(userId, cv.fileKey);
+      return {
+        url: null,
+        buffer,
+        mimeType: cv.mimeType,
+        fileName: cv.fileName,
+      };
+    }
     const url = await this.storage.getDownloadUrl(cv.fileKey);
     const buffer = url ? null : await this.storage.read(cv.fileKey);
     return { url, buffer, mimeType: cv.mimeType, fileName: cv.fileName };

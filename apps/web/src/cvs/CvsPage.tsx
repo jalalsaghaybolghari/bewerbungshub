@@ -104,16 +104,35 @@ export function CvsPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<CvFormValues, unknown, CreateCvMetadataInput>({
     resolver: zodResolver(createCvMetadataSchema),
     defaultValues: { language: 'en', isDefault: false, useGoogleDrive: false },
   });
 
+  // Defaults "Save to Google Drive" to checked once we know the user is
+  // actually connected. Starting from a static `false` and syncing here
+  // (rather than defaulting the form itself to `true`) matters because the
+  // checkbox is hidden entirely for a disconnected user — if the field's
+  // default were `true`, a disconnected user's first upload would still
+  // silently submit `useGoogleDrive: true` and get rejected by the API
+  // with a 400, without ever having seen the checkbox at all.
+  useEffect(() => {
+    if (driveStatus?.connected) setValue('useGoogleDrive', true);
+  }, [driveStatus?.connected, setValue]);
+
   async function onSubmit(metadata: CreateCvMetadataInput) {
     if (!selectedFile) return;
     await upload.mutateAsync({ file: selectedFile, metadata });
-    reset();
+    // Re-apply the connected-default explicitly — a plain reset() would
+    // fall back to the static (unchecked) defaultValues above, undoing
+    // the effect's sync for every upload after the first.
+    reset({
+      language: metadata.language,
+      isDefault: false,
+      useGoogleDrive: driveStatus?.connected ?? false,
+    });
     setSelectedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }

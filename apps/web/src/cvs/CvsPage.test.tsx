@@ -98,6 +98,26 @@ describe('CvsPage — Google Drive connection', () => {
     expect(screen.getByLabelText(/save to google drive/i)).toBeInTheDocument();
   });
 
+  it('defaults "Save to Google Drive" to checked once connected (happy path)', () => {
+    driveStatus = { connected: true };
+    renderAt();
+
+    expect(screen.getByLabelText(/save to google drive/i)).toBeChecked();
+  });
+
+  it('keeps "Save to Google Drive" checked by default after a successful upload (edge case)', async () => {
+    driveStatus = { connected: true };
+    uploadMutateAsync.mockResolvedValue(makeCv({ storageProvider: 'google-drive' }));
+    renderAt();
+
+    const file = new File(['pdf-bytes'], 'resume.pdf', { type: 'application/pdf' });
+    await userEvent.upload(screen.getByLabelText(/pdf/i), file);
+    await userEvent.type(screen.getByLabelText(/label/i), 'Main resume');
+    await userEvent.click(screen.getByRole('button', { name: /upload cv/i }));
+
+    expect(await screen.findByLabelText(/save to google drive/i)).toBeChecked();
+  });
+
   it('shows a success banner when redirected back with driveConnected=1 (happy path)', () => {
     driveStatus = { connected: true };
     renderAt('/cvs?driveConnected=1');

@@ -11,6 +11,7 @@ import {
   useDeleteCv,
   useDisconnectGoogleDrive,
   useGoogleDriveStatus,
+  useOpenCv,
   useUpdateCv,
   useUploadCv,
 } from './api';
@@ -204,6 +205,13 @@ export function CvsPage() {
 function CvRow({ cv, onDelete }: { cv: Cv; onDelete: () => void }) {
   const { t } = useTranslation();
   const updateMutation = useUpdateCv(cv._id);
+  const openMutation = useOpenCv();
+  const isUnattached = !!cv.unattachedAt;
+
+  function handleDelete() {
+    if (!confirm(t('cvs.confirmDelete'))) return;
+    onDelete();
+  }
 
   return (
     <Card className="flex items-center justify-between py-4">
@@ -220,12 +228,29 @@ function CvRow({ cv, onDelete }: { cv: Cv; onDelete: () => void }) {
               {t('cvs.googleDrive.badge')}
             </span>
           )}
+          {isUnattached && (
+            <span className="ml-2 rounded-full bg-danger/15 px-2 py-0.5 text-xs font-semibold text-danger">
+              {t('cvs.googleDrive.unattached')}
+            </span>
+          )}
         </div>
         <div className="text-xs text-slate">
           {cv.fileName} · {cv.language.toUpperCase()} · {(cv.sizeBytes / 1024).toFixed(0)} KB
         </div>
+        {openMutation.isError && (
+          <p className="mt-1 text-xs text-danger">{openMutation.error.message}</p>
+        )}
       </div>
       <div className="flex items-center gap-3">
+        {!isUnattached && (
+          <button
+            className="text-sm text-accent hover:underline disabled:opacity-50"
+            onClick={() => openMutation.mutate(cv._id)}
+            disabled={openMutation.isPending}
+          >
+            {t('cvs.open')}
+          </button>
+        )}
         {!cv.isDefault && (
           <button
             className="text-sm text-accent hover:underline"
@@ -234,7 +259,7 @@ function CvRow({ cv, onDelete }: { cv: Cv; onDelete: () => void }) {
             {t('cvs.setDefault')}
           </button>
         )}
-        <button className="text-sm text-danger hover:underline" onClick={onDelete}>
+        <button className="text-sm text-danger hover:underline" onClick={handleDelete}>
           {t('cvs.delete')}
         </button>
       </div>

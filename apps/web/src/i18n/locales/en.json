@@ -154,12 +154,15 @@
     "setDefault": "Set as default",
     "default": "Default",
     "delete": "Delete",
+    "open": "Open",
+    "confirmDelete": "Delete this CV? This can't be undone.",
     "googleDrive": {
       "connect": "Connect Google Drive",
       "disconnect": "Disconnect",
       "connected": "Google Drive connected",
       "saveToGoogleDrive": "Save to Google Drive",
       "badge": "Drive",
+      "unattached": "Unattached",
       "connectedBanner": "Google Drive connected.",
       "errorBanner": "Couldn't connect Google Drive. Please try again."
     }

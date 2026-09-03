@@ -15,6 +15,17 @@ export async function openCvFile(id: string): Promise<void> {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
+export function useOpenCv() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: openCvFile,
+    // A failed open commonly means the API just detected (and persisted)
+    // that a Drive-backed file is gone — refetch so the "unattached"
+    // badge shows up immediately, without a manual page reload.
+    onError: () => void queryClient.invalidateQueries({ queryKey: ['cvs'] }),
+  });
+}
+
 export function useCvs() {
   return useQuery({
     queryKey: ['cvs'],

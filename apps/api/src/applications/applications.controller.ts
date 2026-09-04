@@ -19,6 +19,7 @@ import { CreateApplicationDto } from './dto/create-application.dto';
 import { UpdateApplicationDto } from './dto/update-application.dto';
 import { ChangeStatusDto } from './dto/change-status.dto';
 import { ApplicationQueryDto } from './dto/application-query.dto';
+import { DuplicateGroupsQueryDto } from './dto/duplicate-groups-query.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('applications')
@@ -42,9 +43,15 @@ export class ApplicationsController {
   }
 
   @Get('duplicate-groups')
-  async findDuplicateGroups(@CurrentUser() user: RequestUser) {
+  async findDuplicateGroups(
+    @CurrentUser() user: RequestUser,
+    @Query() query: DuplicateGroupsQueryDto,
+  ) {
     return {
-      pairs: await this.applicationsService.findDuplicateGroups(user.userId),
+      pairs: await this.applicationsService.findDuplicateGroups(
+        user.userId,
+        query,
+      ),
     };
   }
 

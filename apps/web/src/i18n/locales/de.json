@@ -89,7 +89,12 @@
       "title": "Mögliche Duplikate",
       "empty": "Keine wahrscheinlichen Duplikate gefunden.",
       "keepThis": "Dieses behalten",
-      "similarityNote": "Titel-Übereinstimmung {{title}}% · Firma {{company}}% · Ort {{location}}%"
+      "similarityNote": "Titel-Übereinstimmung {{title}}% · Firma {{company}}% · Ort {{location}}%",
+      "matchBy": {
+        "title": "Titel",
+        "company": "Firma",
+        "location": "Ort"
+      }
     }
   },
   "interviews": {

@@ -89,7 +89,12 @@
       "title": "Possible duplicates",
       "empty": "No likely duplicates found.",
       "keepThis": "Keep this one",
-      "similarityNote": "Title match {{title}}% · Company match {{company}}% · Location match {{location}}%"
+      "similarityNote": "Title match {{title}}% · Company match {{company}}% · Location match {{location}}%",
+      "matchBy": {
+        "title": "Title",
+        "company": "Company",
+        "location": "Location"
+      }
     }
   },
   "interviews": {

@@ -20,3 +20,14 @@ export const authUserSchema = z.object({
   locale: z.enum(['de', 'en']),
 });
 export type AuthUser = z.infer<typeof authUserSchema>;
+
+export const confirmEmailSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6),
+});
+export type ConfirmEmailInput = z.infer<typeof confirmEmailSchema>;
+
+export const resendCodeSchema = z.object({
+  email: z.string().email(),
+});
+export type ResendCodeInput = z.infer<typeof resendCodeSchema>;

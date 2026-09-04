@@ -1,15 +1,33 @@
 import {
+  BadRequestException,
   ConflictException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
-import { randomUUID } from 'node:crypto';
-import type { AuthUser, LoginInput, RegisterInput } from '@bewerber/shared';
+import { randomInt, randomUUID } from 'node:crypto';
+import type {
+  AuthUser,
+  ConfirmEmailInput,
+  LoginInput,
+  RegisterInput,
+  ResendCodeInput,
+} from '@bewerber/shared';
 import { UsersService } from '../users/users.service';
 import { UserDocument } from '../users/schemas/user.schema';
+import { MailService } from '../mail/mail.service';
+
+// How long a code is valid for once sent, and the minimum gap enforced
+// between resends of the same account's code.
+const CODE_EXPIRES_IN_MS = 15 * 60 * 1000;
+const RESEND_COOLDOWN_MS = 60 * 1000;
+const MAX_CODE_ATTEMPTS = 5;
 
 export interface TokenPair {
   accessToken: string;
@@ -31,11 +49,14 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
+    private readonly mailService: MailService,
   ) {}
 
-  async register(
-    input: RegisterInput,
-  ): Promise<{ user: AuthUser; tokens: TokenPair }> {
+  // No tokens issued here — an unverified account gets no session at all
+  // until confirmEmail succeeds (see the module-level comment in the
+  // plan / README for why: this avoids needing an emailVerified gate on
+  // every protected route, since there's simply nothing to gate).
+  async register(input: RegisterInput): Promise<{ email: string }> {
     const existing = await this.usersService.findByEmail(input.email);
     if (existing) {
       throw new ConflictException('An account with this email already exists');
@@ -48,8 +69,8 @@ export class AuthService {
       displayName: input.displayName,
     });
 
-    const tokens = await this.issueTokenPair(user);
-    return { user: toAuthUser(user), tokens };
+    await this.sendVerificationCode(user);
+    return { email: user.email };
   }
 
   async login(
@@ -59,9 +80,86 @@ export class AuthService {
     if (!user || !(await argon2.verify(user.passwordHash, input.password))) {
       throw new UnauthorizedException('Invalid email or password');
     }
+    // A correct password alone must not grant access — otherwise
+    // confirmEmail could just be skipped entirely.
+    if (!user.emailVerified) {
+      throw new ForbiddenException({
+        message: 'Please verify your email before logging in.',
+        code: 'EMAIL_NOT_VERIFIED',
+        email: user.email,
+      });
+    }
 
     const tokens = await this.issueTokenPair(user);
     return { user: toAuthUser(user), tokens };
+  }
+
+  async confirmEmail(
+    input: ConfirmEmailInput,
+  ): Promise<{ user: AuthUser; tokens: TokenPair }> {
+    const user = await this.usersService.findByEmail(input.email);
+    if (!user) throw new NotFoundException('No account with this email');
+    if (user.emailVerified) {
+      throw new ConflictException('Email already verified — log in instead');
+    }
+    if (
+      !user.emailVerificationCodeHash ||
+      !user.emailVerificationCodeExpiresAt
+    ) {
+      throw new BadRequestException(
+        'No pending verification code — request a new one',
+      );
+    }
+    if (user.emailVerificationCodeExpiresAt < new Date()) {
+      await this.usersService.invalidateEmailVerificationCode(user.id);
+      throw new BadRequestException('Code expired — request a new one');
+    }
+    if (user.emailVerificationAttempts >= MAX_CODE_ATTEMPTS) {
+      await this.usersService.invalidateEmailVerificationCode(user.id);
+      throw new BadRequestException(
+        'Too many incorrect attempts — request a new one',
+      );
+    }
+    if (!(await argon2.verify(user.emailVerificationCodeHash, input.code))) {
+      await this.usersService.incrementEmailVerificationAttempts(user.id);
+      throw new BadRequestException('Incorrect code');
+    }
+
+    await this.usersService.markEmailVerified(user.id);
+    const tokens = await this.issueTokenPair(user);
+    return { user: toAuthUser(user), tokens };
+  }
+
+  async resendCode(input: ResendCodeInput): Promise<void> {
+    const user = await this.usersService.findByEmail(input.email);
+    if (!user) throw new NotFoundException('No account with this email');
+    if (user.emailVerified) {
+      throw new ConflictException('Email already verified — log in instead');
+    }
+    if (
+      user.emailVerificationLastSentAt &&
+      Date.now() - user.emailVerificationLastSentAt.getTime() <
+        RESEND_COOLDOWN_MS
+    ) {
+      throw new HttpException(
+        'Please wait a bit before requesting another code',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    await this.sendVerificationCode(user);
+  }
+
+  private async sendVerificationCode(user: UserDocument): Promise<void> {
+    const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+    const codeHash = await argon2.hash(code);
+    const expiresAt = new Date(Date.now() + CODE_EXPIRES_IN_MS);
+    await this.usersService.setEmailVerificationCode(
+      user.id,
+      codeHash,
+      expiresAt,
+    );
+    await this.mailService.sendVerificationCode(user.email, code);
   }
 
   async refresh(

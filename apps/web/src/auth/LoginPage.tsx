@@ -8,6 +8,12 @@ import { useAuth } from './AuthContext';
 import { Button, FieldError, Input, Label } from '../components/ui';
 import { ApiError } from '../lib/api-client';
 
+function isEmailNotVerified(body: unknown): body is { code: 'EMAIL_NOT_VERIFIED'; email: string } {
+  return (
+    !!body && typeof body === 'object' && (body as { code?: unknown }).code === 'EMAIL_NOT_VERIFIED'
+  );
+}
+
 export function LoginPage() {
   const { t } = useTranslation();
   const { login } = useAuth();
@@ -26,6 +32,10 @@ export function LoginPage() {
       await login(data);
       navigate('/applications');
     } catch (err) {
+      if (err instanceof ApiError && isEmailNotVerified(err.body)) {
+        navigate('/verify-email', { state: { email: err.body.email } });
+        return;
+      }
       setServerError(err instanceof ApiError ? err.message : t('auth.loginError'));
     }
   }

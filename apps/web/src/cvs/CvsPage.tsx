@@ -1,20 +1,108 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
+import { Link, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import { createCvMetadataSchema, type CreateCvMetadataInput } from '@bewerber/shared';
-import { useCvs, useDeleteCv, useUpdateCv, useUploadCv } from './api';
-import type { Cv } from './types';
+import {
+  connectGoogleDrive,
+  useCvs,
+  useDeleteCv,
+  useDisconnectGoogleDrive,
+  useGoogleDriveStatus,
+  useOpenCv,
+  useUpdateCv,
+  useUploadCv,
+} from './api';
+import type { Cv, CvDeleteConflictBody } from './types';
 import { Button, Card, FieldError, Input, Label, Select } from '../components/ui';
 
+function isCvDeleteConflict(body: unknown): body is CvDeleteConflictBody {
+  return (
+    !!body && typeof body === 'object' && Array.isArray((body as CvDeleteConflictBody).applications)
+  );
+}
+
 type CvFormValues = z.input<typeof createCvMetadataSchema>;
+
+function GoogleDriveConnectionBanner() {
+  const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Captured once, on mount, via a lazy initializer — reading directly
+  // from `searchParams` on every render would make the banner disappear
+  // the instant the effect below strips the params (which happens on the
+  // very next render), rather than staying visible for the user to read.
+  const [status] = useState(() => ({
+    connected: searchParams.get('driveConnected'),
+    error: searchParams.get('driveError'),
+  }));
+
+  useEffect(() => {
+    if (!status.connected && !status.error) return;
+    // Strip the query params once shown, so a page refresh doesn't
+    // re-display the same one-time banner.
+    const next = new URLSearchParams(searchParams);
+    next.delete('driveConnected');
+    next.delete('driveError');
+    setSearchParams(next, { replace: true });
+    // Runs once on mount only — status is captured once above, and
+    // searchParams/setSearchParams get new references every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (status.connected) {
+    return (
+      <p className="mb-4 rounded-lg bg-success/15 px-3 py-2 text-sm text-success">
+        {t('cvs.googleDrive.connectedBanner')}
+      </p>
+    );
+  }
+  if (status.error) {
+    return (
+      <p className="mb-4 rounded-lg bg-danger/15 px-3 py-2 text-sm text-danger">
+        {t('cvs.googleDrive.errorBanner')}
+      </p>
+    );
+  }
+  return null;
+}
+
+function GoogleDriveConnection() {
+  const { t } = useTranslation();
+  const { data: status } = useGoogleDriveStatus();
+  const disconnect = useDisconnectGoogleDrive();
+
+  if (status?.connected) {
+    return (
+      <div className="mb-6 flex items-center justify-between rounded-lg border border-slate/15 bg-white px-4 py-3">
+        <span className="text-sm text-ink">{t('cvs.googleDrive.connected')}</span>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => disconnect.mutate()}
+          disabled={disconnect.isPending}
+        >
+          {t('cvs.googleDrive.disconnect')}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-6">
+      <Button type="button" variant="secondary" onClick={() => void connectGoogleDrive()}>
+        {t('cvs.googleDrive.connect')}
+      </Button>
+    </div>
+  );
+}
 
 export function CvsPage() {
   const { t } = useTranslation();
   const { data: cvs, isLoading } = useCvs();
+  const { data: driveStatus } = useGoogleDriveStatus();
   const upload = useUploadCv();
-  const deleteMutation = useDeleteCv();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -22,16 +110,35 @@ export function CvsPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<CvFormValues, unknown, CreateCvMetadataInput>({
     resolver: zodResolver(createCvMetadataSchema),
-    defaultValues: { language: 'en', isDefault: false },
+    defaultValues: { language: 'en', isDefault: false, useGoogleDrive: false },
   });
+
+  // Defaults "Save to Google Drive" to checked once we know the user is
+  // actually connected. Starting from a static `false` and syncing here
+  // (rather than defaulting the form itself to `true`) matters because the
+  // checkbox is hidden entirely for a disconnected user — if the field's
+  // default were `true`, a disconnected user's first upload would still
+  // silently submit `useGoogleDrive: true` and get rejected by the API
+  // with a 400, without ever having seen the checkbox at all.
+  useEffect(() => {
+    if (driveStatus?.connected) setValue('useGoogleDrive', true);
+  }, [driveStatus?.connected, setValue]);
 
   async function onSubmit(metadata: CreateCvMetadataInput) {
     if (!selectedFile) return;
     await upload.mutateAsync({ file: selectedFile, metadata });
-    reset();
+    // Re-apply the connected-default explicitly — a plain reset() would
+    // fall back to the static (unchecked) defaultValues above, undoing
+    // the effect's sync for every upload after the first.
+    reset({
+      language: metadata.language,
+      isDefault: false,
+      useGoogleDrive: driveStatus?.connected ?? false,
+    });
     setSelectedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
@@ -39,6 +146,9 @@ export function CvsPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-6 text-2xl font-bold text-ink">{t('cvs.title')}</h1>
+
+      <GoogleDriveConnectionBanner />
+      <GoogleDriveConnection />
 
       <Card className="mb-6">
         <h2 className="mb-4 font-semibold text-ink">{t('cvs.upload')}</h2>
@@ -72,6 +182,12 @@ export function CvsPage() {
             <input type="checkbox" {...register('isDefault')} />
             {t('cvs.setDefault')}
           </label>
+          {driveStatus?.connected && (
+            <label className="flex items-center gap-2 text-sm text-slate">
+              <input type="checkbox" {...register('useGoogleDrive')} />
+              {t('cvs.googleDrive.saveToGoogleDrive')}
+            </label>
+          )}
           {upload.error && <p className="text-sm text-danger">{upload.error.message}</p>}
           <Button type="submit" disabled={!selectedFile || upload.isPending}>
             {t('cvs.upload')}
@@ -84,16 +200,24 @@ export function CvsPage() {
 
       <div className="space-y-3">
         {cvs?.map((cv) => (
-          <CvRow key={cv._id} cv={cv} onDelete={() => deleteMutation.mutate(cv._id)} />
+          <CvRow key={cv._id} cv={cv} />
         ))}
       </div>
     </div>
   );
 }
 
-function CvRow({ cv, onDelete }: { cv: Cv; onDelete: () => void }) {
+function CvRow({ cv }: { cv: Cv }) {
   const { t } = useTranslation();
   const updateMutation = useUpdateCv(cv._id);
+  const openMutation = useOpenCv();
+  const deleteMutation = useDeleteCv();
+  const isUnattached = !!cv.unattachedAt;
+
+  function handleDelete() {
+    if (!confirm(t('cvs.confirmDelete'))) return;
+    deleteMutation.mutate(cv._id);
+  }
 
   return (
     <Card className="flex items-center justify-between py-4">
@@ -105,12 +229,50 @@ function CvRow({ cv, onDelete }: { cv: Cv; onDelete: () => void }) {
               {t('cvs.default')}
             </span>
           )}
+          {cv.storageProvider === 'google-drive' && (
+            <span className="ml-2 rounded-full bg-slate/15 px-2 py-0.5 text-xs font-semibold text-slate">
+              {t('cvs.googleDrive.badge')}
+            </span>
+          )}
+          {isUnattached && (
+            <span className="ml-2 rounded-full bg-danger/15 px-2 py-0.5 text-xs font-semibold text-danger">
+              {t('cvs.googleDrive.unattached')}
+            </span>
+          )}
         </div>
         <div className="text-xs text-slate">
           {cv.fileName} · {cv.language.toUpperCase()} · {(cv.sizeBytes / 1024).toFixed(0)} KB
         </div>
+        {openMutation.isError && (
+          <p className="mt-1 text-xs text-danger">{openMutation.error.message}</p>
+        )}
+        {deleteMutation.isError && (
+          <div className="mt-1 text-xs text-danger">
+            <p>{deleteMutation.error.message}</p>
+            {isCvDeleteConflict(deleteMutation.error.body) && (
+              <ul className="mt-1 list-disc pl-4">
+                {deleteMutation.error.body.applications.map((app) => (
+                  <li key={app.id}>
+                    <Link to={`/applications/${app.id}`} className="underline hover:no-underline">
+                      {app.jobTitle} · {app.company}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-3">
+        {!isUnattached && (
+          <button
+            className="text-sm text-accent hover:underline disabled:opacity-50"
+            onClick={() => openMutation.mutate(cv._id)}
+            disabled={openMutation.isPending}
+          >
+            {t('cvs.open')}
+          </button>
+        )}
         {!cv.isDefault && (
           <button
             className="text-sm text-accent hover:underline"
@@ -119,7 +281,11 @@ function CvRow({ cv, onDelete }: { cv: Cv; onDelete: () => void }) {
             {t('cvs.setDefault')}
           </button>
         )}
-        <button className="text-sm text-danger hover:underline" onClick={onDelete}>
+        <button
+          className="text-sm text-danger hover:underline disabled:opacity-50"
+          onClick={handleDelete}
+          disabled={deleteMutation.isPending}
+        >
           {t('cvs.delete')}
         </button>
       </div>

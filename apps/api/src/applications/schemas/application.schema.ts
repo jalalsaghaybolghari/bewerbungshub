@@ -56,6 +56,12 @@ export class Application {
   @Prop({ required: true, type: String, enum: applyTypeValues })
   applyType: (typeof applyTypeValues)[number];
 
+  // Mirrors applyLink, but only set when applyType isn't 'email' — see the
+  // sparse-index comment near the bottom of this file for why this exists
+  // as a separate field instead of indexing applyLink directly.
+  @Prop()
+  applyLinkDedupeKey?: string;
+
   // The job posting's own page URL, distinct from applyLink — see the
   // comment on createApplicationSchema in packages/shared.
   @Prop()
@@ -118,7 +124,29 @@ export const ApplicationSchema = SchemaFactory.createForClass(Application);
 
 ApplicationSchema.index({ userId: 1, status: 1 });
 ApplicationSchema.index({ userId: 1, nextFollowUpAt: 1 });
-ApplicationSchema.index({ userId: 1, applyLink: 1 }, { unique: true });
+// A URL genuinely identifies one posting, but the same email address (a
+// generic jobs@company.com, a recruiter's inbox) is often the legitimate
+// apply channel for several different, unrelated postings — so it
+// shouldn't be treated as a duplicate signal. Two things had to be worked
+// around to express "unique except when applyType is 'email'":
+// (1) partial-index filter expressions only support equality/$exists/
+// comparison operators, not $ne/$in/$or, so the exclusion is expressed via
+// a derived field (applyLinkDedupeKey, set by ApplicationsService only
+// when applyType !== 'email') instead of filtering on applyType directly.
+// (2) `sparse: true` looks like the natural way to skip documents missing
+// that field, but for a *compound* index sparse only skips a document if
+// ALL of its fields are missing — since userId is always present, sparse
+// alone still indexes the missing field as `null` and enforces uniqueness
+// on that. `partialFilterExpression: { field: { $exists: true } }` is the
+// actual fix: it excludes a document if that one field is absent,
+// regardless of what else is on it.
+ApplicationSchema.index(
+  { userId: 1, applyLinkDedupeKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { applyLinkDedupeKey: { $exists: true } },
+  },
+);
 ApplicationSchema.index({
   jobTitle: 'text',
   'company.name': 'text',

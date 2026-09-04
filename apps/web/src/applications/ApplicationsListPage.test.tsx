@@ -10,6 +10,7 @@ let isLoading = false;
 let isError = false;
 const deleteMock = vi.fn();
 const useApplicationsMock = vi.fn();
+const updateMock = vi.fn();
 
 vi.mock('./api', () => ({
   useApplications: (...args: unknown[]) => {
@@ -17,6 +18,7 @@ vi.mock('./api', () => ({
     return { data: listData, isLoading, isError };
   },
   useDeleteApplication: () => ({ mutate: deleteMock }),
+  useUpdateApplication: () => ({ mutate: updateMock, isPending: false }),
   // DuplicatesReviewModal only mounts once "Find similar" is clicked, but
   // it shares this same './api' module — an empty result is enough for the
   // one test below that opens it.
@@ -47,6 +49,7 @@ function makeApplication(overrides: Partial<Application>): Application {
     statusSetBy: 'user',
     followUpCount: 0,
     tags: [],
+    favorite: false,
     createdAt: '2026-01-02T00:00:00.000Z',
     updatedAt: '2026-01-02T00:00:00.000Z',
     ...overrides,
@@ -191,6 +194,48 @@ describe('ApplicationsListPage', () => {
 
     expect(useApplicationsMock).toHaveBeenLastCalledWith(
       expect.objectContaining({ sort: 'createdAt' }),
+    );
+  });
+
+  it('favorites an application when its star is clicked (happy path)', async () => {
+    listData = { items: [makeApplication({ favorite: false })], total: 1, page: 1, pageSize: 20 };
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: /add to favorites/i }));
+
+    expect(updateMock).toHaveBeenCalledWith({ favorite: true });
+  });
+
+  it('unfavorites an already-favorited application when its star is clicked (edge case)', async () => {
+    listData = { items: [makeApplication({ favorite: true })], total: 1, page: 1, pageSize: 20 };
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: /remove from favorites/i }));
+
+    expect(updateMock).toHaveBeenCalledWith({ favorite: false });
+  });
+
+  it('requests favorite=true from the API when the favorites filter is toggled on (happy path)', async () => {
+    listData = { items: [makeApplication({})], total: 1, page: 1, pageSize: 20 };
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: /^favorites$/i }));
+
+    expect(useApplicationsMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ favorite: true }),
+    );
+  });
+
+  it('drops the favorite filter when toggled back off (negative case)', async () => {
+    listData = { items: [makeApplication({})], total: 1, page: 1, pageSize: 20 };
+    renderPage();
+
+    const toggle = screen.getByRole('button', { name: /^favorites$/i });
+    await userEvent.click(toggle);
+    await userEvent.click(toggle);
+
+    expect(useApplicationsMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ favorite: undefined }),
     );
   });
 });

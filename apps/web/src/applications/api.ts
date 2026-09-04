@@ -20,6 +20,10 @@ export interface ApplicationsQuery {
   page?: number;
   pageSize?: number;
   sort?: string;
+  // Only ever passed as `true` — omit the key entirely rather than
+  // sending `false` to filter, matching how `status`/`applyType` already
+  // stay off the query string when not actively filtering.
+  favorite?: boolean;
 }
 
 function toQueryString(query: ApplicationsQuery): string {

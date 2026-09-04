@@ -25,6 +25,9 @@
     "new": "Neue Bewerbung",
     "search": "Titel, Firma, Tag suchen",
     "empty": "Noch keine Bewerbungen. Erstelle deine erste.",
+    "favorite": "Zu Favoriten hinzufügen",
+    "unfavorite": "Aus Favoriten entfernen",
+    "favoritesOnly": "Favoriten",
     "columns": {
       "position": "Position",
       "location": "Ort",

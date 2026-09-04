@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { applicationStatusValues } from '@bewerber/shared';
-import { useApplications, useDeleteApplication } from './api';
+import { useApplications, useDeleteApplication, useUpdateApplication } from './api';
 import { Button, buttonClasses, Input, Select } from '../components/ui';
 import {
   ChevronDownIcon,
   ChevronUpIcon,
   EyeIcon,
   ExternalLinkIcon,
+  StarIcon,
   TrashIcon,
 } from '../components/icons';
 import { StatusBadge } from './StatusBadge';
@@ -53,6 +54,7 @@ export function ApplicationsListPage() {
   const { t } = useTranslation();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [view, setView] = useState<'list' | 'kanban'>('list');
   const [sort, setSort] = useState<string>('-createdAt');
@@ -60,6 +62,9 @@ export function ApplicationsListPage() {
   const { data, isLoading, isError } = useApplications({
     q,
     status,
+    // Omitted entirely when off, not sent as `favorite=false` — the API
+    // treats both the same, but this keeps the query string clean.
+    favorite: favoritesOnly || undefined,
     page,
     pageSize: PAGE_SIZE,
     sort,
@@ -124,6 +129,25 @@ export function ApplicationsListPage() {
               ))}
             </Select>
           )}
+          {view === 'list' && (
+            <button
+              type="button"
+              onClick={() => {
+                setPage(1);
+                setFavoritesOnly((v) => !v);
+              }}
+              aria-pressed={favoritesOnly}
+              aria-label={t('applications.favoritesOnly')}
+              className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                favoritesOnly
+                  ? 'border-accent bg-accent/10 text-accent'
+                  : 'border-slate/30 bg-white text-slate hover:bg-slate/5'
+              }`}
+            >
+              <StarIcon className="size-4" fill={favoritesOnly ? 'currentColor' : 'none'} />
+              {t('applications.favoritesOnly')}
+            </button>
+          )}
         </div>
         <div className="flex overflow-hidden rounded-lg border border-slate/30 text-sm">
           <button
@@ -155,6 +179,7 @@ export function ApplicationsListPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate/15 bg-slate/5 text-left text-xs uppercase tracking-wide text-slate">
+                <th className="w-8 px-4 py-3" />
                 <th className="px-4 py-3">{t('applications.columns.position')}</th>
                 <th className="px-4 py-3">
                   <SortableHeader
@@ -195,63 +220,12 @@ export function ApplicationsListPage() {
             </thead>
             <tbody>
               {data.items.map((app) => (
-                <tr
+                <ApplicationRow
                   key={app._id}
-                  className="border-b border-slate/10 last:border-0 hover:bg-slate/5"
-                >
-                  <td className="px-4 py-3">
-                    <Link
-                      to={`/applications/${app._id}`}
-                      className="font-semibold text-ink hover:text-accent"
-                    >
-                      {app.jobTitle}
-                    </Link>
-                    <div className="text-xs text-slate">{app.company.name}</div>
-                  </td>
-                  <td className="px-4 py-3 text-slate">{app.location.raw}</td>
-                  <td className="px-4 py-3 text-slate capitalize">{app.applyType}</td>
-                  <td className="px-4 py-3 text-slate">
-                    {app.postedAt ? new Date(app.postedAt).toLocaleDateString() : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-slate">
-                    {app.sentAt ? new Date(app.sentAt).toLocaleDateString() : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-slate">
-                    {new Date(app.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={app.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3 text-slate">
-                      <button
-                        type="button"
-                        onClick={() => setQuickViewApp(app)}
-                        aria-label={t('applications.quickView.openDetails')}
-                        className="hover:text-accent"
-                      >
-                        <EyeIcon className="size-4" />
-                      </button>
-                      <a
-                        href={app.applyLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={t('applications.columns.applyLink')}
-                        className="hover:text-accent"
-                      >
-                        <ExternalLinkIcon className="size-4" />
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(app._id)}
-                        aria-label={t('common.delete')}
-                        className="hover:text-danger"
-                      >
-                        <TrashIcon className="size-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                  app={app}
+                  onQuickView={() => setQuickViewApp(app)}
+                  onDelete={() => handleDelete(app._id)}
+                />
               ))}
             </tbody>
           </table>
@@ -287,5 +261,82 @@ export function ApplicationsListPage() {
 
       {showDuplicates && <DuplicatesReviewModal onClose={() => setShowDuplicates(false)} />}
     </div>
+  );
+}
+
+function ApplicationRow({
+  app,
+  onQuickView,
+  onDelete,
+}: {
+  app: Application;
+  onQuickView: () => void;
+  onDelete: () => void;
+}) {
+  const { t } = useTranslation();
+  const updateMutation = useUpdateApplication(app._id);
+
+  return (
+    <tr className="border-b border-slate/10 last:border-0 hover:bg-slate/5">
+      <td className="px-4 py-3">
+        <button
+          type="button"
+          onClick={() => updateMutation.mutate({ favorite: !app.favorite })}
+          disabled={updateMutation.isPending}
+          aria-pressed={app.favorite}
+          aria-label={app.favorite ? t('applications.unfavorite') : t('applications.favorite')}
+          className={`hover:text-accent ${app.favorite ? 'text-accent' : 'text-slate/40'}`}
+        >
+          <StarIcon className="size-4" fill={app.favorite ? 'currentColor' : 'none'} />
+        </button>
+      </td>
+      <td className="px-4 py-3">
+        <Link to={`/applications/${app._id}`} className="font-semibold text-ink hover:text-accent">
+          {app.jobTitle}
+        </Link>
+        <div className="text-xs text-slate">{app.company.name}</div>
+      </td>
+      <td className="px-4 py-3 text-slate">{app.location.raw}</td>
+      <td className="px-4 py-3 text-slate capitalize">{app.applyType}</td>
+      <td className="px-4 py-3 text-slate">
+        {app.postedAt ? new Date(app.postedAt).toLocaleDateString() : '—'}
+      </td>
+      <td className="px-4 py-3 text-slate">
+        {app.sentAt ? new Date(app.sentAt).toLocaleDateString() : '—'}
+      </td>
+      <td className="px-4 py-3 text-slate">{new Date(app.createdAt).toLocaleDateString()}</td>
+      <td className="px-4 py-3">
+        <StatusBadge status={app.status} />
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-3 text-slate">
+          <button
+            type="button"
+            onClick={onQuickView}
+            aria-label={t('applications.quickView.openDetails')}
+            className="hover:text-accent"
+          >
+            <EyeIcon className="size-4" />
+          </button>
+          <a
+            href={app.applyLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t('applications.columns.applyLink')}
+            className="hover:text-accent"
+          >
+            <ExternalLinkIcon className="size-4" />
+          </a>
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label={t('common.delete')}
+            className="hover:text-danger"
+          >
+            <TrashIcon className="size-4" />
+          </button>
+        </div>
+      </td>
+    </tr>
   );
 }

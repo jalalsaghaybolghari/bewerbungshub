@@ -137,10 +137,36 @@ export const SIMILARITY_THRESHOLDS = {
   location: 0.6,
 } as const;
 
-export function isLikelyDuplicate(score: SimilarityScore): boolean {
+// Which dimensions actually have to clear their threshold for a pair to
+// count as a match. Defaults to all three — the extension's blocking
+// pre-save check (findSimilarApplications) always calls this with no
+// second argument, so that behavior is unchanged; only the web "Find
+// similar" review list lets the user narrow this down.
+export interface DuplicateMatchDimensions {
+  title: boolean;
+  company: boolean;
+  location: boolean;
+}
+
+const ALL_DIMENSIONS: DuplicateMatchDimensions = {
+  title: true,
+  company: true,
+  location: true,
+};
+
+export function isLikelyDuplicate(
+  score: SimilarityScore,
+  dimensions: DuplicateMatchDimensions = ALL_DIMENSIONS,
+): boolean {
+  // Nothing selected means no criteria at all — never a match, rather
+  // than the vacuous "every unchecked check trivially passes" result the
+  // per-dimension checks below would otherwise produce.
+  if (!dimensions.title && !dimensions.company && !dimensions.location) {
+    return false;
+  }
   return (
-    score.companySimilarity >= SIMILARITY_THRESHOLDS.company &&
-    score.titleSimilarity >= SIMILARITY_THRESHOLDS.title &&
-    score.locationSimilarity >= SIMILARITY_THRESHOLDS.location
+    (!dimensions.company || score.companySimilarity >= SIMILARITY_THRESHOLDS.company) &&
+    (!dimensions.title || score.titleSimilarity >= SIMILARITY_THRESHOLDS.title) &&
+    (!dimensions.location || score.locationSimilarity >= SIMILARITY_THRESHOLDS.location)
   );
 }

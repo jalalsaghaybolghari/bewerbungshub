@@ -130,3 +130,13 @@ export const applicationQuerySchema = z.object({
     .default('-createdAt'),
 });
 export type ApplicationQuery = z.infer<typeof applicationQuerySchema>;
+
+// Which dimensions count toward a "likely duplicate" match in the "Find
+// similar" review list — see isLikelyDuplicate in similarity.ts. All
+// default to true (the original, only) behavior when none are passed.
+export const duplicateGroupsQuerySchema = z.object({
+  title: z.coerce.boolean().optional().default(true),
+  company: z.coerce.boolean().optional().default(true),
+  location: z.coerce.boolean().optional().default(true),
+});
+export type DuplicateGroupsQuery = z.infer<typeof duplicateGroupsQuerySchema>;

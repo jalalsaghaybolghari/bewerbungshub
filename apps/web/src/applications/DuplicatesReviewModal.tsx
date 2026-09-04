@@ -2,16 +2,40 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '../components/Modal';
 import { Button } from '../components/ui';
-import { useDeleteApplication, useDuplicatePairs, useMergeApplications } from './api';
+import {
+  useDeleteApplication,
+  useDuplicatePairs,
+  useMergeApplications,
+  type DuplicateMatchDimensions,
+} from './api';
 import { StatusBadge } from './StatusBadge';
 import type { Application, DuplicatePair } from './types';
 
+const DIMENSION_KEYS = ['title', 'company', 'location'] as const;
+
 export function DuplicatesReviewModal({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
-  const { data, isLoading, isError } = useDuplicatePairs();
+  const [dimensions, setDimensions] = useState<DuplicateMatchDimensions>({
+    title: true,
+    company: true,
+    location: true,
+  });
+  const { data, isLoading, isError } = useDuplicatePairs(dimensions);
   const mergeMutation = useMergeApplications();
   const deleteMutation = useDeleteApplication();
   const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set());
+
+  function toggleDimension(key: keyof DuplicateMatchDimensions) {
+    setDimensions((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      // At least one dimension must stay selected — an empty set is
+      // meaningless (the API's isLikelyDuplicate treats it as "never a
+      // match" anyway), so refuse to uncheck the last one rather than
+      // silently showing an always-empty list.
+      if (!next.title && !next.company && !next.location) return prev;
+      return next;
+    });
+  }
 
   function handleKeep(pair: DuplicatePair, keepSide: 'a' | 'b') {
     const keep = keepSide === 'a' ? pair.a : pair.b;
@@ -35,6 +59,19 @@ export function DuplicatesReviewModal({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal title={t('applications.duplicates.title')} onClose={onClose}>
+      <div className="mb-4 flex flex-wrap gap-4 text-sm text-slate">
+        {DIMENSION_KEYS.map((key) => (
+          <label key={key} className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={dimensions[key]}
+              onChange={() => toggleDimension(key)}
+            />
+            {t(`applications.duplicates.matchBy.${key}`)}
+          </label>
+        ))}
+      </div>
+
       {isLoading && <p className="text-slate">{t('common.loading')}</p>}
       {isError && <p className="text-danger">{t('common.error')}</p>}
       {!isLoading && !isError && pairs.length === 0 && (

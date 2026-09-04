@@ -20,11 +20,16 @@ export interface ApplicationsQuery {
   page?: number;
   pageSize?: number;
   sort?: string;
+  // Only ever passed as `true` — omit the key entirely rather than
+  // sending `false` to filter, matching how `status`/`applyType` already
+  // stay off the query string when not actively filtering.
+  favorite?: boolean;
 }
 
-function toQueryString(query: ApplicationsQuery): string {
+function toQueryString(query: object): string {
   const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(query)) {
+  const entries = Object.entries(query) as [string, string | number | boolean | undefined][];
+  for (const [key, value] of entries) {
     if (value !== undefined && value !== '') params.set(key, String(value));
   }
   const qs = params.toString();
@@ -134,10 +139,19 @@ export function useDeleteApplication() {
   });
 }
 
-export function useDuplicatePairs() {
+export interface DuplicateMatchDimensions {
+  title: boolean;
+  company: boolean;
+  location: boolean;
+}
+
+export function useDuplicatePairs(dimensions: DuplicateMatchDimensions) {
   return useQuery({
-    queryKey: ['applications', 'duplicate-groups'],
-    queryFn: () => apiFetch<DuplicateGroupsResponse>('/applications/duplicate-groups'),
+    queryKey: ['applications', 'duplicate-groups', dimensions],
+    queryFn: () =>
+      apiFetch<DuplicateGroupsResponse>(
+        `/applications/duplicate-groups${toQueryString(dimensions)}`,
+      ),
   });
 }
 

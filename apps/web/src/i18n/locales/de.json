@@ -35,6 +35,9 @@
     "new": "Neue Bewerbung",
     "search": "Titel, Firma, Tag suchen",
     "empty": "Noch keine Bewerbungen. Erstelle deine erste.",
+    "favorite": "Zu Favoriten hinzufügen",
+    "unfavorite": "Aus Favoriten entfernen",
+    "favoritesOnly": "Favoriten",
     "columns": {
       "position": "Position",
       "location": "Ort",
@@ -96,7 +99,12 @@
       "title": "Mögliche Duplikate",
       "empty": "Keine wahrscheinlichen Duplikate gefunden.",
       "keepThis": "Dieses behalten",
-      "similarityNote": "Titel-Übereinstimmung {{title}}% · Firma {{company}}% · Ort {{location}}%"
+      "similarityNote": "Titel-Übereinstimmung {{title}}% · Firma {{company}}% · Ort {{location}}%",
+      "matchBy": {
+        "title": "Titel",
+        "company": "Firma",
+        "location": "Ort"
+      }
     }
   },
   "interviews": {

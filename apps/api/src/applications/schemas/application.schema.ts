@@ -106,6 +106,9 @@ export class Application {
   @Prop()
   notes?: string;
 
+  @Prop({ default: false })
+  favorite: boolean;
+
   @Prop({
     type: {
       capturedBy: { type: String, enum: ['extension', 'manual', 'import'] },
@@ -124,6 +127,7 @@ export const ApplicationSchema = SchemaFactory.createForClass(Application);
 
 ApplicationSchema.index({ userId: 1, status: 1 });
 ApplicationSchema.index({ userId: 1, nextFollowUpAt: 1 });
+ApplicationSchema.index({ userId: 1, favorite: 1 });
 // A URL genuinely identifies one posting, but the same email address (a
 // generic jobs@company.com, a recruiter's inbox) is often the legitimate
 // apply channel for several different, unrelated postings — so it

@@ -9,9 +9,13 @@ let isLoading = false;
 let isError = false;
 const mergeMock = vi.fn();
 const deleteMock = vi.fn();
+const useDuplicatePairsMock = vi.fn();
 
 vi.mock('./api', () => ({
-  useDuplicatePairs: () => ({ data: pairsData, isLoading, isError }),
+  useDuplicatePairs: (...args: unknown[]) => {
+    useDuplicatePairsMock(...args);
+    return { data: pairsData, isLoading, isError };
+  },
   useMergeApplications: () => ({ mutate: mergeMock }),
   useDeleteApplication: () => ({ mutate: deleteMock }),
 }));
@@ -30,6 +34,7 @@ function makeApplication(overrides: Partial<Application>): Application {
     statusSetBy: 'user',
     followUpCount: 0,
     tags: [],
+    favorite: false,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
@@ -150,5 +155,47 @@ describe('DuplicatesReviewModal', () => {
     render(<DuplicatesReviewModal onClose={vi.fn()} />);
 
     expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
+  });
+
+  it('defaults to all three match dimensions selected (happy path)', () => {
+    pairsData = { pairs: [] };
+    render(<DuplicatesReviewModal onClose={vi.fn()} />);
+
+    expect(useDuplicatePairsMock).toHaveBeenCalledWith({
+      title: true,
+      company: true,
+      location: true,
+    });
+  });
+
+  it('re-queries with company excluded when its checkbox is unchecked (happy path)', async () => {
+    pairsData = { pairs: [] };
+    render(<DuplicatesReviewModal onClose={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /company/i }));
+
+    expect(useDuplicatePairsMock).toHaveBeenLastCalledWith({
+      title: true,
+      company: false,
+      location: true,
+    });
+  });
+
+  it('refuses to uncheck the last remaining dimension (edge case)', async () => {
+    pairsData = { pairs: [] };
+    render(<DuplicatesReviewModal onClose={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /^title$/i }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /company/i }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /location/i }));
+
+    // The third click would leave nothing selected — it must be a no-op,
+    // leaving location as the one dimension still checked.
+    expect(useDuplicatePairsMock).toHaveBeenLastCalledWith({
+      title: false,
+      company: false,
+      location: true,
+    });
+    expect(screen.getByRole('checkbox', { name: /location/i })).toBeChecked();
   });
 });

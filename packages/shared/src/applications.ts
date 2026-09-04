@@ -86,6 +86,7 @@ const applicationBaseSchema = z.object({
   status: applicationStatusSchema.optional().default('applied'),
   tags: z.array(z.string().max(60)).max(20).optional().default([]),
   notes: z.string().max(5000).optional(),
+  favorite: z.boolean().optional().default(false),
   // When the employer posted (or reposted) the listing — distinct from
   // `sentAt` (when the user applied). Not every source can find this, so
   // it's optional rather than defaulted.
@@ -132,6 +133,10 @@ export const applicationQuerySchema = z.object({
   applyType: applyTypeSchema.optional(),
   q: z.string().max(200).optional(),
   tag: z.string().max(60).optional(),
+  // Only ever narrows to favorites when explicitly true — omitted (or
+  // false) shows everything, matching how `status`/`applyType` already
+  // behave as opt-in filters rather than a three-state toggle.
+  favorite: z.coerce.boolean().optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
   // 500 (not 100) so the Kanban board's "fetch everything, group client-side
   // by status" query (apps/web/src/applications/KanbanBoard.tsx) fits under
@@ -164,3 +169,13 @@ export const applicationQuerySchema = z.object({
     .default('-createdAt'),
 });
 export type ApplicationQuery = z.infer<typeof applicationQuerySchema>;
+
+// Which dimensions count toward a "likely duplicate" match in the "Find
+// similar" review list — see isLikelyDuplicate in similarity.ts. All
+// default to true (the original, only) behavior when none are passed.
+export const duplicateGroupsQuerySchema = z.object({
+  title: z.coerce.boolean().optional().default(true),
+  company: z.coerce.boolean().optional().default(true),
+  location: z.coerce.boolean().optional().default(true),
+});
+export type DuplicateGroupsQuery = z.infer<typeof duplicateGroupsQuerySchema>;

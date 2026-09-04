@@ -35,6 +35,9 @@
     "new": "New application",
     "search": "Search title, company, tag",
     "empty": "No applications yet. Create your first one.",
+    "favorite": "Add to favorites",
+    "unfavorite": "Remove from favorites",
+    "favoritesOnly": "Favorites",
     "columns": {
       "position": "Position",
       "location": "Location",
@@ -96,7 +99,12 @@
       "title": "Possible duplicates",
       "empty": "No likely duplicates found.",
       "keepThis": "Keep this one",
-      "similarityNote": "Title match {{title}}% · Company match {{company}}% · Location match {{location}}%"
+      "similarityNote": "Title match {{title}}% · Company match {{company}}% · Location match {{location}}%",
+      "matchBy": {
+        "title": "Title",
+        "company": "Company",
+        "location": "Location"
+      }
     }
   },
   "interviews": {

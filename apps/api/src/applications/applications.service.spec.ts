@@ -172,9 +172,75 @@ describe('ApplicationsService', () => {
         service.update(userId, app._id.toString(), { applyType: 'website' }),
       ).rejects.toThrow(ConflictException);
     });
+
+    it('toggles favorite on (happy path)', async () => {
+      const app = await createApplication({ favorite: false });
+
+      const updated = await service.update(userId, app._id.toString(), {
+        favorite: true,
+      });
+
+      expect(updated.favorite).toBe(true);
+    });
+
+    it('toggles favorite off (happy path)', async () => {
+      const app = await createApplication({ favorite: true });
+
+      const updated = await service.update(userId, app._id.toString(), {
+        favorite: false,
+      });
+
+      expect(updated.favorite).toBe(false);
+    });
+  });
+
+  describe('findAllForUser — favorite filter', () => {
+    it('defaults to no favorite filter, returning both favorited and non-favorited applications (happy path)', async () => {
+      await createApplication({ favorite: true });
+      await createApplication({ favorite: false });
+
+      const { items } = await service.findAllForUser(userId, {
+        page: 1,
+        pageSize: 20,
+        sort: '-createdAt',
+      });
+
+      expect(items).toHaveLength(2);
+    });
+
+    it('returns only favorited applications when favorite=true (happy path)', async () => {
+      const favorited = await createApplication({ favorite: true });
+      await createApplication({ favorite: false });
+
+      const { items, total } = await service.findAllForUser(userId, {
+        page: 1,
+        pageSize: 20,
+        sort: '-createdAt',
+        favorite: true,
+      });
+
+      expect(total).toBe(1);
+      expect(items[0]._id.toString()).toBe(favorited._id.toString());
+    });
+
+    it('treats favorite=false the same as omitted — no narrowing (negative case)', async () => {
+      await createApplication({ favorite: true });
+      await createApplication({ favorite: false });
+
+      const { total } = await service.findAllForUser(userId, {
+        page: 1,
+        pageSize: 20,
+        sort: '-createdAt',
+        favorite: false,
+      });
+
+      expect(total).toBe(2);
+    });
   });
 
   describe('findDuplicateGroups', () => {
+    const ALL_DIMENSIONS = { title: true, company: true, location: true };
+
     it('finds a pair with the same company and a similar title (happy path)', async () => {
       const a = await createApplication({
         jobTitle: 'Senior Backend Engineer',
@@ -183,7 +249,7 @@ describe('ApplicationsService', () => {
         jobTitle: 'Backend Engineer, Senior',
       });
 
-      const pairs = await service.findDuplicateGroups(userId);
+      const pairs = await service.findDuplicateGroups(userId, ALL_DIMENSIONS);
 
       expect(pairs).toHaveLength(1);
       const ids = [pairs[0].a._id.toString(), pairs[0].b._id.toString()];
@@ -197,7 +263,7 @@ describe('ApplicationsService', () => {
       await createApplication({ jobTitle: 'Backend Engineer' });
       await createApplication({ jobTitle: 'Backend Engineer' });
 
-      const pairs = await service.findDuplicateGroups(userId);
+      const pairs = await service.findDuplicateGroups(userId, ALL_DIMENSIONS);
 
       expect(pairs).toHaveLength(3);
     });
@@ -212,7 +278,7 @@ describe('ApplicationsService', () => {
         company: { name: 'Globex' },
       });
 
-      const pairs = await service.findDuplicateGroups(userId);
+      const pairs = await service.findDuplicateGroups(userId, ALL_DIMENSIONS);
 
       expect(pairs).toHaveLength(0);
     });
@@ -229,7 +295,7 @@ describe('ApplicationsService', () => {
         location: { raw: 'Berlin' },
       });
 
-      const pairs = await service.findDuplicateGroups(userId);
+      const pairs = await service.findDuplicateGroups(userId, ALL_DIMENSIONS);
 
       expect(pairs).toHaveLength(0);
     });
@@ -239,7 +305,7 @@ describe('ApplicationsService', () => {
       const b = await createApplication({ jobTitle: 'Backend Engineer' });
       await service.remove(userId, b._id.toString());
 
-      const pairs = await service.findDuplicateGroups(userId);
+      const pairs = await service.findDuplicateGroups(userId, ALL_DIMENSIONS);
 
       expect(pairs).toHaveLength(0);
       expect(a).toBeDefined();
@@ -247,7 +313,85 @@ describe('ApplicationsService', () => {
 
     it('returns an empty array for a single application (negative case)', async () => {
       await createApplication();
-      const pairs = await service.findDuplicateGroups(userId);
+      const pairs = await service.findDuplicateGroups(userId, ALL_DIMENSIONS);
+      expect(pairs).toEqual([]);
+    });
+
+    it('matches by title alone across different companies when only title is selected (happy path)', async () => {
+      const a = await createApplication({
+        jobTitle: 'Backend Engineer',
+        company: { name: 'Acme' },
+        location: { raw: 'Vienna' },
+      });
+      const b = await createApplication({
+        jobTitle: 'Backend Engineer',
+        company: { name: 'Globex' },
+        location: { raw: 'Berlin' },
+      });
+
+      const pairs = await service.findDuplicateGroups(userId, {
+        title: true,
+        company: false,
+        location: false,
+      });
+
+      expect(pairs).toHaveLength(1);
+      const ids = [pairs[0].a._id.toString(), pairs[0].b._id.toString()];
+      expect(ids).toEqual(
+        expect.arrayContaining([a._id.toString(), b._id.toString()]),
+      );
+    });
+
+    it('matches by company alone even with unrelated titles when only company is selected (happy path)', async () => {
+      await createApplication({
+        jobTitle: 'Backend Engineer',
+        company: { name: 'Acme' },
+      });
+      await createApplication({
+        jobTitle: 'Marketing Intern',
+        company: { name: 'Acme' },
+      });
+
+      const pairs = await service.findDuplicateGroups(userId, {
+        title: false,
+        company: true,
+        location: false,
+      });
+
+      expect(pairs).toHaveLength(1);
+    });
+
+    it('matches by location alone across different companies and titles when only location is selected (happy path)', async () => {
+      await createApplication({
+        jobTitle: 'Backend Engineer',
+        company: { name: 'Acme' },
+        location: { raw: 'Vienna' },
+      });
+      await createApplication({
+        jobTitle: 'Marketing Intern',
+        company: { name: 'Globex' },
+        location: { raw: 'Vienna' },
+      });
+
+      const pairs = await service.findDuplicateGroups(userId, {
+        title: false,
+        company: false,
+        location: true,
+      });
+
+      expect(pairs).toHaveLength(1);
+    });
+
+    it('returns nothing when no dimension is selected (negative case)', async () => {
+      await createApplication({ jobTitle: 'Backend Engineer' });
+      await createApplication({ jobTitle: 'Backend Engineer' });
+
+      const pairs = await service.findDuplicateGroups(userId, {
+        title: false,
+        company: false,
+        location: false,
+      });
+
       expect(pairs).toEqual([]);
     });
   });

@@ -21,6 +21,7 @@ export interface Application {
   followUpCount: number;
   tags: string[];
   notes?: string;
+  favorite: boolean;
   createdAt: string;
   updatedAt: string;
 }

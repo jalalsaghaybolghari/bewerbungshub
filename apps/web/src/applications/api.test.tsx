@@ -27,6 +27,7 @@ function makeApplication(overrides: Partial<Application>): Application {
     statusSetBy: 'user',
     followUpCount: 0,
     tags: [],
+    favorite: false,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
@@ -147,12 +148,16 @@ describe('useDuplicatePairs', () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(pairs));
     vi.stubGlobal('fetch', fetchMock);
 
-    const { result } = renderWithClient(() => useDuplicatePairs());
+    const { result } = renderWithClient(() =>
+      useDuplicatePairs({ title: true, company: true, location: true }),
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual(pairs);
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/applications/duplicate-groups'),
+      expect.stringContaining(
+        '/applications/duplicate-groups?title=true&company=true&location=true',
+      ),
       expect.anything(),
     );
   });

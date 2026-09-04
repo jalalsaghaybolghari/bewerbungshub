@@ -151,4 +151,51 @@ describe('isLikelyDuplicate', () => {
       isLikelyDuplicate({ titleSimilarity: 0.1, companySimilarity: 0.1, locationSimilarity: 0.1 }),
     ).toBe(false);
   });
+
+  describe('with a restricted set of dimensions', () => {
+    it('ignores a low company score when only title is required (happy path)', () => {
+      expect(
+        isLikelyDuplicate(
+          { titleSimilarity: 0.9, companySimilarity: 0.1, locationSimilarity: 0.1 },
+          { title: true, company: false, location: false },
+        ),
+      ).toBe(true);
+    });
+
+    it('still enforces the title threshold when title is required (negative case)', () => {
+      expect(
+        isLikelyDuplicate(
+          { titleSimilarity: 0.5, companySimilarity: 1, locationSimilarity: 1 },
+          { title: true, company: false, location: false },
+        ),
+      ).toBe(false);
+    });
+
+    it('ignores a low title score when only company is required (happy path)', () => {
+      expect(
+        isLikelyDuplicate(
+          { titleSimilarity: 0.1, companySimilarity: 0.9, locationSimilarity: 0.1 },
+          { title: false, company: true, location: false },
+        ),
+      ).toBe(true);
+    });
+
+    it('ignores title and company when only location is required (happy path)', () => {
+      expect(
+        isLikelyDuplicate(
+          { titleSimilarity: 0.1, companySimilarity: 0.1, locationSimilarity: 0.9 },
+          { title: false, company: false, location: true },
+        ),
+      ).toBe(true);
+    });
+
+    it('is false when no dimension is selected, even with perfect scores (edge case)', () => {
+      expect(
+        isLikelyDuplicate(
+          { titleSimilarity: 1, companySimilarity: 1, locationSimilarity: 1 },
+          { title: false, company: false, location: false },
+        ),
+      ).toBe(false);
+    });
+  });
 });

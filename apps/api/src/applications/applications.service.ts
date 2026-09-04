@@ -9,6 +9,7 @@ import type {
   ApplicationQuery,
   ChangeApplicationStatusInput,
   CreateApplicationInput,
+  DuplicateGroupsQuery,
   UpdateApplicationInput,
 } from '@bewerber/shared';
 import {
@@ -73,6 +74,7 @@ export class ApplicationsService {
     if (query.status) filter.status = query.status;
     if (query.applyType) filter.applyType = query.applyType;
     if (query.tag) filter.tags = query.tag;
+    if (query.favorite) filter.favorite = true;
     if (query.q) filter.$text = { $search: query.q };
 
     const sortField = query.sort.replace(/^-/, '');
@@ -330,15 +332,22 @@ export class ApplicationsService {
   }
 
   // Fuzzy near-duplicate scan across the user's own active applications.
-  // Buckets by exact normalized company name first, then only scores title
-  // similarity pairwise *within* each bucket — keeps this cheap (no O(n^2)
-  // comparison across the whole list) and matches the requirement ("similar
-  // according to title and company"), at the deliberate cost that two
-  // companies whose normalized names don't land in the same bucket (e.g.
-  // "Acme Inc." vs "Acme Incorporated" — the suffix list doesn't cover
-  // "Incorporated") never get compared. Acceptable precision/recall
-  // tradeoff for a first pass.
-  async findDuplicateGroups(userId: string): Promise<
+  // When company is one of the required dimensions, buckets by exact
+  // normalized company name first and only scores pairs *within* each
+  // bucket — keeps this cheap (no O(n^2) comparison across the whole
+  // list), at the deliberate cost that two companies whose normalized
+  // names don't land in the same bucket (e.g. "Acme Inc." vs "Acme
+  // Incorporated" — the suffix list doesn't cover "Incorporated") never
+  // get compared. When company isn't required (the user unchecked it —
+  // e.g. matching by title or location alone), that optimization doesn't
+  // apply — a match could be between two entirely different companies —
+  // so every active application is scanned pairwise instead. Still
+  // acceptable: bounded by one user's own dataset, same as the
+  // already-O(n^2)-within-a-bucket case above.
+  async findDuplicateGroups(
+    userId: string,
+    dimensions: DuplicateGroupsQuery,
+  ): Promise<
     Array<{
       a: ApplicationDocument;
       b: ApplicationDocument;
@@ -356,9 +365,11 @@ export class ApplicationsService {
 
     const buckets = new Map<string, ApplicationDocument[]>();
     for (const app of applications) {
-      const key = normalizeForSimilarity(app.company.name, {
-        stripCompanySuffixes: true,
-      });
+      const key = dimensions.company
+        ? normalizeForSimilarity(app.company.name, {
+            stripCompanySuffixes: true,
+          })
+        : '__all__';
       const bucket = buckets.get(key);
       if (bucket) bucket.push(app);
       else buckets.set(key, [app]);
@@ -387,7 +398,7 @@ export class ApplicationsService {
               locationRaw: bucket[j].location.raw,
             },
           );
-          if (isLikelyDuplicate(score)) {
+          if (isLikelyDuplicate(score, dimensions)) {
             pairs.push({
               a: bucket[i],
               b: bucket[j],

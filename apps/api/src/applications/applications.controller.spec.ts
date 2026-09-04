@@ -23,12 +23,20 @@ describe('ApplicationsController', () => {
   });
 
   describe('findDuplicateGroups', () => {
-    it('wraps the service result in a pairs envelope (happy path)', async () => {
+    it('wraps the service result in a pairs envelope and passes the match dimensions through (happy path)', async () => {
       service.findDuplicateGroups.mockResolvedValueOnce([{ a: 'x', b: 'y' }]);
 
-      const result = await controller.findDuplicateGroups(user);
+      const result = await controller.findDuplicateGroups(user, {
+        title: true,
+        company: false,
+        location: true,
+      });
 
-      expect(service.findDuplicateGroups).toHaveBeenCalledWith('user-1');
+      expect(service.findDuplicateGroups).toHaveBeenCalledWith('user-1', {
+        title: true,
+        company: false,
+        location: true,
+      });
       expect(result).toEqual({ pairs: [{ a: 'x', b: 'y' }] });
     });
   });

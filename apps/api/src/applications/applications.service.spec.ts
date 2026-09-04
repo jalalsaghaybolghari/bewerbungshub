@@ -98,6 +98,72 @@ describe('ApplicationsService', () => {
     return service.create(forUserId, baseApplicationInput(overrides));
   }
 
+  describe('findAllForUser — favorite filter', () => {
+    it('defaults to no favorite filter, returning both favorited and non-favorited applications (happy path)', async () => {
+      await createApplication({ favorite: true });
+      await createApplication({ favorite: false });
+
+      const { items } = await service.findAllForUser(userId, {
+        page: 1,
+        pageSize: 20,
+        sort: '-createdAt',
+      });
+
+      expect(items).toHaveLength(2);
+    });
+
+    it('returns only favorited applications when favorite=true (happy path)', async () => {
+      const favorited = await createApplication({ favorite: true });
+      await createApplication({ favorite: false });
+
+      const { items, total } = await service.findAllForUser(userId, {
+        page: 1,
+        pageSize: 20,
+        sort: '-createdAt',
+        favorite: true,
+      });
+
+      expect(total).toBe(1);
+      expect(items[0]._id.toString()).toBe(favorited._id.toString());
+    });
+
+    it('treats favorite=false the same as omitted — no narrowing (negative case)', async () => {
+      await createApplication({ favorite: true });
+      await createApplication({ favorite: false });
+
+      const { total } = await service.findAllForUser(userId, {
+        page: 1,
+        pageSize: 20,
+        sort: '-createdAt',
+        favorite: false,
+      });
+
+      expect(total).toBe(2);
+    });
+  });
+
+  describe('update — favorite', () => {
+    it('toggles favorite on (happy path)', async () => {
+      const app = await createApplication({ favorite: false });
+
+      const updated = await service.update(userId, app._id.toString(), {
+        favorite: true,
+      });
+
+      expect(updated.favorite).toBe(true);
+    });
+
+    it('toggles favorite off (happy path)', async () => {
+      const app = await createApplication({ favorite: true });
+
+      const updated = await service.update(userId, app._id.toString(), {
+        favorite: false,
+      });
+
+      expect(updated.favorite).toBe(false);
+    });
+  });
+
   describe('findDuplicateGroups', () => {
     it('finds a pair with the same company and a similar title (happy path)', async () => {
       const a = await createApplication({

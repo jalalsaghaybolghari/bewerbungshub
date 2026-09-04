@@ -100,6 +100,9 @@ export class Application {
   @Prop()
   notes?: string;
 
+  @Prop({ default: false })
+  favorite: boolean;
+
   @Prop({
     type: {
       capturedBy: { type: String, enum: ['extension', 'manual', 'import'] },
@@ -118,6 +121,7 @@ export const ApplicationSchema = SchemaFactory.createForClass(Application);
 
 ApplicationSchema.index({ userId: 1, status: 1 });
 ApplicationSchema.index({ userId: 1, nextFollowUpAt: 1 });
+ApplicationSchema.index({ userId: 1, favorite: 1 });
 ApplicationSchema.index({ userId: 1, applyLink: 1 }, { unique: true });
 ApplicationSchema.index({
   jobTitle: 'text',

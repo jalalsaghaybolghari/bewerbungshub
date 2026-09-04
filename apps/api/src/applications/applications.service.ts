@@ -69,6 +69,7 @@ export class ApplicationsService {
     if (query.status) filter.status = query.status;
     if (query.applyType) filter.applyType = query.applyType;
     if (query.tag) filter.tags = query.tag;
+    if (query.favorite) filter.favorite = true;
     if (query.q) filter.$text = { $search: query.q };
 
     const sortField = query.sort.replace(/^-/, '');

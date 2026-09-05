@@ -71,6 +71,7 @@ export class AdminService {
           isAdmin: user.isAdmin,
           isLocked: user.isLocked,
           approvalStatus: user.approvalStatus,
+          hasApiKey: !!user.apiKeyHash,
           createdAt: user.get('createdAt') as Date,
           applicationCount,
           cvCount,

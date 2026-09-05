@@ -97,6 +97,7 @@ export function AdminPage() {
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Verified</th>
                   <th className="px-4 py-3">Admin</th>
+                  <th className="px-4 py-3">API Key</th>
                   <th className="px-4 py-3">Approval</th>
                   <th className="px-4 py-3">Locked</th>
                   <th className="px-4 py-3">Applications</th>
@@ -112,6 +113,7 @@ export function AdminPage() {
                     <td className="px-4 py-3 text-slate">{u.displayName}</td>
                     <td className="px-4 py-3">{u.emailVerified ? '✓' : '—'}</td>
                     <td className="px-4 py-3">{u.isAdmin ? '✓' : '—'}</td>
+                    <td className="px-4 py-3">{u.hasApiKey ? '✓' : '—'}</td>
                     <td className="px-4 py-3">
                       {u.approvalStatus === 'pending' ? (
                         <div className="flex items-center gap-2">

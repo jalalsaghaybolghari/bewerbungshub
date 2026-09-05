@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AdminPage } from './AdminPage';
@@ -37,6 +37,7 @@ const otherUser = {
   isAdmin: false,
   isLocked: false,
   approvalStatus: 'approved' as const,
+  hasApiKey: false,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   applicationCount: 3,
   cvCount: 1,
@@ -51,6 +52,7 @@ const selfUser = {
   isAdmin: true,
   isLocked: false,
   approvalStatus: 'approved' as const,
+  hasApiKey: false,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   applicationCount: 0,
   cvCount: 0,
@@ -184,5 +186,26 @@ describe('AdminPage', () => {
     render(<AdminPage />);
 
     expect(screen.getAllByRole('button', { name: /^lock$/i })).toHaveLength(1);
+  });
+
+  it('shows a checkmark for users with an API key and a dash otherwise (edge case)', () => {
+    usersData = {
+      items: [
+        { ...otherUser, id: 'user-2', hasApiKey: true },
+        { ...otherUser, id: 'user-3', email: 'other@example.com', hasApiKey: false },
+      ],
+      total: 2,
+      page: 1,
+      pageSize: 20,
+    };
+    render(<AdminPage />);
+
+    const headers = screen.getAllByRole('columnheader').map((h) => h.textContent);
+    const apiKeyColumnIndex = headers.indexOf('API Key');
+    const rows = screen.getAllByRole('row').slice(1);
+    const apiKeyCell = (row: HTMLElement) => within(row).getAllByRole('cell')[apiKeyColumnIndex];
+
+    expect(apiKeyCell(rows[0])).toHaveTextContent('✓');
+    expect(apiKeyCell(rows[1])).toHaveTextContent('—');
   });
 });

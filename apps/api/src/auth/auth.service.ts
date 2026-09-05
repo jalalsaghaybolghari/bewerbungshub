@@ -11,7 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
-import { randomInt, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomInt, randomUUID } from 'node:crypto';
 import type {
   AuthUser,
   ConfirmEmailInput,
@@ -28,6 +28,11 @@ import { MailService } from '../mail/mail.service';
 const CODE_EXPIRES_IN_MS = 15 * 60 * 1000;
 const RESEND_COOLDOWN_MS = 60 * 1000;
 const MAX_CODE_ATTEMPTS = 5;
+
+// Purely cosmetic — lets a key be recognized at a glance (e.g. in a
+// secrets scanner or a config file) the way GitHub/Stripe keys are
+// prefixed. Carries no meaning to the server itself.
+const API_KEY_PREFIX = 'bwh_';
 
 export interface TokenPair {
   accessToken: string;
@@ -194,6 +199,51 @@ export class AuthService {
 
   async logout(userId: string): Promise<void> {
     await this.usersService.setRefreshTokenHash(userId, undefined);
+  }
+
+  // Returns the raw key exactly once — only its hash is ever persisted,
+  // so there's no way to retrieve it again later, matching how every
+  // "personal access token" UX (GitHub, Stripe, ...) works. Generating a
+  // new one silently invalidates whatever key existed before.
+  async generateApiKey(
+    userId: string,
+  ): Promise<{ apiKey: string; createdAt: Date }> {
+    const apiKey = `${API_KEY_PREFIX}${randomBytes(32).toString('hex')}`;
+    const createdAt = new Date();
+    await this.usersService.setApiKeyHash(userId, this.hashApiKey(apiKey));
+    return { apiKey, createdAt };
+  }
+
+  async revokeApiKey(userId: string): Promise<void> {
+    await this.usersService.clearApiKeyHash(userId);
+  }
+
+  async getApiKeyStatus(
+    userId: string,
+  ): Promise<{ hasKey: boolean; createdAt?: Date }> {
+    const user = await this.usersService.findById(userId);
+    return {
+      hasKey: !!user?.apiKeyHash,
+      createdAt: user?.apiKeyCreatedAt,
+    };
+  }
+
+  // Used by JwtAuthGuard as the fallback when the bearer token isn't a
+  // valid JWT — returns the same shape either way (see RequestUser) so
+  // every existing @UseGuards(JwtAuthGuard) route transparently accepts
+  // an API key too, without having to touch each controller.
+  async validateApiKey(
+    rawKey: string,
+  ): Promise<{ userId: string; email: string } | null> {
+    const user = await this.usersService.findByApiKeyHash(
+      this.hashApiKey(rawKey),
+    );
+    if (!user) return null;
+    return { userId: user._id.toString(), email: user.email };
+  }
+
+  private hashApiKey(rawKey: string): string {
+    return createHash('sha256').update(rawKey).digest('hex');
   }
 
   private async issueTokenPair(user: UserDocument): Promise<TokenPair> {

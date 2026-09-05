@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import type { Response } from 'express';
 import { GoogleDriveController } from './google-drive.controller';
 import { GoogleDriveService } from './google-drive.service';
+import { AuthService } from '../auth/auth.service';
 import type { RequestUser } from '../auth/decorators/current-user.decorator';
 
 const JWT_SECRET = 'test-jwt-secret';
@@ -46,6 +47,7 @@ describe('GoogleDriveController', () => {
         { provide: GoogleDriveService, useValue: service },
         JwtService,
         { provide: ConfigService, useValue: makeConfig() },
+        { provide: AuthService, useValue: { validateApiKey: jest.fn() } },
       ],
     }).compile();
 

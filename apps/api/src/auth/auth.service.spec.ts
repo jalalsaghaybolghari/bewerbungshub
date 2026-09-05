@@ -41,6 +41,9 @@ function makeUsersService() {
     incrementEmailVerificationAttempts: jest.fn<Promise<unknown>, [string]>(),
     markEmailVerified: jest.fn<Promise<unknown>, [string]>(),
     invalidateEmailVerificationCode: jest.fn<Promise<unknown>, [string]>(),
+    setApiKeyHash: jest.fn<Promise<unknown>, [string, string]>(),
+    clearApiKeyHash: jest.fn<Promise<unknown>, [string]>(),
+    findByApiKeyHash: jest.fn<Promise<UserDocument | null>, [string]>(),
   };
 }
 
@@ -286,6 +289,80 @@ describe('AuthService', () => {
       await expect(
         service.resendCode({ email: 'alice@example.com' }),
       ).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('generateApiKey', () => {
+    it('returns a prefixed raw key exactly once and stores only its hash (happy path)', async () => {
+      const result = await service.generateApiKey('user-1');
+
+      expect(result.apiKey).toMatch(/^bwh_[0-9a-f]{64}$/);
+      expect(usersService.setApiKeyHash).toHaveBeenCalledWith(
+        'user-1',
+        expect.any(String),
+      );
+      const [, storedHash] = usersService.setApiKeyHash.mock.calls[0];
+      expect(storedHash).not.toBe(result.apiKey);
+    });
+
+    it('generates a different key each call, replacing any prior one (edge case)', async () => {
+      const first = await service.generateApiKey('user-1');
+      const second = await service.generateApiKey('user-1');
+
+      expect(first.apiKey).not.toBe(second.apiKey);
+      expect(usersService.setApiKeyHash).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('revokeApiKey', () => {
+    it('clears the stored key hash (happy path)', async () => {
+      await service.revokeApiKey('user-1');
+
+      expect(usersService.clearApiKeyHash).toHaveBeenCalledWith('user-1');
+    });
+  });
+
+  describe('getApiKeyStatus', () => {
+    it('reports hasKey true with the creation date when a key exists (happy path)', async () => {
+      const createdAt = new Date();
+      usersService.findById.mockResolvedValue(
+        makeUser({ apiKeyHash: 'irrelevant-hash', apiKeyCreatedAt: createdAt }),
+      );
+
+      const result = await service.getApiKeyStatus('user-1');
+
+      expect(result).toEqual({ hasKey: true, createdAt });
+    });
+
+    it('reports hasKey false when no key exists (edge case)', async () => {
+      usersService.findById.mockResolvedValue(makeUser());
+
+      const result = await service.getApiKeyStatus('user-1');
+
+      expect(result).toEqual({ hasKey: false, createdAt: undefined });
+    });
+  });
+
+  describe('validateApiKey', () => {
+    it("resolves the owning user's id and email for a valid key (happy path)", async () => {
+      const { apiKey } = await service.generateApiKey('user-1');
+      const storedHash = usersService.setApiKeyHash.mock.calls[0][1];
+      usersService.findByApiKeyHash.mockResolvedValue(
+        makeUser({ apiKeyHash: storedHash }),
+      );
+
+      const result = await service.validateApiKey(apiKey);
+
+      expect(usersService.findByApiKeyHash).toHaveBeenCalledWith(storedHash);
+      expect(result).toEqual({ userId: 'user-1', email: 'alice@example.com' });
+    });
+
+    it('returns null for an unknown or revoked key (negative case)', async () => {
+      usersService.findByApiKeyHash.mockResolvedValue(null);
+
+      const result = await service.validateApiKey('bwh_not-a-real-key');
+
+      expect(result).toBeNull();
     });
   });
 });

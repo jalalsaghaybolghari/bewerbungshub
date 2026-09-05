@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -102,6 +103,31 @@ export class AuthController {
       displayName: found.displayName,
       locale: found.locale,
     };
+  }
+
+  // Managing your own API key requires being logged in via the web app
+  // (JwtAuthGuard also accepts an existing API key here, but there's
+  // nothing stopping that — revoking/regenerating with your own current
+  // key is harmless).
+  @UseGuards(JwtAuthGuard)
+  @Post('api-key')
+  @HttpCode(HttpStatus.CREATED)
+  generateApiKey(@CurrentUser() user: RequestUser) {
+    // Returns the raw key exactly once — it is never retrievable again.
+    return this.authService.generateApiKey(user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('api-key')
+  getApiKeyStatus(@CurrentUser() user: RequestUser) {
+    return this.authService.getApiKeyStatus(user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('api-key')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async revokeApiKey(@CurrentUser() user: RequestUser) {
+    await this.authService.revokeApiKey(user.userId);
   }
 
   private setRefreshCookie(res: Response, tokens: TokenPair) {

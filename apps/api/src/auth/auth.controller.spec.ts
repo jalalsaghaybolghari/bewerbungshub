@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import type { Response } from 'express';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -17,6 +18,9 @@ describe('AuthController', () => {
     confirmEmail: jest.fn(),
     resendCode: jest.fn(),
     login: jest.fn(),
+    generateApiKey: jest.fn(),
+    revokeApiKey: jest.fn(),
+    getApiKeyStatus: jest.fn(),
   };
   const usersService = { findById: jest.fn() };
 
@@ -32,6 +36,7 @@ describe('AuthController', () => {
         { provide: AuthService, useValue: authService },
         { provide: UsersService, useValue: usersService },
         { provide: ConfigService, useValue: { get: jest.fn() } },
+        { provide: JwtService, useValue: { verifyAsync: jest.fn() } },
       ],
     }).compile();
 
@@ -97,6 +102,53 @@ describe('AuthController', () => {
       expect(authService.resendCode).toHaveBeenCalledWith({
         email: 'alice@example.com',
       });
+    });
+  });
+
+  describe('generateApiKey', () => {
+    it('delegates to the service using the current user (happy path)', async () => {
+      authService.generateApiKey.mockResolvedValueOnce({
+        apiKey: 'bwh_raw-key',
+        createdAt: new Date('2026-01-01'),
+      });
+
+      const result = await controller.generateApiKey({
+        userId: 'user-1',
+        email: 'alice@example.com',
+      });
+
+      expect(authService.generateApiKey).toHaveBeenCalledWith('user-1');
+      expect(result).toEqual({
+        apiKey: 'bwh_raw-key',
+        createdAt: new Date('2026-01-01'),
+      });
+    });
+  });
+
+  describe('getApiKeyStatus', () => {
+    it('delegates to the service using the current user (happy path)', async () => {
+      authService.getApiKeyStatus.mockResolvedValueOnce({ hasKey: false });
+
+      const result = await controller.getApiKeyStatus({
+        userId: 'user-1',
+        email: 'alice@example.com',
+      });
+
+      expect(authService.getApiKeyStatus).toHaveBeenCalledWith('user-1');
+      expect(result).toEqual({ hasKey: false });
+    });
+  });
+
+  describe('revokeApiKey', () => {
+    it('delegates to the service using the current user (happy path)', async () => {
+      authService.revokeApiKey.mockResolvedValueOnce(undefined);
+
+      await controller.revokeApiKey({
+        userId: 'user-1',
+        email: 'alice@example.com',
+      });
+
+      expect(authService.revokeApiKey).toHaveBeenCalledWith('user-1');
     });
   });
 });

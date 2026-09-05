@@ -176,4 +176,10 @@ export class UsersService {
   findByApiKeyHash(apiKeyHash: string) {
     return this.userModel.findOne({ apiKeyHash }).exec();
   }
+
+  // Used only by AdminService.deleteUser's cascade, and only after every
+  // other collection has already been cleaned up for this user.
+  deleteById(userId: string) {
+    return this.userModel.deleteOne({ _id: userId }).exec();
+  }
 }

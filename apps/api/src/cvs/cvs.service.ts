@@ -155,6 +155,27 @@ export class CvsService {
     await cv.deleteOne();
   }
 
+  // Used only by AdminService.deleteUser's cascade — unlike remove(), never
+  // blocks on referencing applications, since everything for this user is
+  // being deleted together. Must run before the User document itself is
+  // removed: GoogleDriveService.deleteFile looks the user up internally to
+  // build an authenticated client, and throws if the user is already gone.
+  async removeAllForUser(userId: string): Promise<void> {
+    const cvs = await this.cvModel
+      .find({ userId: new Types.ObjectId(userId) })
+      .exec();
+    for (const cv of cvs) {
+      if (cv.storageProvider === 'google-drive') {
+        await this.googleDrive.deleteFile(userId, cv.fileKey);
+      } else {
+        await this.storage.delete(cv.fileKey);
+      }
+    }
+    await this.cvModel
+      .deleteMany({ userId: new Types.ObjectId(userId) })
+      .exec();
+  }
+
   async getFile(
     userId: string,
     id: string,

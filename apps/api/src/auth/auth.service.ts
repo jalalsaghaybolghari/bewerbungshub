@@ -45,6 +45,7 @@ function toAuthUser(user: UserDocument): AuthUser {
     email: user.email,
     displayName: user.displayName,
     locale: user.locale,
+    isAdmin: user.isAdmin,
   };
 }
 

@@ -75,6 +75,13 @@ export class InterviewsService {
       .exec();
   }
 
+  // Used only by AdminService.deleteUser's cascade.
+  async removeAllForUser(userId: string): Promise<void> {
+    await this.interviewModel
+      .deleteMany({ userId: new Types.ObjectId(userId) })
+      .exec();
+  }
+
   private async assertApplicationOwnership(
     userId: string,
     applicationId: string,

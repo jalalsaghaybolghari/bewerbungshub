@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '../components/Modal';
 import { Button } from '../components/ui';
@@ -90,7 +91,14 @@ export function DuplicatesReviewModal({ onClose }: { onClose: () => void }) {
                   const app = pair[side];
                   return (
                     <div key={app._id} className="space-y-1.5">
-                      <div className="font-semibold text-ink">{app.jobTitle}</div>
+                      <Link
+                        to={`/applications/${app._id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-ink hover:text-accent hover:underline"
+                      >
+                        {app.jobTitle}
+                      </Link>
                       <div className="text-sm text-slate">{app.company.name}</div>
                       <StatusBadge status={app.status} />
                       <div className="flex flex-wrap gap-2 pt-1">

@@ -1,8 +1,17 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DuplicatesReviewModal } from './DuplicatesReviewModal';
 import type { Application, DuplicateGroupsResponse } from './types';
+
+function renderModal(onClose = vi.fn()) {
+  return render(
+    <MemoryRouter>
+      <DuplicatesReviewModal onClose={onClose} />
+    </MemoryRouter>,
+  );
+}
 
 let pairsData: DuplicateGroupsResponse | undefined;
 let isLoading = false;
@@ -61,12 +70,34 @@ describe('DuplicatesReviewModal', () => {
         },
       ],
     };
-    render(<DuplicatesReviewModal onClose={vi.fn()} />);
+    renderModal();
 
     expect(screen.getByText('Backend Engineer')).toBeInTheDocument();
     expect(screen.getByText('Backend Engineer, Senior')).toBeInTheDocument();
     expect(screen.getByText(/70%/)).toBeInTheDocument();
     expect(screen.getByText(/100%/)).toBeInTheDocument();
+  });
+
+  it('links each application title to its detail page, opening in a new tab (happy path)', () => {
+    pairsData = {
+      pairs: [
+        {
+          a: makeApplication({ _id: 'app-1', jobTitle: 'Backend Engineer' }),
+          b: makeApplication({ _id: 'app-2', jobTitle: 'Backend Engineer, Senior' }),
+          titleSimilarity: 0.7,
+          companySimilarity: 1,
+          locationSimilarity: 1,
+        },
+      ],
+    };
+    renderModal();
+
+    const linkA = screen.getByRole('link', { name: 'Backend Engineer' });
+    const linkB = screen.getByRole('link', { name: 'Backend Engineer, Senior' });
+    expect(linkA).toHaveAttribute('href', '/applications/app-1');
+    expect(linkA).toHaveAttribute('target', '_blank');
+    expect(linkB).toHaveAttribute('href', '/applications/app-2');
+    expect(linkB).toHaveAttribute('target', '_blank');
   });
 
   it('merges into side A and removes the pair from view on success (happy path)', async () => {
@@ -82,7 +113,7 @@ describe('DuplicatesReviewModal', () => {
       ],
     };
     mergeMock.mockImplementation((_vars, { onSuccess }: { onSuccess: () => void }) => onSuccess());
-    render(<DuplicatesReviewModal onClose={vi.fn()} />);
+    renderModal();
 
     await userEvent.click(screen.getAllByRole('button', { name: /keep this one/i })[0]);
 
@@ -107,7 +138,7 @@ describe('DuplicatesReviewModal', () => {
     };
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     deleteMock.mockImplementation((_id, { onSuccess }: { onSuccess: () => void }) => onSuccess());
-    render(<DuplicatesReviewModal onClose={vi.fn()} />);
+    renderModal();
 
     await userEvent.click(screen.getAllByRole('button', { name: /^delete$/i })[0]);
 
@@ -135,7 +166,7 @@ describe('DuplicatesReviewModal', () => {
       ],
     };
     mergeMock.mockImplementation((_vars, { onSuccess }: { onSuccess: () => void }) => onSuccess());
-    render(<DuplicatesReviewModal onClose={vi.fn()} />);
+    renderModal();
 
     await userEvent.click(screen.getAllByRole('button', { name: /keep this one/i })[0]);
 
@@ -145,21 +176,21 @@ describe('DuplicatesReviewModal', () => {
 
   it('shows an empty state when there are no pairs (negative case)', () => {
     pairsData = { pairs: [] };
-    render(<DuplicatesReviewModal onClose={vi.fn()} />);
+    renderModal();
 
     expect(screen.getByText(/no likely duplicates found/i)).toBeInTheDocument();
   });
 
   it('shows an error state when the query fails (negative case)', () => {
     isError = true;
-    render(<DuplicatesReviewModal onClose={vi.fn()} />);
+    renderModal();
 
     expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
   });
 
   it('defaults to all three match dimensions selected (happy path)', () => {
     pairsData = { pairs: [] };
-    render(<DuplicatesReviewModal onClose={vi.fn()} />);
+    renderModal();
 
     expect(useDuplicatePairsMock).toHaveBeenCalledWith({
       title: true,
@@ -170,7 +201,7 @@ describe('DuplicatesReviewModal', () => {
 
   it('re-queries with company excluded when its checkbox is unchecked (happy path)', async () => {
     pairsData = { pairs: [] };
-    render(<DuplicatesReviewModal onClose={vi.fn()} />);
+    renderModal();
 
     await userEvent.click(screen.getByRole('checkbox', { name: /company/i }));
 
@@ -183,7 +214,7 @@ describe('DuplicatesReviewModal', () => {
 
   it('refuses to uncheck the last remaining dimension (edge case)', async () => {
     pairsData = { pairs: [] };
-    render(<DuplicatesReviewModal onClose={vi.fn()} />);
+    renderModal();
 
     await userEvent.click(screen.getByRole('checkbox', { name: /^title$/i }));
     await userEvent.click(screen.getByRole('checkbox', { name: /company/i }));

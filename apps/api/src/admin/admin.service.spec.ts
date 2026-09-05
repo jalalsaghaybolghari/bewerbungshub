@@ -215,6 +215,20 @@ describe('AdminService', () => {
       expect(page2.items).toHaveLength(1);
       expect(page1.total).toBe(3);
     });
+
+    it('reports hasApiKey based on whether an API key hash is set (edge case)', async () => {
+      const withKey = await seedUser({ apiKeyHash: 'irrelevant-hash' });
+      const withoutKey = await seedUser();
+
+      const result = await service.listUsers({ page: 1, pageSize: 20 });
+
+      expect(
+        result.items.find((i) => i.id === withKey._id.toString()),
+      ).toMatchObject({ hasApiKey: true });
+      expect(
+        result.items.find((i) => i.id === withoutKey._id.toString()),
+      ).toMatchObject({ hasApiKey: false });
+    });
   });
 
   describe('getStats', () => {

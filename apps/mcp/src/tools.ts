@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { applicationStatusValues } from '@bewerber/shared';
+import { applicationStatusValues, relatedLinkSchema } from '@bewerber/shared';
 import { BewerbungsHubApiError, bewerbungsHubFetch } from './bewerbungshub-client';
 
 interface ToolTextResult {
@@ -146,8 +146,13 @@ export function registerTools(server: McpServer, authHeader: string | undefined)
         "Add a labeled link (e.g. a recruiter's profile, the company site, a Glassdoor page) to one of the caller's own job applications. Up to 5 links per application.",
       inputSchema: {
         id: z.string().min(1).describe('The application id'),
-        label: z.string().min(1).max(120).describe('Short label for the link'),
-        url: z.string().url().describe('The link URL'),
+        // Reuses relatedLinkSchema's own field validators (label/url) so
+        // this tool can never accept something the API would reject
+        // anyway — in particular, url is restricted to http(s) only,
+        // since it ends up in a clickable <a href> and an unrestricted
+        // scheme (e.g. 'javascript:...') would be a stored-XSS vector.
+        label: relatedLinkSchema.shape.label.describe('Short label for the link'),
+        url: relatedLinkSchema.shape.url.describe('The link URL (http/https only)'),
       },
     },
     makeAddRelatedLinkHandler(authHeader),

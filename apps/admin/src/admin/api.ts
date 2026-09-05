@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { AdminStats, AdminUsersListResponse, AdminUsersQuery } from '@bewerber/shared';
+import type {
+  AdminSettings,
+  AdminStats,
+  AdminUsersListResponse,
+  AdminUsersQuery,
+} from '@bewerber/shared';
 import { apiFetch } from '../lib/api-client';
 
 function toQueryString(query: object): string {
@@ -33,6 +38,46 @@ export function useDeleteAdminUser() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       void queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+    },
+  });
+}
+
+export function useApproveAdminUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<void>(`/admin/users/${id}/approve`, { method: 'POST' }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+    },
+  });
+}
+
+export function useSetAdminUserLocked() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, locked }: { id: string; locked: boolean }) =>
+      apiFetch<void>(`/admin/users/${id}/${locked ? 'lock' : 'unlock'}`, { method: 'POST' }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+    },
+  });
+}
+
+export function useAdminSettings() {
+  return useQuery({
+    queryKey: ['admin', 'settings'],
+    queryFn: () => apiFetch<AdminSettings>('/admin/settings'),
+  });
+}
+
+export function useUpdateAdminSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (settings: AdminSettings) =>
+      apiFetch<AdminSettings>('/admin/settings', { method: 'PUT', body: settings }),
+    onSuccess: (settings) => {
+      queryClient.setQueryData(['admin', 'settings'], settings);
     },
   });
 }

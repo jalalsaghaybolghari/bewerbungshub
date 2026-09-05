@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import type { UpdateUserSettingsInput } from '@bewerber/shared';
+import type { ApprovalStatus, UpdateUserSettingsInput } from '@bewerber/shared';
 import { User, UserDocument } from './schemas/user.schema';
 
 export interface GoogleDriveConnectionInput {
@@ -25,7 +25,12 @@ export class UsersService {
     return this.userModel.findById(id).exec();
   }
 
-  create(data: { email: string; passwordHash: string; displayName: string }) {
+  create(data: {
+    email: string;
+    passwordHash: string;
+    displayName: string;
+    approvalStatus?: ApprovalStatus;
+  }) {
     return this.userModel.create(data);
   }
 
@@ -181,5 +186,17 @@ export class UsersService {
   // other collection has already been cleaned up for this user.
   deleteById(userId: string) {
     return this.userModel.deleteOne({ _id: userId }).exec();
+  }
+
+  setApprovalStatus(userId: string, approvalStatus: ApprovalStatus) {
+    return this.userModel
+      .updateOne({ _id: userId }, { $set: { approvalStatus } })
+      .exec();
+  }
+
+  setLocked(userId: string, isLocked: boolean) {
+    return this.userModel
+      .updateOne({ _id: userId }, { $set: { isLocked } })
+      .exec();
   }
 }

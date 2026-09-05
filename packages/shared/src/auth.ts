@@ -7,6 +7,15 @@ export const registerSchema = z.object({
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
 
+// 'verification_sent' is today's behavior (auto-approve on); 'pending_approval'
+// means the account was created but no code was sent yet — an admin has to
+// approve it first (see AuthService.approveAndSendCode).
+export const registerResultSchema = z.object({
+  email: z.string().email(),
+  status: z.enum(['verification_sent', 'pending_approval']),
+});
+export type RegisterResult = z.infer<typeof registerResultSchema>;
+
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),

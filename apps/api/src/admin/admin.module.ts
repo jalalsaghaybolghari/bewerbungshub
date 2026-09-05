@@ -10,6 +10,7 @@ import { UsersModule } from '../users/users.module';
 import { CvsModule } from '../cvs/cvs.module';
 import { InterviewsModule } from '../interviews/interviews.module';
 import { FollowUpsModule } from '../follow-ups/follow-ups.module';
+import { SystemSettingsModule } from '../system-settings/system-settings.module';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { AdminGuard } from './guards/admin.guard';
@@ -29,6 +30,7 @@ import { AdminGuard } from './guards/admin.guard';
     CvsModule,
     InterviewsModule,
     FollowUpsModule,
+    SystemSettingsModule,
   ],
   controllers: [AdminController],
   providers: [AdminService, AdminGuard],

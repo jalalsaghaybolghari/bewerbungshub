@@ -10,6 +10,7 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { MailService } from '../mail/mail.service';
 import { UserDocument } from '../users/schemas/user.schema';
+import { SystemSettingsService } from '../system-settings/system-settings.service';
 
 function makeUser(overrides: Partial<UserDocument> = {}): UserDocument {
   return {
@@ -21,6 +22,8 @@ function makeUser(overrides: Partial<UserDocument> = {}): UserDocument {
     locale: 'en',
     emailVerified: false,
     emailVerificationAttempts: 0,
+    isLocked: false,
+    approvalStatus: 'approved',
     ...overrides,
   } as unknown as UserDocument;
 }
@@ -44,6 +47,8 @@ function makeUsersService() {
     setApiKeyHash: jest.fn<Promise<unknown>, [string, string]>(),
     clearApiKeyHash: jest.fn<Promise<unknown>, [string]>(),
     findByApiKeyHash: jest.fn<Promise<UserDocument | null>, [string]>(),
+    setApprovalStatus: jest.fn<Promise<unknown>, [string, string]>(),
+    setLocked: jest.fn<Promise<unknown>, [string, boolean]>(),
   };
 }
 
@@ -66,24 +71,36 @@ function makeConfigService() {
   return { get: jest.fn().mockReturnValue('config-value') };
 }
 
+function makeSystemSettingsService() {
+  return {
+    getAutoApprove: jest.fn<Promise<boolean>, []>().mockResolvedValue(true),
+    setAutoApprove: jest.fn<Promise<void>, [boolean]>(),
+  };
+}
+
 describe('AuthService', () => {
   let service: AuthService;
   let usersService: ReturnType<typeof makeUsersService>;
   let mailService: ReturnType<typeof makeMailService>;
+  let systemSettingsService: ReturnType<typeof makeSystemSettingsService>;
+  let jwtService: ReturnType<typeof makeJwtService>;
 
   beforeEach(() => {
     usersService = makeUsersService();
     mailService = makeMailService();
+    systemSettingsService = makeSystemSettingsService();
+    jwtService = makeJwtService();
     service = new AuthService(
       usersService as unknown as UsersService,
-      makeJwtService() as never,
+      jwtService as never,
       makeConfigService() as never,
       mailService as unknown as MailService,
+      systemSettingsService as unknown as SystemSettingsService,
     );
   });
 
   describe('register', () => {
-    it('creates the user, sends a code, and returns no tokens (happy path)', async () => {
+    it('creates the user, sends a code, and returns verification_sent when auto-approve is on (happy path)', async () => {
       usersService.findByEmail.mockResolvedValue(null);
       const created = makeUser();
       usersService.create.mockResolvedValue(created);
@@ -94,7 +111,13 @@ describe('AuthService', () => {
         displayName: 'Alice',
       });
 
-      expect(result).toEqual({ email: 'alice@example.com' });
+      expect(result).toEqual({
+        email: 'alice@example.com',
+        status: 'verification_sent',
+      });
+      expect(usersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ approvalStatus: 'approved' }),
+      );
       expect(usersService.setEmailVerificationCode).toHaveBeenCalledWith(
         'user-1',
         expect.any(String),
@@ -105,6 +128,29 @@ describe('AuthService', () => {
         expect.stringMatching(/^\d{6}$/),
       );
       expect(usersService.setRefreshTokenHash).not.toHaveBeenCalled();
+    });
+
+    it('creates a pending user and sends no code when auto-approve is off (edge case)', async () => {
+      systemSettingsService.getAutoApprove.mockResolvedValue(false);
+      usersService.findByEmail.mockResolvedValue(null);
+      usersService.create.mockResolvedValue(
+        makeUser({ approvalStatus: 'pending' }),
+      );
+
+      const result = await service.register({
+        email: 'alice@example.com',
+        password: 'a very strong password',
+        displayName: 'Alice',
+      });
+
+      expect(result).toEqual({
+        email: 'alice@example.com',
+        status: 'pending_approval',
+      });
+      expect(usersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ approvalStatus: 'pending' }),
+      );
+      expect(mailService.sendVerificationCode).not.toHaveBeenCalled();
     });
 
     it('rejects a duplicate email without sending a code (negative case)', async () => {
@@ -152,6 +198,56 @@ describe('AuthService', () => {
 
       expect(result.user.email).toBe('alice@example.com');
       expect(result.tokens.accessToken).toBe('signed-token');
+    });
+
+    it('rejects a locked account with the ACCOUNT_LOCKED shape, even with the correct password (negative case)', async () => {
+      const passwordHash = await argon2.hash('correct password');
+      usersService.findByEmail.mockResolvedValue(
+        makeUser({ passwordHash, emailVerified: true, isLocked: true }),
+      );
+
+      const error: ForbiddenException = await service
+        .login({ email: 'alice@example.com', password: 'correct password' })
+        .catch((err: ForbiddenException) => err);
+
+      expect(error).toBeInstanceOf(ForbiddenException);
+      expect(error.getResponse()).toMatchObject({ code: 'ACCOUNT_LOCKED' });
+    });
+
+    it('reports ACCOUNT_LOCKED (not EMAIL_NOT_VERIFIED) when a locked account is also unverified (edge case)', async () => {
+      const passwordHash = await argon2.hash('correct password');
+      usersService.findByEmail.mockResolvedValue(
+        makeUser({ passwordHash, emailVerified: false, isLocked: true }),
+      );
+
+      const error: ForbiddenException = await service
+        .login({ email: 'alice@example.com', password: 'correct password' })
+        .catch((err: ForbiddenException) => err);
+
+      expect(error.getResponse()).toMatchObject({ code: 'ACCOUNT_LOCKED' });
+    });
+  });
+
+  describe('refresh', () => {
+    it('rejects a locked user and clears their refresh hash (negative case)', async () => {
+      jwtService.verifyAsync.mockResolvedValue({ sub: 'user-1' });
+      usersService.findById.mockResolvedValue(
+        makeUser({ isLocked: true, refreshTokenHash: 'irrelevant' }),
+      );
+
+      await expect(service.refresh('some-refresh-token')).rejects.toThrow(
+        'Refresh token no longer valid',
+      );
+      expect(usersService.setRefreshTokenHash).toHaveBeenCalledWith(
+        'user-1',
+        undefined,
+      );
+    });
+
+    it('rejects when no refresh token is provided (negative case)', async () => {
+      await expect(service.refresh(undefined)).rejects.toThrow(
+        'Missing refresh token',
+      );
     });
   });
 
@@ -363,6 +459,56 @@ describe('AuthService', () => {
       const result = await service.validateApiKey('bwh_not-a-real-key');
 
       expect(result).toBeNull();
+    });
+
+    it("returns null for a locked user's key, even if otherwise valid (negative case)", async () => {
+      const { apiKey } = await service.generateApiKey('user-1');
+      const storedHash = usersService.setApiKeyHash.mock.calls[0][1];
+      usersService.findByApiKeyHash.mockResolvedValue(
+        makeUser({ apiKeyHash: storedHash, isLocked: true }),
+      );
+
+      const result = await service.validateApiKey(apiKey);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('approveAndSendCode', () => {
+    it('approves a pending user and sends their verification code (happy path)', async () => {
+      usersService.findById.mockResolvedValue(
+        makeUser({ approvalStatus: 'pending' }),
+      );
+
+      await service.approveAndSendCode('user-1');
+
+      expect(usersService.setApprovalStatus).toHaveBeenCalledWith(
+        'user-1',
+        'approved',
+      );
+      expect(mailService.sendVerificationCode).toHaveBeenCalledWith(
+        'alice@example.com',
+        expect.stringMatching(/^\d{6}$/),
+      );
+    });
+
+    it('rejects an already-approved user (negative case)', async () => {
+      usersService.findById.mockResolvedValue(
+        makeUser({ approvalStatus: 'approved' }),
+      );
+
+      await expect(service.approveAndSendCode('user-1')).rejects.toThrow(
+        ConflictException,
+      );
+      expect(mailService.sendVerificationCode).not.toHaveBeenCalled();
+    });
+
+    it('rejects an unknown user (negative case)', async () => {
+      usersService.findById.mockResolvedValue(null);
+
+      await expect(service.approveAndSendCode('user-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

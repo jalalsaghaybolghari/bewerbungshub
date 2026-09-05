@@ -93,4 +93,20 @@ describe('LoginPage', () => {
       }),
     );
   });
+
+  it('shows an inline error and does not navigate when the account is locked (edge case)', async () => {
+    loginMock.mockRejectedValueOnce(
+      new ApiError(403, 'This account has been locked. Contact support for help.', {
+        code: 'ACCOUNT_LOCKED',
+      }),
+    );
+    renderLoginPage();
+
+    await userEvent.type(screen.getByLabelText(/email/i), 'alice@example.com');
+    await userEvent.type(screen.getByLabelText(/password/i), 'a very strong password');
+    await userEvent.click(screen.getByRole('button', { name: /log in/i }));
+
+    expect(await screen.findByText(/locked/i)).toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
 });

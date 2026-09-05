@@ -17,11 +17,13 @@ import type {
   ConfirmEmailInput,
   LoginInput,
   RegisterInput,
+  RegisterResult,
   ResendCodeInput,
 } from '@bewerber/shared';
 import { UsersService } from '../users/users.service';
 import { UserDocument } from '../users/schemas/user.schema';
 import { MailService } from '../mail/mail.service';
+import { SystemSettingsService } from '../system-settings/system-settings.service';
 
 // How long a code is valid for once sent, and the minimum gap enforced
 // between resends of the same account's code.
@@ -56,27 +58,38 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
     private readonly mailService: MailService,
+    private readonly systemSettingsService: SystemSettingsService,
   ) {}
 
   // No tokens issued here — an unverified account gets no session at all
   // until confirmEmail succeeds (see the module-level comment in the
   // plan / README for why: this avoids needing an emailVerified gate on
   // every protected route, since there's simply nothing to gate).
-  async register(input: RegisterInput): Promise<{ email: string }> {
+  //
+  // When the global auto-approve setting is off, the account is created
+  // exactly the same way but no code is sent yet — it sits as 'pending'
+  // until an admin calls approveAndSendCode, at which point this is
+  // identical to the auto-approve path just delayed.
+  async register(input: RegisterInput): Promise<RegisterResult> {
     const existing = await this.usersService.findByEmail(input.email);
     if (existing) {
       throw new ConflictException('An account with this email already exists');
     }
 
+    const autoApprove = await this.systemSettingsService.getAutoApprove();
     const passwordHash = await argon2.hash(input.password);
     const user = await this.usersService.create({
       email: input.email,
       passwordHash,
       displayName: input.displayName,
+      approvalStatus: autoApprove ? 'approved' : 'pending',
     });
 
+    if (!autoApprove) {
+      return { email: user.email, status: 'pending_approval' };
+    }
     await this.sendVerificationCode(user);
-    return { email: user.email };
+    return { email: user.email, status: 'verification_sent' };
   }
 
   async login(
@@ -85,6 +98,14 @@ export class AuthService {
     const user = await this.usersService.findByEmail(input.email);
     if (!user || !(await argon2.verify(user.passwordHash, input.password))) {
       throw new UnauthorizedException('Invalid email or password');
+    }
+    // Checked before emailVerified — an admin locking an account should
+    // surface distinctly regardless of that account's verification state.
+    if (user.isLocked) {
+      throw new ForbiddenException({
+        message: 'This account has been locked. Contact support for help.',
+        code: 'ACCOUNT_LOCKED',
+      });
     }
     // A correct password alone must not grant access — otherwise
     // confirmEmail could just be skipped entirely.
@@ -185,6 +206,14 @@ export class AuthService {
     }
 
     const user = await this.usersService.findById(payload.sub);
+    // Same message/status as the generic stale-token case below — this is
+    // a silent endpoint apiFetch's 401-retry logic calls, not a form the
+    // user sees an error on, so there's no UX reason to distinguish
+    // "locked" from "stale" here (contrast with login(), which does).
+    if (user?.isLocked) {
+      await this.usersService.setRefreshTokenHash(user.id, undefined);
+      throw new UnauthorizedException('Refresh token no longer valid');
+    }
     if (
       !user?.refreshTokenHash ||
       !(await argon2.verify(user.refreshTokenHash, refreshToken))
@@ -239,8 +268,22 @@ export class AuthService {
     const user = await this.usersService.findByApiKeyHash(
       this.hashApiKey(rawKey),
     );
-    if (!user) return null;
+    if (!user || user.isLocked) return null;
     return { userId: user._id.toString(), email: user.email };
+  }
+
+  // Called only by AdminService when an admin approves a pending
+  // registration — moves the account out of 'pending' and sends the same
+  // verification code register() would have sent immediately if
+  // auto-approve had been on.
+  async approveAndSendCode(userId: string): Promise<void> {
+    const user = await this.usersService.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+    if (user.approvalStatus === 'approved') {
+      throw new ConflictException('User is already approved');
+    }
+    await this.usersService.setApprovalStatus(userId, 'approved');
+    await this.sendVerificationCode(user);
   }
 
   private hashApiKey(rawKey: string): string {

@@ -19,6 +19,7 @@
     "haveAccount": "Bereits ein Konto?",
     "loginError": "E-Mail oder Passwort ist falsch.",
     "registerError": "Konto konnte nicht erstellt werden.",
+    "accountLocked": "Dieses Konto wurde gesperrt. Bitte kontaktiere den Support.",
     "verifyEmail": {
       "title": "E-Mail bestätigen",
       "checkInbox": "Wir haben einen 6-stelligen Code an deine E-Mail-Adresse gesendet — gib ihn unten ein, um dein Konto zu aktivieren.",
@@ -28,6 +29,11 @@
       "resendCooldown": "Erneut senden in {{seconds}}s",
       "resent": "Ein neuer Code wurde gesendet.",
       "error": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+    },
+    "registrationPending": {
+      "title": "Fast geschafft",
+      "bodyWithEmail": "Danke für deine Anmeldung, {{email}}. Ein Admin muss dein Konto erst freigeben, bevor du dich anmelden kannst — sobald das passiert, erhältst du einen Bestätigungscode per E-Mail.",
+      "body": "Danke für deine Anmeldung. Ein Admin muss dein Konto erst freigeben, bevor du dich anmelden kannst — sobald das passiert, erhältst du einen Bestätigungscode per E-Mail."
     }
   },
   "applications": {

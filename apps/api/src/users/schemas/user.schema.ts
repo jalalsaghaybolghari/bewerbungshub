@@ -75,7 +75,32 @@ export class User {
   // Powers the resend cooldown — see AuthService.resendCode.
   @Prop()
   emailVerificationLastSentAt?: Date;
+
+  // SHA-256 hex digest of the raw key, not argon2 — a high-entropy random
+  // key doesn't need slow password-style hashing, and a plain fast hash
+  // is what makes "which user does this key belong to" a single indexed
+  // lookup (findByApiKeyHash) instead of iterating every user's hash to
+  // argon2.verify against each one. One active key per user; generating a
+  // new one silently replaces the old (see AuthService.generateApiKey).
+  @Prop()
+  apiKeyHash?: string;
+
+  @Prop()
+  apiKeyCreatedAt?: Date;
 }
 
 export type UserDocument = HydratedDocument<User>;
 export const UserSchema = SchemaFactory.createForClass(User);
+
+// Sparse-equivalent via partialFilterExpression rather than `sparse: true`
+// — see the identical reasoning on Application's applyLinkDedupeKey index
+// (apps/api/src/applications/schemas/application.schema.ts): a `sparse`
+// index on its own only skips a document if *every* indexed field is
+// missing, and here there's just the one field, so sparse would actually
+// have worked — but $exists keeps both index definitions in this codebase
+// consistent, and guards against ever adding a second field to this index
+// later without re-deriving the gotcha from scratch.
+UserSchema.index(
+  { apiKeyHash: 1 },
+  { unique: true, partialFilterExpression: { apiKeyHash: { $exists: true } } },
+);

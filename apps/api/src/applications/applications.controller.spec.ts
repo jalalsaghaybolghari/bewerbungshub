@@ -1,6 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { ApplicationsController } from './applications.controller';
 import { ApplicationsService } from './applications.service';
+import { AuthService } from '../auth/auth.service';
 import type { RequestUser } from '../auth/decorators/current-user.decorator';
 
 describe('ApplicationsController', () => {
@@ -16,7 +19,12 @@ describe('ApplicationsController', () => {
     jest.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ApplicationsController],
-      providers: [{ provide: ApplicationsService, useValue: service }],
+      providers: [
+        { provide: ApplicationsService, useValue: service },
+        { provide: JwtService, useValue: { verifyAsync: jest.fn() } },
+        { provide: ConfigService, useValue: { get: jest.fn() } },
+        { provide: AuthService, useValue: { validateApiKey: jest.fn() } },
+      ],
     }).compile();
 
     controller = module.get<ApplicationsController>(ApplicationsController);

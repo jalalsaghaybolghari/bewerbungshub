@@ -148,4 +148,32 @@ export class UsersService {
       )
       .exec();
   }
+
+  // Generating a new key silently replaces any existing one — there's
+  // only ever one active key per user, matching the plain "personal
+  // access token" UX (regenerate invalidates the old one automatically).
+  setApiKeyHash(userId: string, apiKeyHash: string) {
+    return this.userModel
+      .updateOne(
+        { _id: userId },
+        { $set: { apiKeyHash, apiKeyCreatedAt: new Date() } },
+      )
+      .exec();
+  }
+
+  clearApiKeyHash(userId: string) {
+    return this.userModel
+      .updateOne(
+        { _id: userId },
+        { $unset: { apiKeyHash: '', apiKeyCreatedAt: '' } },
+      )
+      .exec();
+  }
+
+  // The hash (not the raw key) is looked up directly — see the comment on
+  // User.apiKeyHash for why a fast deterministic hash makes this a single
+  // indexed query instead of an argon2.verify loop over every user.
+  findByApiKeyHash(apiKeyHash: string) {
+    return this.userModel.findOne({ apiKeyHash }).exec();
+  }
 }

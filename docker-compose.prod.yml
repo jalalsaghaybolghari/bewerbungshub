@@ -28,6 +28,21 @@ services:
       - '127.0.0.1:8080:80'
     depends_on:
       - api
+      - mcp
+
+  # MCP (Model Context Protocol) server — lets Claude.ai's custom connector
+  # feature call the api on a user's behalf via their personal API key
+  # (see AuthService.generateApiKey). Reached only through web's nginx
+  # proxy at /mcp, never bound to the host directly.
+  mcp:
+    build:
+      context: .
+      dockerfile: apps/mcp/Dockerfile
+    restart: unless-stopped
+    environment:
+      BEWERBUNGSHUB_API_BASE: http://api:3000/api/v1
+    depends_on:
+      - api
 
 volumes:
   api_uploads:

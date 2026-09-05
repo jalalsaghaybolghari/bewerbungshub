@@ -1,0 +1,27 @@
+{
+  "name": "mcp",
+  "version": "0.0.1",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "lint": "oxlint",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bewerber/shared": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "express": "^5.1.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^24.0.0",
+    "oxlint": "^1.75.0",
+    "tsx": "^4.19.2",
+    "typescript": "~6.0.2",
+    "vitest": "^4.1.11"
+  }
+}

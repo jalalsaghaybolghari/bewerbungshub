@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { createApplicationSchema, updateApplicationSchema } from './applications';
+import {
+  applicationQuerySchema,
+  createApplicationSchema,
+  duplicateGroupsQuerySchema,
+  updateApplicationSchema,
+} from './applications';
 
 function baseInput(overrides: Partial<Record<string, unknown>> = {}) {
   return {
@@ -98,5 +103,55 @@ describe('updateApplicationSchema — applyLink validation', () => {
       applyLink: 'not-an-email',
     });
     expect(result.success).toBe(false);
+  });
+});
+
+// Regression coverage for a real bug: z.coerce.boolean() reads a query
+// param's literal string value through Boolean(...), and Boolean("false")
+// is true (any non-empty string is truthy in JS) — so an explicit
+// ?flag=false silently coerced back to true, meaning "uncheck this
+// checkbox" had no effect at all. Every boolean query param must go
+// through queryStringBoolean instead; these tests pin the exact string
+// values a real request sends (URLSearchParams always sends 'true'/
+// 'false', never a real boolean).
+describe('applicationQuerySchema — favorite (query-string boolean)', () => {
+  it('parses the literal string "true" as true (happy path)', () => {
+    const result = applicationQuerySchema.safeParse({ favorite: 'true' });
+    expect(result.success && result.data.favorite).toBe(true);
+  });
+
+  it('parses the literal string "false" as false, not true (negative case — the actual bug)', () => {
+    const result = applicationQuerySchema.safeParse({ favorite: 'false' });
+    expect(result.success && result.data.favorite).toBe(false);
+  });
+
+  it('leaves favorite undefined when omitted (edge case)', () => {
+    const result = applicationQuerySchema.safeParse({});
+    expect(result.success && result.data.favorite).toBeUndefined();
+  });
+});
+
+describe('duplicateGroupsQuerySchema (query-string boolean)', () => {
+  it('parses the literal string "false" as false for each dimension, not true (negative case — the actual bug)', () => {
+    const result = duplicateGroupsQuerySchema.safeParse({
+      title: 'true',
+      company: 'true',
+      location: 'false',
+    });
+    expect(result.success).toBe(true);
+    expect(result.success && result.data).toEqual({
+      title: true,
+      company: true,
+      location: false,
+    });
+  });
+
+  it('defaults every dimension to true when omitted, matching the original fixed behavior (happy path)', () => {
+    const result = duplicateGroupsQuerySchema.safeParse({});
+    expect(result.success && result.data).toEqual({
+      title: true,
+      company: true,
+      location: true,
+    });
   });
 });

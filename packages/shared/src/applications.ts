@@ -1,5 +1,18 @@
 import { z } from 'zod';
 
+// z.coerce.boolean() is the wrong tool for a query-string boolean:
+// Boolean("false") is true (any non-empty string is truthy in JS), so an
+// explicit ?flag=false would silently coerce back to true. This reads the
+// literal 'true'/'false' strings a query param actually arrives as
+// (exactly what URLSearchParams.set(key, String(booleanValue)) produces
+// on the client), leaving anything else untouched for the wrapped schema
+// to validate normally.
+export function queryStringBoolean(val: unknown): unknown {
+  if (val === 'true') return true;
+  if (val === 'false') return false;
+  return val;
+}
+
 export const applicationStatusValues = [
   'draft',
   'applied',
@@ -136,7 +149,7 @@ export const applicationQuerySchema = z.object({
   // Only ever narrows to favorites when explicitly true — omitted (or
   // false) shows everything, matching how `status`/`applyType` already
   // behave as opt-in filters rather than a three-state toggle.
-  favorite: z.coerce.boolean().optional(),
+  favorite: z.preprocess(queryStringBoolean, z.boolean().optional()),
   page: z.coerce.number().int().min(1).optional().default(1),
   // 500 (not 100) so the Kanban board's "fetch everything, group client-side
   // by status" query (apps/web/src/applications/KanbanBoard.tsx) fits under
@@ -174,8 +187,8 @@ export type ApplicationQuery = z.infer<typeof applicationQuerySchema>;
 // similar" review list — see isLikelyDuplicate in similarity.ts. All
 // default to true (the original, only) behavior when none are passed.
 export const duplicateGroupsQuerySchema = z.object({
-  title: z.coerce.boolean().optional().default(true),
-  company: z.coerce.boolean().optional().default(true),
-  location: z.coerce.boolean().optional().default(true),
+  title: z.preprocess(queryStringBoolean, z.boolean().optional().default(true)),
+  company: z.preprocess(queryStringBoolean, z.boolean().optional().default(true)),
+  location: z.preprocess(queryStringBoolean, z.boolean().optional().default(true)),
 });
 export type DuplicateGroupsQuery = z.infer<typeof duplicateGroupsQuerySchema>;

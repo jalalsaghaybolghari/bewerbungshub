@@ -18,6 +18,7 @@ export const authUserSchema = z.object({
   email: z.string().email(),
   displayName: z.string(),
   locale: z.enum(['de', 'en']),
+  isAdmin: z.boolean(),
 });
 export type AuthUser = z.infer<typeof authUserSchema>;
 

@@ -20,6 +20,7 @@ export const adminUserSummarySchema = z.object({
   isAdmin: z.boolean(),
   isLocked: z.boolean(),
   approvalStatus: approvalStatusSchema,
+  hasApiKey: z.boolean(),
   createdAt: z.coerce.date(),
   applicationCount: z.number().int(),
   cvCount: z.number().int(),

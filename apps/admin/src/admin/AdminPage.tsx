@@ -2,7 +2,15 @@ import { useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { Card } from '../components/ui';
 import { TrashIcon } from '../components/icons';
-import { useAdminStats, useAdminUsers, useDeleteAdminUser } from './api';
+import {
+  useAdminSettings,
+  useAdminStats,
+  useAdminUsers,
+  useApproveAdminUser,
+  useDeleteAdminUser,
+  useSetAdminUserLocked,
+  useUpdateAdminSettings,
+} from './api';
 
 const PAGE_SIZE = 20;
 
@@ -20,7 +28,11 @@ export function AdminPage() {
   const [page, setPage] = useState(1);
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: users, isLoading: usersLoading } = useAdminUsers({ page, pageSize: PAGE_SIZE });
+  const { data: settings } = useAdminSettings();
   const deleteMutation = useDeleteAdminUser();
+  const approveMutation = useApproveAdminUser();
+  const lockMutation = useSetAdminUserLocked();
+  const updateSettingsMutation = useUpdateAdminSettings();
 
   function handleDelete(id: string, email: string) {
     if (
@@ -49,6 +61,26 @@ export function AdminPage() {
         </div>
       ) : null}
 
+      {settings && (
+        <Card className="mb-6">
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              checked={settings.autoApproveRegistrations}
+              disabled={updateSettingsMutation.isPending}
+              onChange={(e) =>
+                updateSettingsMutation.mutate({ autoApproveRegistrations: e.target.checked })
+              }
+            />
+            Auto-approve new registrations
+          </label>
+          <p className="mt-1 text-xs text-slate">
+            When off, new sign-ups sit pending until approved below — no verification code is
+            sent until then.
+          </p>
+        </Card>
+      )}
+
       <Card className="p-0">
         <h2 className="border-b border-slate/15 p-4 font-semibold text-ink">Users</h2>
 
@@ -65,6 +97,8 @@ export function AdminPage() {
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Verified</th>
                   <th className="px-4 py-3">Admin</th>
+                  <th className="px-4 py-3">Approval</th>
+                  <th className="px-4 py-3">Locked</th>
                   <th className="px-4 py-3">Applications</th>
                   <th className="px-4 py-3">CVs</th>
                   <th className="px-4 py-3">Created</th>
@@ -78,6 +112,37 @@ export function AdminPage() {
                     <td className="px-4 py-3 text-slate">{u.displayName}</td>
                     <td className="px-4 py-3">{u.emailVerified ? '✓' : '—'}</td>
                     <td className="px-4 py-3">{u.isAdmin ? '✓' : '—'}</td>
+                    <td className="px-4 py-3">
+                      {u.approvalStatus === 'pending' ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate">Pending</span>
+                          <button
+                            type="button"
+                            onClick={() => approveMutation.mutate(u.id)}
+                            disabled={approveMutation.isPending}
+                            className="rounded-lg border border-slate/30 px-2 py-1 text-xs font-semibold text-ink hover:bg-slate/5 disabled:opacity-50"
+                          >
+                            Approve
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-slate">Approved</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {u.id !== user?.id && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            lockMutation.mutate({ id: u.id, locked: !u.isLocked })
+                          }
+                          disabled={lockMutation.isPending}
+                          className="rounded-lg border border-slate/30 px-2 py-1 text-xs font-semibold text-ink hover:bg-slate/5 disabled:opacity-50"
+                        >
+                          {u.isLocked ? 'Unlock' : 'Lock'}
+                        </button>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-slate">{u.applicationCount}</td>
                     <td className="px-4 py-3 text-slate">{u.cvCount}</td>
                     <td className="px-4 py-3 text-slate">

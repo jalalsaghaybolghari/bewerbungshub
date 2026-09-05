@@ -96,6 +96,18 @@ describe('ApplicationsListPage', () => {
     expect(link).toHaveAttribute('target', '_blank');
   });
 
+  it('does not render the apply link icon when the stored URL has an unsafe scheme (negative case — stored XSS guard)', () => {
+    listData = {
+      items: [makeApplication({ applyLink: 'javascript:alert(1)' })],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+    };
+    renderPage();
+
+    expect(screen.queryByRole('link', { name: /apply link/i })).not.toBeInTheDocument();
+  });
+
   it('shows a dash in the Sent column for a draft application, not a fabricated date (edge case)', () => {
     listData = {
       items: [makeApplication({ status: 'draft', sentAt: undefined })],

@@ -4,6 +4,7 @@ import { Modal } from '../components/Modal';
 import { ExternalLinkIcon, DocumentIcon } from '../components/icons';
 import { CopyableUrlField } from '../components/CopyableUrlField';
 import { RichTextContent } from '../components/RichTextContent';
+import { isSafeHref } from '../lib/safe-url';
 import { openCvFile, useCvs } from '../cvs/api';
 import { StatusBadge } from './StatusBadge';
 import type { Application } from './types';
@@ -57,15 +58,19 @@ export function ApplicationQuickViewModal({
           </span>
         </div>
 
-        <a
-          href={application.applyLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
-        >
-          <ExternalLinkIcon className="size-4" />
-          {t('applications.quickView.applyLink')}
-        </a>
+        {isSafeHref(application.applyLink) ? (
+          <a
+            href={application.applyLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
+          >
+            <ExternalLinkIcon className="size-4" />
+            {t('applications.quickView.applyLink')}
+          </a>
+        ) : (
+          <p className="text-sm text-danger">{t('applications.quickView.unsafeLink')}</p>
+        )}
 
         <div className="grid grid-cols-3 gap-4 rounded-lg bg-slate/5 p-3">
           <DateField label={t('applications.columns.posted')} value={application.postedAt} />
@@ -81,15 +86,21 @@ export function ApplicationQuickViewModal({
             <ul className="space-y-1">
               {application.relatedLinks.map((link, index) => (
                 <li key={index}>
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
-                  >
-                    <ExternalLinkIcon className="size-4" />
-                    {link.label}
-                  </a>
+                  {isSafeHref(link.url) ? (
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
+                    >
+                      <ExternalLinkIcon className="size-4" />
+                      {link.label}
+                    </a>
+                  ) : (
+                    <span className="text-sm text-danger">
+                      {link.label} ({t('applications.quickView.unsafeLink')})
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

@@ -94,6 +94,7 @@
       "cvOpenError": "Lebenslauf konnte nicht geöffnet werden.",
       "tags": "Tags",
       "relatedLinks": "Weiterführende Links",
+      "unsafeLink": "Link blockiert (unsichere URL)",
       "notes": "Notizen"
     },
     "view": {

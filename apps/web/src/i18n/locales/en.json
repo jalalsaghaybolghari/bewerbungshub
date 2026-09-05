@@ -94,6 +94,7 @@
       "cvOpenError": "Couldn't open the CV file.",
       "tags": "Tags",
       "relatedLinks": "Related links",
+      "unsafeLink": "Link blocked (unsafe URL)",
       "notes": "Notes"
     },
     "view": {

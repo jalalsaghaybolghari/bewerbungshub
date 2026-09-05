@@ -40,4 +40,12 @@ describe('CopyableUrlField', () => {
     // Stays on the un-copied label — no crash, no false "Copied!" state.
     expect(screen.getByRole('button', { name: /^copy$/i })).toBeInTheDocument();
   });
+
+  it('does not render a clickable link for a javascript: URL (negative case — stored XSS guard)', () => {
+    render(<CopyableUrlField label="Original posting" value="javascript:alert(1)" />);
+
+    expect(screen.queryByRole('link', { name: 'Original posting' })).not.toBeInTheDocument();
+    // Still visible/copiable as plain text — just not a clickable navigation.
+    expect(screen.getByDisplayValue('javascript:alert(1)')).toBeInTheDocument();
+  });
 });

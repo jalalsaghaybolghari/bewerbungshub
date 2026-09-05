@@ -128,6 +128,31 @@ describe('ApplicationQuickViewModal', () => {
     expect(screen.queryByText(/related links/i)).not.toBeInTheDocument();
   });
 
+  it('does not render a related link with a javascript: URL as clickable (negative case — stored XSS guard)', () => {
+    render(
+      <ApplicationQuickViewModal
+        application={makeApplication({
+          relatedLinks: [{ label: 'Looks safe', url: 'javascript:alert(document.cookie)' }],
+        })}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('link', { name: /looks safe/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/looks safe/i)).toBeInTheDocument();
+  });
+
+  it('does not render the apply link as clickable when it has an unsafe scheme (negative case — stored XSS guard)', () => {
+    render(
+      <ApplicationQuickViewModal
+        application={makeApplication({ applyLink: 'javascript:alert(1)' })}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('link', { name: /apply link/i })).not.toBeInTheDocument();
+  });
+
   it('shows related links before the CV section when both are present (happy path)', () => {
     render(
       <ApplicationQuickViewModal

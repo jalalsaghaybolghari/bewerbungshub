@@ -17,6 +17,7 @@ import { KanbanBoard } from './KanbanBoard';
 import { ApplicationQuickViewModal } from './ApplicationQuickViewModal';
 import { DuplicatesReviewModal } from './DuplicatesReviewModal';
 import type { Application } from './types';
+import { isSafeHref } from '../lib/safe-url';
 
 const PAGE_SIZE = 20;
 
@@ -318,15 +319,17 @@ function ApplicationRow({
           >
             <EyeIcon className="size-4" />
           </button>
-          <a
-            href={app.applyLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={t('applications.columns.applyLink')}
-            className="hover:text-accent"
-          >
-            <ExternalLinkIcon className="size-4" />
-          </a>
+          {isSafeHref(app.applyLink) && (
+            <a
+              href={app.applyLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={t('applications.columns.applyLink')}
+              className="hover:text-accent"
+            >
+              <ExternalLinkIcon className="size-4" />
+            </a>
+          )}
           <button
             type="button"
             onClick={onDelete}

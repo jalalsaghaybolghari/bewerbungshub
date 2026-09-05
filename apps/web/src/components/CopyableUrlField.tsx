@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Label } from './ui';
 import { CheckIcon, CopyIcon, ExternalLinkIcon } from './icons';
+import { isSafeHref } from '../lib/safe-url';
 
 // A URL the user should be able to copy or open, but never edit — e.g.
 // the extension-captured source URL, which must stay exactly what was
@@ -42,15 +43,17 @@ export function CopyableUrlField({ label, value }: { label: string; value: strin
         >
           {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
         </button>
-        <a
-          href={value}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={label}
-          className="shrink-0 text-slate hover:text-accent"
-        >
-          <ExternalLinkIcon className="size-4" />
-        </a>
+        {isSafeHref(value) && (
+          <a
+            href={value}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={label}
+            className="shrink-0 text-slate hover:text-accent"
+          >
+            <ExternalLinkIcon className="size-4" />
+          </a>
+        )}
       </div>
     </div>
   );

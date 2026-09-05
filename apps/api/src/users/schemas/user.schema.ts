@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import { approvalStatusValues } from '@bewerber/shared';
 
 @Schema({ _id: false })
 class UserSettings {
@@ -92,6 +93,20 @@ export class User {
   // See AdminGuard for how it gates /admin/* routes.
   @Prop({ default: false })
   isAdmin: boolean;
+
+  // No self-service unlock — see AuthService.login/refresh/validateApiKey
+  // for the three places a locked account is rejected, and
+  // AdminService.setUserLocked for the only way to flip this.
+  @Prop({ default: false })
+  isLocked: boolean;
+
+  // 'approved' is the default so every user created before this field
+  // existed reads as approved on the next fetch (Mongoose applies schema
+  // defaults to documents missing the field, same zero-migration pattern
+  // as isAdmin above). Only ever created as 'pending' by AuthService.register
+  // when the global auto-approve setting is off — see SystemSettingsService.
+  @Prop({ type: String, enum: approvalStatusValues, default: 'approved' })
+  approvalStatus: (typeof approvalStatusValues)[number];
 }
 
 export type UserDocument = HydratedDocument<User>;

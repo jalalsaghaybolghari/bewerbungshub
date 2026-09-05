@@ -6,6 +6,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import type {
+  AdminSettings,
   AdminStats,
   AdminUsersListResponse,
   AdminUsersQuery,
@@ -21,6 +22,8 @@ import { UsersService } from '../users/users.service';
 import { CvsService } from '../cvs/cvs.service';
 import { InterviewsService } from '../interviews/interviews.service';
 import { FollowUpsService } from '../follow-ups/follow-ups.service';
+import { AuthService } from '../auth/auth.service';
+import { SystemSettingsService } from '../system-settings/system-settings.service';
 
 @Injectable()
 export class AdminService {
@@ -34,18 +37,23 @@ export class AdminService {
     private readonly cvsService: CvsService,
     private readonly interviewsService: InterviewsService,
     private readonly followUpsService: FollowUpsService,
+    private readonly authService: AuthService,
+    private readonly systemSettingsService: SystemSettingsService,
   ) {}
 
   async listUsers(query: AdminUsersQuery): Promise<AdminUsersListResponse> {
     const skip = (query.page - 1) * query.pageSize;
+    const filter = query.approvalStatus
+      ? { approvalStatus: query.approvalStatus }
+      : {};
     const [users, total] = await Promise.all([
       this.userModel
-        .find()
+        .find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(query.pageSize)
         .exec(),
-      this.userModel.countDocuments().exec(),
+      this.userModel.countDocuments(filter).exec(),
     ]);
 
     const items = await Promise.all(
@@ -61,6 +69,8 @@ export class AdminService {
           locale: user.locale,
           emailVerified: user.emailVerified,
           isAdmin: user.isAdmin,
+          isLocked: user.isLocked,
+          approvalStatus: user.approvalStatus,
           createdAt: user.get('createdAt') as Date,
           applicationCount,
           cvCount,
@@ -133,5 +143,48 @@ export class AdminService {
     // mid-cascade failure leaves the user still visible (and retryable)
     // in the admin list rather than orphaned data with no owner.
     await this.usersService.deleteById(targetUserId);
+  }
+
+  // Delegates to AuthService.approveAndSendCode rather than reaching into
+  // UsersService/MailService directly, so there's exactly one place that
+  // knows how to move a pending account to approved and send its code.
+  approveUser(targetUserId: string): Promise<void> {
+    return this.authService.approveAndSendCode(targetUserId);
+  }
+
+  async setUserLocked(
+    requestingUserId: string,
+    targetUserId: string,
+    locked: boolean,
+  ): Promise<void> {
+    if (requestingUserId === targetUserId) {
+      throw new ForbiddenException(
+        'Cannot lock or unlock your own account from the admin panel',
+      );
+    }
+
+    const target = await this.userModel.findById(targetUserId).exec();
+    if (!target) throw new NotFoundException('User not found');
+
+    await this.usersService.setLocked(targetUserId, locked);
+    // Kills any active session immediately on lock, rather than waiting
+    // for its own natural rotation — no equivalent teardown needed on
+    // unlock, since there's nothing to revoke.
+    if (locked) {
+      await this.usersService.setRefreshTokenHash(targetUserId, undefined);
+    }
+  }
+
+  async getSettings(): Promise<AdminSettings> {
+    const autoApproveRegistrations =
+      await this.systemSettingsService.getAutoApprove();
+    return { autoApproveRegistrations };
+  }
+
+  async updateSettings(settings: AdminSettings): Promise<AdminSettings> {
+    await this.systemSettingsService.setAutoApprove(
+      settings.autoApproveRegistrations,
+    );
+    return settings;
   }
 }

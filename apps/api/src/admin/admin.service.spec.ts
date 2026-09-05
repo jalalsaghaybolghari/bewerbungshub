@@ -33,6 +33,15 @@ import {
 import { FollowUpsService } from '../follow-ups/follow-ups.service';
 import { StorageService } from '../storage/storage.service';
 import { GoogleDriveService } from '../google-drive/google-drive.service';
+import { AuthService } from '../auth/auth.service';
+import { MailService } from '../mail/mail.service';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import {
+  SystemSettings,
+  SystemSettingsSchema,
+} from '../system-settings/schemas/system-settings.schema';
+import { SystemSettingsService } from '../system-settings/system-settings.service';
 
 jest.setTimeout(60000);
 
@@ -59,6 +68,15 @@ function makeGoogleDriveMock() {
   };
 }
 
+// The actual external boundary (outgoing email) — same convention as
+// Storage/GoogleDrive above. AuthService itself runs for real so
+// approveUser's delegation to it is exercised end-to-end.
+function makeMailMock() {
+  return {
+    sendVerificationCode: jest.fn<Promise<void>, [string, string]>(),
+  };
+}
+
 describe('AdminService', () => {
   let mongod: MongoMemoryServer;
   let module: TestingModule;
@@ -71,11 +89,13 @@ describe('AdminService', () => {
   let followUpModel: Model<FollowUpDocument>;
   let storage: ReturnType<typeof makeStorageMock>;
   let googleDrive: ReturnType<typeof makeGoogleDriveMock>;
+  let mail: ReturnType<typeof makeMailMock>;
 
   beforeAll(async () => {
     mongod = await MongoMemoryServer.create();
     storage = makeStorageMock();
     googleDrive = makeGoogleDriveMock();
+    mail = makeMailMock();
 
     module = await Test.createTestingModule({
       imports: [
@@ -87,6 +107,7 @@ describe('AdminService', () => {
           { name: Cv.name, schema: CvSchema },
           { name: Interview.name, schema: InterviewSchema },
           { name: FollowUp.name, schema: FollowUpSchema },
+          { name: SystemSettings.name, schema: SystemSettingsSchema },
         ]),
       ],
       providers: [
@@ -96,8 +117,13 @@ describe('AdminService', () => {
         ApplicationsService,
         InterviewsService,
         FollowUpsService,
+        AuthService,
+        SystemSettingsService,
         { provide: StorageService, useValue: storage },
         { provide: GoogleDriveService, useValue: googleDrive },
+        { provide: MailService, useValue: mail },
+        { provide: JwtService, useValue: { signAsync: jest.fn() } },
+        { provide: ConfigService, useValue: { get: jest.fn() } },
       ],
     }).compile();
 
@@ -123,6 +149,9 @@ describe('AdminService', () => {
       eventModel.deleteMany({}),
       interviewModel.deleteMany({}),
       followUpModel.deleteMany({}),
+      module
+        .get<Model<unknown>>(getModelToken(SystemSettings.name))
+        .deleteMany({}),
     ]);
     jest.clearAllMocks();
   });
@@ -357,6 +386,97 @@ describe('AdminService', () => {
       await expect(
         service.deleteUser('some-admin-id', bogusId),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('approveUser', () => {
+    it('approves a pending user and sends their verification code (happy path)', async () => {
+      const target = await seedUser({ approvalStatus: 'pending' });
+
+      await service.approveUser(target._id.toString());
+
+      const updated = await userModel.findById(target._id).exec();
+      expect(updated?.approvalStatus).toBe('approved');
+      expect(mail.sendVerificationCode).toHaveBeenCalledWith(
+        target.email,
+        expect.stringMatching(/^\d{6}$/),
+      );
+    });
+
+    it('rejects an already-approved user (negative case)', async () => {
+      const target = await seedUser({ approvalStatus: 'approved' });
+
+      await expect(
+        service.approveUser(target._id.toString()),
+      ).rejects.toThrow();
+      expect(mail.sendVerificationCode).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('setUserLocked', () => {
+    it('locks a user and clears their refresh token hash (happy path)', async () => {
+      const target = await seedUser({ refreshTokenHash: 'irrelevant' });
+      const admin = await seedUser({ isAdmin: true });
+
+      await service.setUserLocked(
+        admin._id.toString(),
+        target._id.toString(),
+        true,
+      );
+
+      const updated = await userModel.findById(target._id).exec();
+      expect(updated?.isLocked).toBe(true);
+      expect(updated?.refreshTokenHash).toBeUndefined();
+    });
+
+    it('unlocks a user without touching their refresh token (happy path)', async () => {
+      const target = await seedUser({
+        isLocked: true,
+        refreshTokenHash: 'irrelevant',
+      });
+      const admin = await seedUser({ isAdmin: true });
+
+      await service.setUserLocked(
+        admin._id.toString(),
+        target._id.toString(),
+        false,
+      );
+
+      const updated = await userModel.findById(target._id).exec();
+      expect(updated?.isLocked).toBe(false);
+      expect(updated?.refreshTokenHash).toBe('irrelevant');
+    });
+
+    it('throws ForbiddenException instead of locking when the admin targets their own account (negative case)', async () => {
+      const admin = await seedUser({ isAdmin: true });
+
+      await expect(
+        service.setUserLocked(admin._id.toString(), admin._id.toString(), true),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('throws NotFoundException for a nonexistent target user (negative case)', async () => {
+      const bogusId = new Types.ObjectId().toString();
+
+      await expect(
+        service.setUserLocked('some-admin-id', bogusId, true),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('settings', () => {
+    it('defaults to auto-approve enabled and round-trips an update (happy path)', async () => {
+      const initial = await service.getSettings();
+      expect(initial).toEqual({ autoApproveRegistrations: true });
+
+      const updated = await service.updateSettings({
+        autoApproveRegistrations: false,
+      });
+
+      expect(updated).toEqual({ autoApproveRegistrations: false });
+      expect(await service.getSettings()).toEqual({
+        autoApproveRegistrations: false,
+      });
     });
   });
 });

@@ -92,4 +92,24 @@ describe('JwtAuthGuard', () => {
       UnauthorizedException,
     );
   });
+
+  // Known, accepted scope limit (see PLAN.md / registration-approval plan):
+  // this guard never hits the database on the JWT-verify-success path, so
+  // a user locked *after* their access token was issued keeps
+  // authenticating ordinary requests until that token naturally expires
+  // (JWT_ACCESS_EXPIRES_IN, 15 minutes by default). Only login, refresh,
+  // and API-key auth re-check isLocked in real time. Pinned here as an
+  // explicit, intentional case rather than a silent gap.
+  it('still authenticates a still-valid JWT belonging to a since-locked user (edge case — known scope limit)', async () => {
+    jwtService.verifyAsync.mockResolvedValue({
+      sub: 'user-1',
+      email: 'alice@example.com',
+    });
+    const context = makeContext('Bearer a-valid-jwt-issued-before-the-lock');
+
+    const result = await guard.canActivate(context);
+
+    expect(result).toBe(true);
+    expect(authService.validateApiKey).not.toHaveBeenCalled();
+  });
 });

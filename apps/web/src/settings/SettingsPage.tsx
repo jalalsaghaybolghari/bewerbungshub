@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { updateUserSettingsSchema } from '@bewerber/shared';
 import type { UpdateUserSettingsInput } from '@bewerber/shared';
 import { useSettings, useUpdateSettings } from './api';
+import { ApiKeySection } from './ApiKeySection';
 import { Button, Card, FieldError, Input, Label } from '../components/ui';
 
 // z.coerce.number()'s input type doesn't match the string a number
@@ -94,6 +95,8 @@ export function SettingsPage() {
           </div>
         </form>
       </Card>
+
+      <ApiKeySection />
     </div>
   );
 }

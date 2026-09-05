@@ -161,7 +161,17 @@
     "title": "Einstellungen",
     "followUpDefaultDays": "Standard-Erinnerung zum Nachfassen (Tage nach Bewerbung)",
     "ghostedAfterDays": "Als „ohne Antwort“ markieren nach (Tage ohne Update)",
-    "saved": "Gespeichert."
+    "saved": "Gespeichert.",
+    "apiKey": {
+      "title": "API-Schlüssel",
+      "description": "Nutze einen persönlichen API-Schlüssel, um ohne Login von anderen Tools auf deine Daten zuzugreifen.",
+      "none": "Du hast noch keinen API-Schlüssel.",
+      "createdAt": "API-Schlüssel erstellt am {{date}}.",
+      "generate": "API-Schlüssel erstellen",
+      "regenerate": "API-Schlüssel neu erstellen",
+      "revoke": "Widerrufen",
+      "generatedOnce": "Kopiere diesen Schlüssel jetzt — er wird danach nicht mehr angezeigt."
+    }
   },
   "cvs": {
     "title": "Lebensläufe",

@@ -161,7 +161,17 @@
     "title": "Settings",
     "followUpDefaultDays": "Default follow-up reminder (days after applying)",
     "ghostedAfterDays": "Mark as ghosted after (days with no update)",
-    "saved": "Saved."
+    "saved": "Saved.",
+    "apiKey": {
+      "title": "API key",
+      "description": "Use a personal API key to access your data from other tools without logging in.",
+      "none": "You don't have an API key yet.",
+      "createdAt": "API key created {{date}}.",
+      "generate": "Generate API key",
+      "regenerate": "Regenerate API key",
+      "revoke": "Revoke",
+      "generatedOnce": "Copy this key now — you won't be able to see it again."
+    }
   },
   "cvs": {
     "title": "CVs",

@@ -10,6 +10,9 @@ let isLoading = false;
 vi.mock('./api', () => ({
   useSettings: () => ({ data: settingsData, isLoading }),
   useUpdateSettings: () => ({ mutateAsync: updateMock }),
+  useApiKeyStatus: () => ({ data: { hasKey: false }, isLoading: false }),
+  useGenerateApiKey: () => ({ mutate: vi.fn(), isPending: false, isError: false }),
+  useRevokeApiKey: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 describe('SettingsPage', () => {

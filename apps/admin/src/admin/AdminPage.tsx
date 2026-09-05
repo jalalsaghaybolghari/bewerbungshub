@@ -101,7 +101,8 @@ export function AdminPage() {
                   <th className="px-4 py-3">Approval</th>
                   <th className="px-4 py-3">Locked</th>
                   <th className="px-4 py-3">Applications</th>
-                  <th className="px-4 py-3">CVs</th>
+                  <th className="px-4 py-3">Local CVs</th>
+                  <th className="px-4 py-3">Google Drive</th>
                   <th className="px-4 py-3">Created</th>
                   <th className="px-4 py-3">Actions</th>
                 </tr>
@@ -146,7 +147,10 @@ export function AdminPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-slate">{u.applicationCount}</td>
-                    <td className="px-4 py-3 text-slate">{u.cvCount}</td>
+                    <td className="px-4 py-3 text-slate">{u.localCvCount}</td>
+                    <td className="px-4 py-3 text-slate">
+                      {u.googleDriveConnected ? 'Connected' : '—'}
+                    </td>
                     <td className="px-4 py-3 text-slate">
                       {new Date(u.createdAt).toLocaleDateString()}
                     </td>

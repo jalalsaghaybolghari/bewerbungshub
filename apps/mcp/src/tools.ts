@@ -67,6 +67,36 @@ export function makeGetApplicationHandler(authHeader: string | undefined) {
   };
 }
 
+interface RelatedLink {
+  label: string;
+  url: string;
+}
+
+// The API's PATCH replaces relatedLinks wholesale rather than appending
+// (see ApplicationsService.update) — so adding one link means fetching
+// the current list first and PATCHing the full result back. The 5-link
+// cap itself is enforced server-side (relatedLinkSchema.max(5) in
+// @bewerber/shared), not duplicated here — a full list already at the
+// cap just comes back as a normal API error, surfaced the same way any
+// other failure is.
+export function makeAddRelatedLinkHandler(authHeader: string | undefined) {
+  return async ({ id, label, url }: { id: string; label: string; url: string }) => {
+    try {
+      const detail = await bewerbungsHubFetch<{
+        application: { relatedLinks: RelatedLink[] };
+      }>(authHeader, `/applications/${encodeURIComponent(id)}`);
+      const relatedLinks = [...detail.application.relatedLinks, { label, url }];
+      const data = await bewerbungsHubFetch(authHeader, `/applications/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: { relatedLinks },
+      });
+      return ok(data);
+    } catch (error) {
+      return fail(error);
+    }
+  };
+}
+
 // Registered fresh for every incoming MCP request (see main.ts) — authHeader
 // is whatever bearer token the caller sent, closed over here so every tool
 // call in this request forwards the same credentials without needing any
@@ -106,5 +136,20 @@ export function registerTools(server: McpServer, authHeader: string | undefined)
       },
     },
     makeGetApplicationHandler(authHeader),
+  );
+
+  server.registerTool(
+    'add_related_link',
+    {
+      title: 'Add a related link to a job application',
+      description:
+        "Add a labeled link (e.g. a recruiter's profile, the company site, a Glassdoor page) to one of the caller's own job applications. Up to 5 links per application.",
+      inputSchema: {
+        id: z.string().min(1).describe('The application id'),
+        label: z.string().min(1).max(120).describe('Short label for the link'),
+        url: z.string().url().describe('The link URL'),
+      },
+    },
+    makeAddRelatedLinkHandler(authHeader),
   );
 }

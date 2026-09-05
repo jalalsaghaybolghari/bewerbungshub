@@ -27,7 +27,32 @@ describe('bewerbungsHubFetch', () => {
     expect(result).toEqual({ items: [] });
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/applications?favorite=true'),
-      { headers: { Authorization: 'Bearer bwh_abc' } },
+      expect.objectContaining({
+        method: 'GET',
+        headers: { Authorization: 'Bearer bwh_abc' },
+      }),
+    );
+  });
+
+  it('sends a JSON body and Content-Type header for a PATCH call (happy path)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ relatedLinks: [{ label: 'x', url: 'https://x.example' }] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await bewerbungsHubFetch('Bearer bwh_abc', '/applications/1', {
+      method: 'PATCH',
+      body: { relatedLinks: [{ label: 'x', url: 'https://x.example' }] },
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/applications/1'),
+      {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer bwh_abc', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ relatedLinks: [{ label: 'x', url: 'https://x.example' }] }),
+      },
     );
   });
 

@@ -21,6 +21,7 @@ export class BewerbungsHubApiError extends Error {
 export async function bewerbungsHubFetch<T>(
   authHeader: string | undefined,
   path: string,
+  options: { method?: string; body?: unknown } = {},
 ): Promise<T> {
   if (!authHeader) {
     throw new BewerbungsHubApiError(
@@ -30,15 +31,23 @@ export async function bewerbungsHubFetch<T>(
     );
   }
 
+  const { method = 'GET', body } = options;
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { Authorization: authHeader },
+    method,
+    headers: {
+      Authorization: authHeader,
+      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
   if (!res.ok) {
-    const body = await res.json().catch(() => undefined) as { message?: string } | undefined;
+    const errorBody = (await res.json().catch(() => undefined)) as
+      | { message?: string }
+      | undefined;
     throw new BewerbungsHubApiError(
       res.status,
-      body?.message ?? `BewerbungsHub API request failed with status ${res.status}`,
+      errorBody?.message ?? `BewerbungsHub API request failed with status ${res.status}`,
     );
   }
 

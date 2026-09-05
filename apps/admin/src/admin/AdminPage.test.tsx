@@ -38,9 +38,10 @@ const otherUser = {
   isLocked: false,
   approvalStatus: 'approved' as const,
   hasApiKey: false,
+  googleDriveConnected: false,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   applicationCount: 3,
-  cvCount: 1,
+  localCvCount: 1,
 };
 
 const selfUser = {
@@ -53,9 +54,10 @@ const selfUser = {
   isLocked: false,
   approvalStatus: 'approved' as const,
   hasApiKey: false,
+  googleDriveConnected: false,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   applicationCount: 0,
-  cvCount: 0,
+  localCvCount: 0,
 };
 
 describe('AdminPage', () => {
@@ -207,5 +209,26 @@ describe('AdminPage', () => {
 
     expect(apiKeyCell(rows[0])).toHaveTextContent('✓');
     expect(apiKeyCell(rows[1])).toHaveTextContent('—');
+  });
+
+  it('shows "Connected" for users with a Google Drive connection and a dash otherwise (edge case)', () => {
+    usersData = {
+      items: [
+        { ...otherUser, id: 'user-2', googleDriveConnected: true },
+        { ...otherUser, id: 'user-3', email: 'other@example.com', googleDriveConnected: false },
+      ],
+      total: 2,
+      page: 1,
+      pageSize: 20,
+    };
+    render(<AdminPage />);
+
+    const headers = screen.getAllByRole('columnheader').map((h) => h.textContent);
+    const driveColumnIndex = headers.indexOf('Google Drive');
+    const rows = screen.getAllByRole('row').slice(1);
+    const driveCell = (row: HTMLElement) => within(row).getAllByRole('cell')[driveColumnIndex];
+
+    expect(driveCell(rows[0])).toHaveTextContent('Connected');
+    expect(driveCell(rows[1])).toHaveTextContent('—');
   });
 });

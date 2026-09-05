@@ -44,5 +44,18 @@ services:
     depends_on:
       - api
 
+  # Standalone admin panel — separate app, separate login, served on its
+  # own subdomain (admin.bewerbungshub.com) via a dedicated host nginx
+  # server block, not through web's nginx at all.
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:8081:80'
+    depends_on:
+      - api
+
 volumes:
   api_uploads:

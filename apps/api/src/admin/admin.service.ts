@@ -58,9 +58,11 @@ export class AdminService {
 
     const items = await Promise.all(
       users.map(async (user) => {
-        const [applicationCount, cvCount] = await Promise.all([
+        const [applicationCount, localCvCount] = await Promise.all([
           this.applicationModel.countDocuments({ userId: user._id }).exec(),
-          this.cvModel.countDocuments({ userId: user._id }).exec(),
+          this.cvModel
+            .countDocuments({ userId: user._id, storageProvider: 'app' })
+            .exec(),
         ]);
         return {
           id: user._id.toString(),
@@ -72,9 +74,10 @@ export class AdminService {
           isLocked: user.isLocked,
           approvalStatus: user.approvalStatus,
           hasApiKey: !!user.apiKeyHash,
+          googleDriveConnected: !!user.googleDrive,
           createdAt: user.get('createdAt') as Date,
           applicationCount,
-          cvCount,
+          localCvCount,
         };
       }),
     );

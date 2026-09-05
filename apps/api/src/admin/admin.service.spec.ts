@@ -202,7 +202,59 @@ describe('AdminService', () => {
       const result = await service.listUsers({ page: 1, pageSize: 20 });
 
       const item = result.items.find((i) => i.id === user._id.toString());
-      expect(item).toMatchObject({ applicationCount: 2, cvCount: 1 });
+      expect(item).toMatchObject({ applicationCount: 2, localCvCount: 1 });
+    });
+
+    it('counts only locally-stored CVs, excluding Google Drive-backed ones (edge case)', async () => {
+      const user = await seedUser();
+      await cvModel.create([
+        {
+          userId: user._id,
+          label: 'Local',
+          language: 'en',
+          fileKey: 'local-key-1',
+          storageProvider: 'app',
+          fileName: 'cv.pdf',
+          mimeType: 'application/pdf',
+          sizeBytes: 10,
+        },
+        {
+          userId: user._id,
+          label: 'Drive',
+          language: 'en',
+          fileKey: 'drive-key-1',
+          storageProvider: 'google-drive',
+          fileName: 'cv2.pdf',
+          mimeType: 'application/pdf',
+          sizeBytes: 10,
+        },
+      ]);
+
+      const result = await service.listUsers({ page: 1, pageSize: 20 });
+
+      const item = result.items.find((i) => i.id === user._id.toString());
+      expect(item).toMatchObject({ localCvCount: 1 });
+    });
+
+    it('reports googleDriveConnected based on whether the user has a Drive connection (edge case)', async () => {
+      const connected = await seedUser({
+        googleDrive: {
+          accessTokenEncrypted: 'enc-access',
+          refreshTokenEncrypted: 'enc-refresh',
+          accessTokenExpiresAt: new Date(),
+          folderId: 'folder-1',
+        },
+      });
+      const notConnected = await seedUser();
+
+      const result = await service.listUsers({ page: 1, pageSize: 20 });
+
+      expect(
+        result.items.find((i) => i.id === connected._id.toString()),
+      ).toMatchObject({ googleDriveConnected: true });
+      expect(
+        result.items.find((i) => i.id === notConnected._id.toString()),
+      ).toMatchObject({ googleDriveConnected: false });
     });
 
     it('paginates results (edge case)', async () => {

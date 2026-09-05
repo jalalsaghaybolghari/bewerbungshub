@@ -69,6 +69,11 @@
       "applyLink": "Apply link",
       "applyType": "Applied via",
       "notes": "Notes",
+      "relatedLinks": "Related links",
+      "relatedLinkLabel": "Label (e.g. Recruiter LinkedIn)",
+      "relatedLinkUrl": "URL",
+      "addLink": "Add link",
+      "removeLink": "Remove link",
       "save": "Save application",
       "cancel": "Cancel"
     },
@@ -88,6 +93,7 @@
       "noCv": "No CV attached",
       "cvOpenError": "Couldn't open the CV file.",
       "tags": "Tags",
+      "relatedLinks": "Related links",
       "notes": "Notes"
     },
     "view": {

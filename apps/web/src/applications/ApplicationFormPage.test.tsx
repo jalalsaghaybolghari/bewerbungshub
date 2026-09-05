@@ -1,15 +1,18 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApplicationFormPage } from './ApplicationFormPage';
 import type { Application, ApplicationDetailResponse } from './types';
 
 let detailData: ApplicationDetailResponse | undefined;
+const createMock = vi.fn();
+const updateMock = vi.fn();
 
 vi.mock('./api', () => ({
   useApplication: () => ({ data: detailData }),
-  useCreateApplication: () => ({ mutateAsync: vi.fn(), error: null }),
-  useUpdateApplication: () => ({ mutateAsync: vi.fn(), error: null }),
+  useCreateApplication: () => ({ mutateAsync: createMock, error: null }),
+  useUpdateApplication: () => ({ mutateAsync: updateMock, error: null }),
 }));
 
 vi.mock('../cvs/api', () => ({
@@ -30,6 +33,7 @@ function makeApplication(overrides: Partial<Application>): Application {
     statusSetBy: 'user',
     followUpCount: 0,
     tags: [],
+    relatedLinks: [],
     favorite: false,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
@@ -52,6 +56,52 @@ describe('ApplicationFormPage', () => {
   afterEach(() => {
     vi.clearAllMocks();
     detailData = undefined;
+  });
+
+  it('adds a related link row that accepts a label and url (happy path)', async () => {
+    renderAt('/applications/new');
+
+    await userEvent.click(screen.getByRole('button', { name: /add link/i }));
+    await userEvent.type(screen.getByPlaceholderText(/label/i), 'Recruiter LinkedIn');
+    await userEvent.type(screen.getByPlaceholderText(/^url$/i), 'https://linkedin.com/in/x');
+
+    expect(screen.getByDisplayValue('Recruiter LinkedIn')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('https://linkedin.com/in/x')).toBeInTheDocument();
+  });
+
+  it('hides the "Add link" button once the 5-link maximum is reached (edge case)', async () => {
+    detailData = {
+      application: makeApplication({
+        relatedLinks: Array.from({ length: 5 }, (_, i) => ({
+          label: `Link ${i}`,
+          url: `https://example.com/${i}`,
+        })),
+      }),
+      events: [],
+      interviews: [],
+      followUps: [],
+    };
+    renderAt('/applications/app-1/edit');
+
+    expect(await screen.findByDisplayValue('Link 4')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /add link/i })).not.toBeInTheDocument();
+  });
+
+  it('removes a related link row when its remove button is clicked (happy path)', async () => {
+    detailData = {
+      application: makeApplication({
+        relatedLinks: [{ label: 'Recruiter LinkedIn', url: 'https://linkedin.com/in/x' }],
+      }),
+      events: [],
+      interviews: [],
+      followUps: [],
+    };
+    renderAt('/applications/app-1/edit');
+
+    expect(await screen.findByDisplayValue('Recruiter LinkedIn')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /remove link/i }));
+
+    expect(screen.queryByDisplayValue('Recruiter LinkedIn')).not.toBeInTheDocument();
   });
 
   it('shows the source URL as a read-only, copiable field when editing a captured application (happy path)', () => {

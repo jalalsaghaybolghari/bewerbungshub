@@ -73,6 +73,29 @@ export function ApplicationQuickViewModal({
           <DateField label={t('applications.columns.created')} value={application.createdAt} />
         </div>
 
+        {application.relatedLinks.length > 0 && (
+          <div>
+            <div className="mb-1 text-xs uppercase tracking-wide text-slate">
+              {t('applications.quickView.relatedLinks')}
+            </div>
+            <ul className="space-y-1">
+              {application.relatedLinks.map((link, index) => (
+                <li key={index}>
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
+                  >
+                    <ExternalLinkIcon className="size-4" />
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div>
           <div className="mb-1 text-xs uppercase tracking-wide text-slate">
             {t('applications.quickView.cv')}

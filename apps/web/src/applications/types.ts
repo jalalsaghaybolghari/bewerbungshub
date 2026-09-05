@@ -1,6 +1,8 @@
-import type { ApplicationStatus, ApplyType, RemoteType } from '@bewerber/shared';
+import type { ApplicationStatus, ApplyType, RelatedLink, RemoteType } from '@bewerber/shared';
 import type { Interview } from '../interviews/types';
 import type { FollowUp } from '../follow-ups/types';
+
+export type { RelatedLink };
 
 export interface Application {
   _id: string;
@@ -20,6 +22,7 @@ export interface Application {
   nextFollowUpAt?: string;
   followUpCount: number;
   tags: string[];
+  relatedLinks: RelatedLink[];
   notes?: string;
   favorite: boolean;
   createdAt: string;

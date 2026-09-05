@@ -69,6 +69,11 @@
       "applyLink": "Bewerbungslink",
       "applyType": "Beworben über",
       "notes": "Notizen",
+      "relatedLinks": "Weiterführende Links",
+      "relatedLinkLabel": "Bezeichnung (z. B. LinkedIn des Recruiters)",
+      "relatedLinkUrl": "URL",
+      "addLink": "Link hinzufügen",
+      "removeLink": "Link entfernen",
       "save": "Bewerbung speichern",
       "cancel": "Abbrechen"
     },
@@ -88,6 +93,7 @@
       "noCv": "Kein Lebenslauf hinterlegt",
       "cvOpenError": "Lebenslauf konnte nicht geöffnet werden.",
       "tags": "Tags",
+      "relatedLinks": "Weiterführende Links",
       "notes": "Notizen"
     },
     "view": {

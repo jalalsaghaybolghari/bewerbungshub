@@ -24,6 +24,7 @@ function makeApplication(overrides: Partial<Application>): Application {
     statusSetBy: 'user',
     followUpCount: 0,
     tags: [],
+    relatedLinks: [],
     favorite: false,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
@@ -96,5 +97,51 @@ describe('ApplicationQuickViewModal', () => {
 
     rerender(<ApplicationQuickViewModal application={makeApplication({})} onClose={vi.fn()} />);
     expect(screen.getByText(/no cv attached/i)).toBeInTheDocument();
+  });
+
+  it('shows each related link as a clickable link with its label (happy path)', () => {
+    render(
+      <ApplicationQuickViewModal
+        application={makeApplication({
+          relatedLinks: [
+            { label: 'Recruiter LinkedIn', url: 'https://linkedin.com/in/x' },
+            { label: 'Company site', url: 'https://acme.example.com' },
+          ],
+        })}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: /recruiter linkedin/i })).toHaveAttribute(
+      'href',
+      'https://linkedin.com/in/x',
+    );
+    expect(screen.getByRole('link', { name: /company site/i })).toHaveAttribute(
+      'href',
+      'https://acme.example.com',
+    );
+  });
+
+  it('does not show a related links section when there are none (negative case)', () => {
+    render(<ApplicationQuickViewModal application={makeApplication({})} onClose={vi.fn()} />);
+
+    expect(screen.queryByText(/related links/i)).not.toBeInTheDocument();
+  });
+
+  it('shows related links before the CV section when both are present (happy path)', () => {
+    render(
+      <ApplicationQuickViewModal
+        application={makeApplication({
+          relatedLinks: [{ label: 'Recruiter LinkedIn', url: 'https://linkedin.com/in/x' }],
+        })}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const relatedLinksHeading = screen.getByText(/related links/i);
+    const cvHeading = screen.getByText(/^cv$/i);
+    expect(
+      relatedLinksHeading.compareDocumentPosition(cvHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });

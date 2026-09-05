@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -14,10 +14,16 @@ import { useCvs } from '../cvs/api';
 import { Button, FieldError, Input, Label, Select, Textarea } from '../components/ui';
 import { CopyableUrlField } from '../components/CopyableUrlField';
 import { RichTextEditor } from '../components/RichTextEditor';
+import { TrashIcon } from '../components/icons';
 
 // react-hook-form's form state is the schema's *input* shape (before Zod
 // applies `.default()`), not the `CreateApplicationInput` output type.
 type ApplicationFormValues = z.input<typeof createApplicationSchema>;
+
+// Matches relatedLinkSchema's own max(5) in packages/shared — kept in
+// sync here so the "Add link" button disables itself before a submit
+// would otherwise round-trip to the server just to be rejected.
+const MAX_RELATED_LINKS = 5;
 
 export function ApplicationFormPage() {
   const { t } = useTranslation();
@@ -38,8 +44,10 @@ export function ApplicationFormPage() {
     formState: { errors, isSubmitting },
   } = useForm<ApplicationFormValues, unknown, CreateApplicationInput>({
     resolver: zodResolver(createApplicationSchema),
-    defaultValues: { applyType: 'website', tags: [] },
+    defaultValues: { applyType: 'website', tags: [], relatedLinks: [] },
   });
+
+  const relatedLinks = useFieldArray({ control, name: 'relatedLinks' });
 
   useEffect(() => {
     if (detail) {
@@ -52,6 +60,7 @@ export function ApplicationFormPage() {
         applyType: detail.application.applyType,
         cvId: detail.application.cvId,
         notes: detail.application.notes,
+        relatedLinks: detail.application.relatedLinks,
       });
     }
   }, [detail, reset]);
@@ -131,6 +140,48 @@ export function ApplicationFormPage() {
             </Select>
           </div>
         )}
+
+        <div>
+          <Label>{t('applications.form.relatedLinks')}</Label>
+          <div className="space-y-2">
+            {relatedLinks.fields.map((field, index) => (
+              <div key={field.id} className="flex items-start gap-2">
+                <div className="flex-1">
+                  <Input
+                    placeholder={t('applications.form.relatedLinkLabel')}
+                    {...register(`relatedLinks.${index}.label`)}
+                  />
+                  <FieldError>{errors.relatedLinks?.[index]?.label?.message}</FieldError>
+                </div>
+                <div className="flex-1">
+                  <Input
+                    placeholder={t('applications.form.relatedLinkUrl')}
+                    {...register(`relatedLinks.${index}.url`)}
+                  />
+                  <FieldError>{errors.relatedLinks?.[index]?.url?.message}</FieldError>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => relatedLinks.remove(index)}
+                  aria-label={t('applications.form.removeLink')}
+                  className="mt-2 shrink-0 text-slate hover:text-danger"
+                >
+                  <TrashIcon className="size-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+          {relatedLinks.fields.length < MAX_RELATED_LINKS && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="mt-2"
+              onClick={() => relatedLinks.append({ label: '', url: '' })}
+            >
+              {t('applications.form.addLink')}
+            </Button>
+          )}
+        </div>
 
         <div>
           <Label htmlFor="jobDescription">{t('applications.form.jobDescription')}</Label>

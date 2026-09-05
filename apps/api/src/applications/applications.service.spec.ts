@@ -42,6 +42,7 @@ function baseApplicationInput(
     applyType: 'website',
     status: 'applied',
     tags: [],
+    relatedLinks: [],
     ...overrides,
   };
 }
@@ -112,6 +113,20 @@ describe('ApplicationsService', () => {
       });
 
       expect(updated.jobTitle).toBe('Senior Backend Engineer');
+    });
+
+    it('replaces relatedLinks wholesale on update (happy path)', async () => {
+      const app = await createApplication({
+        relatedLinks: [{ label: 'Old link', url: 'https://old.example.com' }],
+      });
+
+      const updated = await service.update(userId, app._id.toString(), {
+        relatedLinks: [{ label: 'New link', url: 'https://new.example.com' }],
+      });
+
+      expect(
+        updated.relatedLinks.map((l) => ({ label: l.label, url: l.url })),
+      ).toEqual([{ label: 'New link', url: 'https://new.example.com' }]);
     });
 
     it('throws ConflictException instead of a raw 500 when the new applyLink collides with another application (negative case)', async () => {

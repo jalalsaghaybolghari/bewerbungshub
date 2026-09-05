@@ -19,6 +19,15 @@ class Company {
 }
 
 @Schema({ _id: false })
+class RelatedLink {
+  @Prop({ required: true, trim: true })
+  label: string;
+
+  @Prop({ required: true })
+  url: string;
+}
+
+@Schema({ _id: false })
 class Location {
   @Prop({ required: true, trim: true })
   raw: string;
@@ -102,6 +111,9 @@ export class Application {
 
   @Prop({ type: [String], default: [] })
   tags: string[];
+
+  @Prop({ type: [RelatedLink], default: [] })
+  relatedLinks: RelatedLink[];
 
   @Prop()
   notes?: string;

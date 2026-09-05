@@ -21,9 +21,13 @@ export const adminUserSummarySchema = z.object({
   isLocked: z.boolean(),
   approvalStatus: approvalStatusSchema,
   hasApiKey: z.boolean(),
+  googleDriveConnected: z.boolean(),
   createdAt: z.coerce.date(),
   applicationCount: z.number().int(),
-  cvCount: z.number().int(),
+  // Only CVs stored locally on the server (storageProvider: 'app') — a
+  // Drive-backed CV lives in the user's own Google Drive, not on this
+  // server's disk, so it's not counted here.
+  localCvCount: z.number().int(),
 });
 export type AdminUserSummary = z.infer<typeof adminUserSummarySchema>;
 

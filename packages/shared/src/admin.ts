@@ -1,8 +1,13 @@
 import { z } from 'zod';
 
+export const approvalStatusValues = ['pending', 'approved'] as const;
+export const approvalStatusSchema = z.enum(approvalStatusValues);
+export type ApprovalStatus = z.infer<typeof approvalStatusSchema>;
+
 export const adminUsersQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
+  approvalStatus: approvalStatusSchema.optional(),
 });
 export type AdminUsersQuery = z.infer<typeof adminUsersQuerySchema>;
 
@@ -13,11 +18,23 @@ export const adminUserSummarySchema = z.object({
   locale: z.enum(['de', 'en']),
   emailVerified: z.boolean(),
   isAdmin: z.boolean(),
+  isLocked: z.boolean(),
+  approvalStatus: approvalStatusSchema,
   createdAt: z.coerce.date(),
   applicationCount: z.number().int(),
   cvCount: z.number().int(),
 });
 export type AdminUserSummary = z.infer<typeof adminUserSummarySchema>;
+
+export const adminSettingsSchema = z.object({
+  autoApproveRegistrations: z.boolean(),
+});
+export type AdminSettings = z.infer<typeof adminSettingsSchema>;
+
+export const updateAdminSettingsSchema = z.object({
+  autoApproveRegistrations: z.boolean(),
+});
+export type UpdateAdminSettingsInput = z.infer<typeof updateAdminSettingsSchema>;
 
 export const adminUsersListResponseSchema = z.object({
   items: z.array(adminUserSummarySchema),

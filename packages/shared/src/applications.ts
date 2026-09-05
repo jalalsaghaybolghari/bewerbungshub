@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { safeUrlSchema } from './url';
 
 // z.coerce.boolean() is the wrong tool for a query-string boolean:
 // Boolean("false") is true (any non-empty string is truthy in JS), so an
@@ -56,13 +57,13 @@ export type RemoteType = z.infer<typeof remoteTypeSchema>;
 
 export const companySchema = z.object({
   name: z.string().min(1).max(200),
-  website: z.string().url().optional(),
+  website: safeUrlSchema.optional(),
   domain: z.string().max(200).optional(),
 });
 
 export const relatedLinkSchema = z.object({
   label: z.string().min(1).max(120),
-  url: z.string().url(),
+  url: safeUrlSchema,
 });
 export type RelatedLink = z.infer<typeof relatedLinkSchema>;
 
@@ -91,7 +92,7 @@ const applicationBaseSchema = z.object({
   // the LinkedIn job page itself would otherwise never get saved
   // anywhere). Set by the extension from the captured tab's URL; optional
   // since a manually-created application has no browser tab to capture.
-  sourceUrl: z.string().url().optional(),
+  sourceUrl: safeUrlSchema.optional(),
   // The web form's "—" (no CV) option submits an empty string rather than
   // omitting the field — preprocessed to undefined so it doesn't reach
   // Mongoose as "" and blow up ObjectId casting with an uncaught 500.
@@ -124,7 +125,7 @@ function validateApplyLink(
   const isValid =
     data.applyType === 'email'
       ? z.string().trim().email().safeParse(data.applyLink).success
-      : z.string().url().safeParse(data.applyLink).success;
+      : safeUrlSchema.safeParse(data.applyLink).success;
   if (!isValid) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,

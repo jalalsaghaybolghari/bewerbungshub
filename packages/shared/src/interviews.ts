@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { safeUrlSchema } from './url';
 
 export const interviewTypeValues = [
   'phone_screen',
@@ -27,7 +28,7 @@ export const createInterviewSchema = z.object({
   scheduledAt: z.coerce.date(),
   durationMinutes: z.coerce.number().int().min(1).max(1440).optional(),
   interviewers: z.array(interviewerSchema).max(20).optional().default([]),
-  meetingUrl: z.string().url().optional(),
+  meetingUrl: safeUrlSchema.optional(),
   location: z.string().max(200).optional(),
   prepNotes: z.string().max(5000).optional(),
 });

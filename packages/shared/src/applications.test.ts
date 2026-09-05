@@ -50,6 +50,15 @@ describe('createApplicationSchema — relatedLinks validation', () => {
     expect(result.success).toBe(false);
   });
 
+  it('rejects a javascript: URL (negative case — stored XSS if it were allowed through to a clicked <a href>)', () => {
+    const result = createApplicationSchema.safeParse(
+      baseInput({
+        relatedLinks: [{ label: 'Looks safe', url: 'javascript:alert(document.cookie)' }],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
   it('rejects a link with an empty label (negative case)', () => {
     const result = createApplicationSchema.safeParse(
       baseInput({ relatedLinks: [{ label: '', url: 'https://example.com' }] }),
@@ -97,6 +106,13 @@ describe('createApplicationSchema — applyLink validation', () => {
   it('rejects a non-URL string for a non-email applyType (negative case)', () => {
     const result = createApplicationSchema.safeParse(
       baseInput({ applyType: 'linkedin', applyLink: 'not-a-url' }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a javascript: URL for a non-email applyType (negative case — stored XSS via the "Apply link" button)', () => {
+    const result = createApplicationSchema.safeParse(
+      baseInput({ applyType: 'linkedin', applyLink: 'javascript:alert(1)' }),
     );
     expect(result.success).toBe(false);
   });

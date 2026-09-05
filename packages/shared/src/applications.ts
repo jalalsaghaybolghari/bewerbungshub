@@ -60,6 +60,12 @@ export const companySchema = z.object({
   domain: z.string().max(200).optional(),
 });
 
+export const relatedLinkSchema = z.object({
+  label: z.string().min(1).max(120),
+  url: z.string().url(),
+});
+export type RelatedLink = z.infer<typeof relatedLinkSchema>;
+
 export const locationSchema = z.object({
   raw: z.string().min(1).max(200),
   city: z.string().max(120).optional(),
@@ -98,6 +104,7 @@ const applicationBaseSchema = z.object({
   ),
   status: applicationStatusSchema.optional().default('applied'),
   tags: z.array(z.string().max(60)).max(20).optional().default([]),
+  relatedLinks: z.array(relatedLinkSchema).max(5).optional().default([]),
   notes: z.string().max(5000).optional(),
   favorite: z.boolean().optional().default(false),
   // When the employer posted (or reposted) the listing — distinct from

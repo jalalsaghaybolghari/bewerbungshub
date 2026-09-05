@@ -18,6 +18,55 @@ function baseInput(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
+describe('createApplicationSchema — relatedLinks validation', () => {
+  it('defaults to an empty array when omitted (happy path)', () => {
+    const result = createApplicationSchema.safeParse(baseInput());
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.relatedLinks).toEqual([]);
+  });
+
+  it('accepts a list of labeled links (happy path)', () => {
+    const result = createApplicationSchema.safeParse(
+      baseInput({
+        relatedLinks: [
+          { label: 'Recruiter LinkedIn', url: 'https://linkedin.com/in/someone' },
+          { label: 'Company site', url: 'https://acme.example.com' },
+        ],
+      }),
+    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.relatedLinks).toEqual([
+        { label: 'Recruiter LinkedIn', url: 'https://linkedin.com/in/someone' },
+        { label: 'Company site', url: 'https://acme.example.com' },
+      ]);
+    }
+  });
+
+  it('rejects a link with an invalid url (negative case)', () => {
+    const result = createApplicationSchema.safeParse(
+      baseInput({ relatedLinks: [{ label: 'Broken', url: 'not-a-url' }] }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a link with an empty label (negative case)', () => {
+    const result = createApplicationSchema.safeParse(
+      baseInput({ relatedLinks: [{ label: '', url: 'https://example.com' }] }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects more than 5 links (edge case)', () => {
+    const relatedLinks = Array.from({ length: 6 }, (_, i) => ({
+      label: `Link ${i}`,
+      url: `https://example.com/${i}`,
+    }));
+    const result = createApplicationSchema.safeParse(baseInput({ relatedLinks }));
+    expect(result.success).toBe(false);
+  });
+});
+
 describe('createApplicationSchema — applyLink validation', () => {
   it('accepts a URL for a non-email applyType (happy path)', () => {
     const result = createApplicationSchema.safeParse(baseInput());

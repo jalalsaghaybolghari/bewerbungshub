@@ -4,6 +4,7 @@ import type {
   ConfirmEmailInput,
   LoginInput,
   RegisterInput,
+  RegisterResult,
   ResendCodeInput,
 } from '@bewerber/shared';
 import { apiFetch, refreshAccessToken, setAccessToken } from '../lib/api-client';
@@ -18,10 +19,10 @@ interface AuthContextValue {
   isLoading: boolean;
   login: (input: LoginInput) => Promise<void>;
   // Doesn't log the user in — an unverified account has no session until
-  // confirmEmail succeeds. Resolves with the email to carry into the
-  // verify-email step (the caller already has it too, but this keeps the
-  // page from needing to remember it separately).
-  register: (input: RegisterInput) => Promise<{ email: string }>;
+  // confirmEmail succeeds. Resolves with the email and which of the two
+  // post-register flows applies, so the caller can route to verify-email
+  // or to the pending-approval page without a second request.
+  register: (input: RegisterInput) => Promise<RegisterResult>;
   confirmEmail: (input: ConfirmEmailInput) => Promise<void>;
   resendCode: (input: ResendCodeInput) => Promise<void>;
   logout: () => Promise<void>;
@@ -55,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function register(input: RegisterInput) {
-    return apiFetch<{ email: string }>('/auth/register', { method: 'POST', body: input });
+    return apiFetch<RegisterResult>('/auth/register', { method: 'POST', body: input });
   }
 
   async function confirmEmail(input: ConfirmEmailInput) {

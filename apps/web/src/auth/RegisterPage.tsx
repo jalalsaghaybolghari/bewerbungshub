@@ -23,8 +23,12 @@ export function RegisterPage() {
   async function onSubmit(data: RegisterInput) {
     setServerError(null);
     try {
-      const { email } = await registerUser(data);
-      navigate('/verify-email', { state: { email } });
+      const { email, status } = await registerUser(data);
+      if (status === 'pending_approval') {
+        navigate('/registration-pending', { state: { email } });
+      } else {
+        navigate('/verify-email', { state: { email } });
+      }
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : t('auth.registerError'));
     }

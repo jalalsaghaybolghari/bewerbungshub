@@ -38,8 +38,11 @@ describe('RegisterPage', () => {
     vi.clearAllMocks();
   });
 
-  it('registers and navigates to /verify-email with the email, not straight into the app (happy path)', async () => {
-    registerMock.mockResolvedValueOnce({ email: 'alice@example.com' });
+  it('registers and navigates to /verify-email when auto-approve is on, not straight into the app (happy path)', async () => {
+    registerMock.mockResolvedValueOnce({
+      email: 'alice@example.com',
+      status: 'verification_sent',
+    });
     renderRegisterPage();
 
     await userEvent.type(screen.getByLabelText(/name/i), 'Alice');
@@ -54,6 +57,25 @@ describe('RegisterPage', () => {
     });
     await vi.waitFor(() =>
       expect(navigateMock).toHaveBeenCalledWith('/verify-email', {
+        state: { email: 'alice@example.com' },
+      }),
+    );
+  });
+
+  it('navigates to /registration-pending when auto-approve is off (edge case)', async () => {
+    registerMock.mockResolvedValueOnce({
+      email: 'alice@example.com',
+      status: 'pending_approval',
+    });
+    renderRegisterPage();
+
+    await userEvent.type(screen.getByLabelText(/name/i), 'Alice');
+    await userEvent.type(screen.getByLabelText(/email/i), 'alice@example.com');
+    await userEvent.type(screen.getByLabelText(/password/i), 'a very strong password');
+    await userEvent.click(screen.getByRole('button', { name: /create account/i }));
+
+    await vi.waitFor(() =>
+      expect(navigateMock).toHaveBeenCalledWith('/registration-pending', {
         state: { email: 'alice@example.com' },
       }),
     );

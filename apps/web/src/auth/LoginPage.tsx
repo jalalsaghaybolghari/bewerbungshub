@@ -14,6 +14,12 @@ function isEmailNotVerified(body: unknown): body is { code: 'EMAIL_NOT_VERIFIED'
   );
 }
 
+function isAccountLocked(body: unknown): body is { code: 'ACCOUNT_LOCKED' } {
+  return (
+    !!body && typeof body === 'object' && (body as { code?: unknown }).code === 'ACCOUNT_LOCKED'
+  );
+}
+
 export function LoginPage() {
   const { t } = useTranslation();
   const { login } = useAuth();
@@ -34,6 +40,10 @@ export function LoginPage() {
     } catch (err) {
       if (err instanceof ApiError && isEmailNotVerified(err.body)) {
         navigate('/verify-email', { state: { email: err.body.email } });
+        return;
+      }
+      if (err instanceof ApiError && isAccountLocked(err.body)) {
+        setServerError(t('auth.accountLocked'));
         return;
       }
       setServerError(err instanceof ApiError ? err.message : t('auth.loginError'));

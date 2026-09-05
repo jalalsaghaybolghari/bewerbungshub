@@ -19,6 +19,7 @@
     "haveAccount": "Already have an account?",
     "loginError": "Invalid email or password.",
     "registerError": "Could not create your account.",
+    "accountLocked": "This account has been locked. Contact support for help.",
     "verifyEmail": {
       "title": "Verify your email",
       "checkInbox": "We sent a 6-digit code to your email — enter it below to finish creating your account.",
@@ -28,6 +29,11 @@
       "resendCooldown": "Resend code in {{seconds}}s",
       "resent": "A new code has been sent.",
       "error": "Something went wrong. Please try again."
+    },
+    "registrationPending": {
+      "title": "Almost there",
+      "bodyWithEmail": "Thanks for signing up, {{email}}. An admin needs to approve your account before you can log in — you'll get a verification code by email once that happens.",
+      "body": "Thanks for signing up. An admin needs to approve your account before you can log in — you'll get a verification code by email once that happens."
     }
   },
   "applications": {

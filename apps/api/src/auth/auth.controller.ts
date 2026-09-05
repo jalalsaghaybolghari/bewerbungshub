@@ -102,6 +102,7 @@ export class AuthController {
       email: found.email,
       displayName: found.displayName,
       locale: found.locale,
+      isAdmin: found.isAdmin,
     };
   }
 

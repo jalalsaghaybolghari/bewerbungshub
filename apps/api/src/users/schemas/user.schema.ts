@@ -87,6 +87,11 @@ export class User {
 
   @Prop()
   apiKeyCreatedAt?: Date;
+
+  // No self-service UI to grant this yet — set via a direct DB update.
+  // See AdminGuard for how it gates /admin/* routes.
+  @Prop({ default: false })
+  isAdmin: boolean;
 }
 
 export type UserDocument = HydratedDocument<User>;

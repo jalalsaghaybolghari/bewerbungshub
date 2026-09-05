@@ -112,6 +112,15 @@ export class FollowUpsService {
       .exec();
   }
 
+  // Used only by AdminService.deleteUser's cascade — no need to
+  // recomputeNextFollowUp per application here, since every application for
+  // this user is deleted right after this in the same cascade.
+  async removeAllForUser(userId: string): Promise<void> {
+    await this.followUpModel
+      .deleteMany({ userId: new Types.ObjectId(userId) })
+      .exec();
+  }
+
   private async assertApplicationOwnership(
     userId: string,
     applicationId: string,

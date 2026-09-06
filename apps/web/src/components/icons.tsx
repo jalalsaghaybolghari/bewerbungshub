@@ -101,6 +101,24 @@ export function ChevronDownIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function PencilIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5" />
+      <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5Z" />
+    </Icon>
+  );
+}
+
+export function MapPinIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+      <path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+    </Icon>
+  );
+}
+
 // One shape for both states — pass fill="currentColor" for favorited,
 // leave the default fill="none" (outline only) otherwise.
 export function StarIcon(props: SVGProps<SVGSVGElement>) {

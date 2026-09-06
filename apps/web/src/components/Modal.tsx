@@ -5,10 +5,12 @@ import { XIcon } from './icons';
 
 export function Modal({
   title,
+  headerActions,
   onClose,
   children,
 }: {
   title: string;
+  headerActions?: ReactNode;
   onClose: () => void;
   children: ReactNode;
 }) {
@@ -36,14 +38,17 @@ export function Modal({
       >
         <div className="mb-4 flex items-start justify-between gap-4">
           <h2 className="text-lg font-bold text-ink">{title}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t('common.close')}
-            className="text-slate hover:text-ink"
-          >
-            <XIcon className="size-5" />
-          </button>
+          <div className="flex items-center gap-3">
+            {headerActions}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={t('common.close')}
+              className="text-slate hover:text-ink"
+            >
+              <XIcon className="size-5" />
+            </button>
+          </div>
         </div>
         {children}
       </div>

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { Modal } from '../components/Modal';
-import { ExternalLinkIcon, DocumentIcon } from '../components/icons';
+import { ExternalLinkIcon, DocumentIcon, MapPinIcon, PencilIcon } from '../components/icons';
 import { CopyableUrlField } from '../components/CopyableUrlField';
 import { RichTextContent } from '../components/RichTextContent';
 import { isSafeHref } from '../lib/safe-url';
@@ -46,12 +47,35 @@ export function ApplicationQuickViewModal({
   }
 
   return (
-    <Modal title={application.jobTitle} onClose={onClose}>
+    <Modal
+      title={application.jobTitle}
+      onClose={onClose}
+      headerActions={
+        <Link
+          to={`/applications/${application._id}/edit`}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={t('common.edit')}
+          className="text-slate hover:text-ink"
+        >
+          <PencilIcon className="size-5" />
+        </Link>
+      }
+    >
       <div className="space-y-5">
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={application.status} />
           <span className="text-sm text-slate">
-            {application.company.name} · {application.location.raw}
+            {application.company.name} ·{' '}
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(application.location.raw)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-0.5 text-accent hover:underline"
+            >
+              <MapPinIcon className="size-3.5" />
+              {application.location.raw}
+            </a>
           </span>
           <span className="rounded-full bg-slate/10 px-2 py-0.5 text-xs capitalize text-slate">
             {application.applyType}

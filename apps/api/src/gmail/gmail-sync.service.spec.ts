@@ -68,6 +68,13 @@ function textPart(text: string) {
   };
 }
 
+function htmlPart(html: string) {
+  return {
+    mimeType: 'text/html',
+    body: { data: Buffer.from(html, 'utf-8').toString('base64url') },
+  };
+}
+
 describe('GmailSyncService', () => {
   let mongod: MongoMemoryServer;
   let module: TestingModule;
@@ -416,6 +423,52 @@ describe('GmailSyncService', () => {
     // The stored snippet is the real extracted body text, not Gmail's
     // useless subject-echo snippet.
     expect(matches[0].snippet).toContain('Unfortunately');
+  });
+
+  it('classifies a rejection whose real content lives only in the text/html part (regression guard — real LinkedIn email whose text/plain part was footer-only boilerplate)', async () => {
+    const user = await seedConnectedUser({ gmailAutoApprove: true });
+    const application = await seedApplication(user._id, {
+      company: { name: 'philoro EDELMETALLE' },
+    });
+    mockMessagesList.mockResolvedValue({
+      data: { messages: [{ id: 'msg-1' }] },
+    });
+    mockMessagesGet.mockResolvedValue({
+      data: {
+        threadId: 'thread-1',
+        snippet: 'Your update from philoro EDELMETALLE',
+        internalDate: '1700000000000',
+        payload: {
+          headers: messageHeaders(
+            'jobs-noreply@linkedin.com',
+            'Your application to Software Developer at philoro EDELMETALLE',
+          ),
+          parts: [
+            // A real footer-only text/plain part — no rejection keyword
+            // anywhere in it, same as the actual production email.
+            textPart(
+              'Learn why we included this. Unsubscribe. Help. LinkedIn Corporation.',
+            ),
+            htmlPart(
+              '<p>Thank you for your interest. Unfortunately, we will not be moving forward with your application.</p>',
+            ),
+          ],
+        },
+      },
+    });
+
+    await service.syncUserMailbox(user._id.toString());
+
+    const updatedApplication = await applicationModel
+      .findById(application._id)
+      .exec();
+    expect(updatedApplication?.status).toBe('rejected');
+
+    const matches = await emailMatchModel.find({ userId: user._id }).exec();
+    expect(matches[0]).toMatchObject({
+      classification: 'rejection',
+      decision: 'auto_applied',
+    });
   });
 
   it('sets needsReconnect and does not throw on an invalid_grant failure (edge case)', async () => {

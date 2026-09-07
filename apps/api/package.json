@@ -38,6 +38,7 @@
     "bullmq": "^6.3.4",
     "cookie-parser": "^1.4.7",
     "googleapis": "^163.0.0",
+    "ioredis": "^6.0.0",
     "mongoose": "^9.9.4",
     "nestjs-zod": "^5.5.0",
     "passport": "^0.7.0",

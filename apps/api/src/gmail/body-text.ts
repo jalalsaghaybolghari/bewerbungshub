@@ -74,16 +74,23 @@ function collectParts(
 
 // Walks the real MIME body instead of relying on Gmail's own `snippet`
 // field — see the comment on INVISIBLE_CHARS_REGEX for why the snippet
-// alone isn't trustworthy. Prefers a text/plain part over text/html
-// (avoids stripHtml's inherent imprecision entirely) wherever one exists.
+// alone isn't trustworthy. Concatenates text/plain and stripped text/html
+// rather than preferring one — confirmed against a real production email
+// (a LinkedIn rejection) that a multipart message's text/plain part can be
+// nothing but footer/unsubscribe boilerplate while the actual message
+// only exists in the text/html part, so preferring plain-when-present
+// (the original approach here) silently dropped the real content.
+// Redundant text between the two is harmless for keyword classification.
 export function extractPlainText(
   payload: gmail_v1.Schema$MessagePart | undefined,
 ): string {
   const collected = { plain: [] as string[], html: [] as string[] };
   collectParts(payload, collected);
-  if (collected.plain.length > 0) return collected.plain.join('\n');
-  if (collected.html.length > 0) return stripHtml(collected.html.join('\n'));
-  return '';
+  const pieces = [
+    ...collected.plain,
+    ...collected.html.map((html) => stripHtml(html)),
+  ];
+  return pieces.join('\n');
 }
 
 export function cleanEmailText(text: string): string {

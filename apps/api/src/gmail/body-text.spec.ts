@@ -20,12 +20,14 @@ describe('extractPlainText', () => {
     expect(extractPlainText(textPart('Hello there.'))).toBe('Hello there.');
   });
 
-  it('decodes a text/plain part nested inside multipart/alternative (happy path)', () => {
+  it('combines a text/plain part and a text/html part rather than dropping one (happy path)', () => {
     const payload: gmail_v1.Schema$MessagePart = {
       mimeType: 'multipart/alternative',
       parts: [textPart('Plain version.'), htmlPart('<p>HTML version.</p>')],
     };
-    expect(extractPlainText(payload)).toBe('Plain version.');
+    const text = extractPlainText(payload);
+    expect(text).toContain('Plain version.');
+    expect(text).toContain('HTML version.');
   });
 
   it('falls back to stripped HTML when no text/plain part exists (edge case)', () => {
@@ -36,6 +38,24 @@ describe('extractPlainText', () => {
     expect(extractPlainText(payload)).toContain('Only');
     expect(extractPlainText(payload)).toContain('HTML');
     expect(extractPlainText(payload)).not.toContain('<');
+  });
+
+  it('reaches the real message when the text/plain part is only footer boilerplate (regression guard — real LinkedIn rejection email)', () => {
+    // Confirmed against real production data: this sender's text/plain
+    // part is unsubscribe/help-link footer only; the actual rejection
+    // message exists solely in the text/html part.
+    const payload: gmail_v1.Schema$MessagePart = {
+      mimeType: 'multipart/alternative',
+      parts: [
+        textPart('Learn why we included this. Unsubscribe. Help.'),
+        htmlPart(
+          '<p>Thank you for your interest. Unfortunately, we will not be moving forward with your application.</p>',
+        ),
+      ],
+    };
+    expect(extractPlainText(payload)).toContain(
+      'Unfortunately, we will not be moving forward',
+    );
   });
 
   it('skips a text/plain attachment part rather than treating it as the body (edge case)', () => {

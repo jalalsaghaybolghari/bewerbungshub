@@ -16,7 +16,13 @@ WORKDIR /repo
 COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @bewerber/shared build
+# tsc's default heap ceiling isn't enough to type-check this project once
+# googleapis' large generated types (pulled in by apps/api/src/gmail/) are
+# in the mix — it OOMs around ~1.9GB otherwise, well within what a small
+# VPS build host actually has available (with swap backing it).
+ENV NODE_OPTIONS=--max-old-space-size=3072
 RUN pnpm --filter api build
+ENV NODE_OPTIONS=
 # pnpm's own recommended pattern for a workspace package + Docker: copies
 # the built dist/ plus a pruned, self-contained node_modules (prod deps
 # only, workspace deps like @bewerber/shared inlined as real files, not

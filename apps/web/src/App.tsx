@@ -11,6 +11,7 @@ import { ApplicationFormPage } from './applications/ApplicationFormPage';
 import { CvsPage } from './cvs/CvsPage';
 import { SettingsPage } from './settings/SettingsPage';
 import { DashboardPage } from './dashboard/DashboardPage';
+import { EmailMatchesPage } from './email-matches/EmailMatchesPage';
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
           <Route path="/applications/:id/edit" element={<ApplicationFormPage />} />
           <Route path="/cvs" element={<CvsPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/email-matches" element={<EmailMatchesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>

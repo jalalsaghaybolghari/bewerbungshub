@@ -6,6 +6,7 @@
     "applications": "Bewerbungen",
     "cvs": "Lebensläufe",
     "dashboard": "Übersicht",
+    "emailMatches": "E-Mail-Treffer",
     "settings": "Einstellungen",
     "logout": "Abmelden"
   },
@@ -174,6 +175,8 @@
     "title": "Einstellungen",
     "followUpDefaultDays": "Standard-Erinnerung zum Nachfassen (Tage nach Bewerbung)",
     "ghostedAfterDays": "Als „ohne Antwort“ markieren nach (Tage ohne Update)",
+    "gmailSyncIntervalMinutes": "Gmail auf Updates prüfen, alle",
+    "gmailAutoApprove": "Über Gmail erkannte Statusänderungen automatisch übernehmen",
     "saved": "Gespeichert.",
     "apiKey": {
       "title": "API-Schlüssel",
@@ -184,7 +187,26 @@
       "regenerate": "API-Schlüssel neu erstellen",
       "revoke": "Widerrufen",
       "generatedOnce": "Kopiere diesen Schlüssel jetzt — er wird danach nicht mehr angezeigt."
+    },
+    "gmail": {
+      "title": "Gmail",
+      "description": "Verbinde Gmail, um Interview-Einladungen und Absagen automatisch in deinem Postfach zu erkennen und deinen Bewerbungen zuzuordnen.",
+      "connect": "Gmail verbinden",
+      "disconnect": "Trennen",
+      "reconnect": "Gmail erneut verbinden",
+      "connected": "Gmail verbunden",
+      "lastSynced": "Gmail verbunden — zuletzt geprüft {{date}}",
+      "needsReconnect": "Deine Gmail-Verbindung ist abgelaufen. Verbinde erneut, um weiter auf Updates zu prüfen.",
+      "connectedBanner": "Gmail wurde verbunden.",
+      "errorBanner": "Gmail konnte nicht verbunden werden. Bitte erneut versuchen."
     }
+  },
+  "emailMatches": {
+    "title": "E-Mail-Treffer",
+    "description": "Über Gmail erkannte Interview-Einladungen und Absagen, die auf deine Prüfung warten.",
+    "empty": "Aktuell nichts zu prüfen.",
+    "approve": "Übernehmen",
+    "reject": "Ablehnen"
   },
   "cvs": {
     "title": "Lebensläufe",

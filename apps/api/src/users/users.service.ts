@@ -11,6 +11,20 @@ export interface GoogleDriveConnectionInput {
   folderId: string;
 }
 
+export interface GmailConnectionInput {
+  accessTokenEncrypted: string;
+  refreshTokenEncrypted: string;
+  accessTokenExpiresAt: Date;
+}
+
+export interface GmailSyncResultInput {
+  nextSyncAt: Date;
+  lastSyncedAt: Date;
+  status: 'ok' | 'error';
+  error?: string;
+  needsReconnect: boolean;
+}
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -35,12 +49,19 @@ export class UsersService {
   }
 
   async updateSettings(userId: string, input: UpdateUserSettingsInput) {
-    const update: Record<string, number> = {};
+    const update: Record<string, number | boolean> = {};
     if (input.followUpDefaultDays !== undefined) {
       update['settings.followUpDefaultDays'] = input.followUpDefaultDays;
     }
     if (input.ghostedAfterDays !== undefined) {
       update['settings.ghostedAfterDays'] = input.ghostedAfterDays;
+    }
+    if (input.gmailSyncIntervalMinutes !== undefined) {
+      update['settings.gmailSyncIntervalMinutes'] =
+        input.gmailSyncIntervalMinutes;
+    }
+    if (input.gmailAutoApprove !== undefined) {
+      update['settings.gmailAutoApprove'] = input.gmailAutoApprove;
     }
     return this.userModel
       .findByIdAndUpdate(userId, { $set: update }, { new: true })
@@ -92,6 +113,74 @@ export class UsersService {
   clearGoogleDriveConnection(userId: string) {
     return this.userModel
       .updateOne({ _id: userId }, { $unset: { googleDrive: '' } })
+      .exec();
+  }
+
+  // nextSyncAt starts at "now" (not connectedAt + interval) so the
+  // dispatcher's very next tick picks this user up — that's what kicks off
+  // the first backfill sync, no separate trigger endpoint needed.
+  setGmailConnection(userId: string, connection: GmailConnectionInput) {
+    return this.userModel
+      .updateOne(
+        { _id: userId },
+        {
+          $set: {
+            gmail: {
+              ...connection,
+              connectedAt: new Date(),
+              nextSyncAt: new Date(),
+              needsReconnect: false,
+            },
+          },
+        },
+      )
+      .exec();
+  }
+
+  updateGmailAccessToken(
+    userId: string,
+    accessTokenEncrypted: string,
+    accessTokenExpiresAt: Date,
+  ) {
+    return this.userModel
+      .updateOne(
+        { _id: userId },
+        {
+          $set: {
+            'gmail.accessTokenEncrypted': accessTokenEncrypted,
+            'gmail.accessTokenExpiresAt': accessTokenExpiresAt,
+          },
+        },
+      )
+      .exec();
+  }
+
+  // Called once at the end of every sync attempt, success or failure — see
+  // the comment on User.gmail.nextSyncAt for why this must always advance.
+  // $set/$unset can't both touch lastSyncError in the same update (Mongo
+  // rejects that as a conflicting path), so it's picked one way or the
+  // other up front instead.
+  recordGmailSyncResult(userId: string, result: GmailSyncResultInput) {
+    const set: Record<string, unknown> = {
+      'gmail.nextSyncAt': result.nextSyncAt,
+      'gmail.lastSyncedAt': result.lastSyncedAt,
+      'gmail.lastSyncStatus': result.status,
+      'gmail.needsReconnect': result.needsReconnect,
+    };
+    if (result.error !== undefined) set['gmail.lastSyncError'] = result.error;
+    return this.userModel
+      .updateOne(
+        { _id: userId },
+        result.error !== undefined
+          ? { $set: set }
+          : { $set: set, $unset: { 'gmail.lastSyncError': '' } },
+      )
+      .exec();
+  }
+
+  clearGmailConnection(userId: string) {
+    return this.userModel
+      .updateOne({ _id: userId }, { $unset: { gmail: '' } })
       .exec();
   }
 

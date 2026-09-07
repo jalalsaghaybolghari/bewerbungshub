@@ -38,6 +38,21 @@ export default () => ({
     clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
     redirectUri: process.env.GOOGLE_OAUTH_REDIRECT_URI,
   },
+  gmail: {
+    // Reuses the Drive OAuth client by default — Google scopes a client at
+    // authorization time, not creation time, so one client with two
+    // registered redirect URIs (Drive's callback + Gmail's) works fine.
+    // Set GMAIL_OAUTH_CLIENT_ID/SECRET explicitly to use a dedicated one.
+    clientId:
+      process.env.GMAIL_OAUTH_CLIENT_ID ?? process.env.GOOGLE_OAUTH_CLIENT_ID,
+    clientSecret:
+      process.env.GMAIL_OAUTH_CLIENT_SECRET ??
+      process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+    redirectUri: process.env.GMAIL_OAUTH_REDIRECT_URI,
+  },
+  redis: {
+    url: process.env.REDIS_URL ?? 'redis://localhost:6379',
+  },
   // Where the Google Drive OAuth callback (and anything else that needs to
   // land the browser back in the web app) redirects to after finishing.
   webAppUrl: process.env.WEB_APP_URL ?? 'http://localhost:5173',

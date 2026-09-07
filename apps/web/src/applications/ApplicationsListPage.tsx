@@ -9,6 +9,7 @@ import {
   ChevronUpIcon,
   EyeIcon,
   ExternalLinkIcon,
+  PencilIcon,
   StarIcon,
   TrashIcon,
 } from '../components/icons';
@@ -319,6 +320,13 @@ function ApplicationRow({
           >
             <EyeIcon className="size-4" />
           </button>
+          <Link
+            to={`/applications/${app._id}/edit`}
+            aria-label={t('common.edit')}
+            className="hover:text-accent"
+          >
+            <PencilIcon className="size-4" />
+          </Link>
           {isSafeHref(app.applyLink) && (
             <a
               href={app.applyLink}

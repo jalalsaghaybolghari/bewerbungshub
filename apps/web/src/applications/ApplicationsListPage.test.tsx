@@ -142,6 +142,16 @@ describe('ApplicationsListPage', () => {
     expect(deleteMock).not.toHaveBeenCalled();
   });
 
+  it('shows an edit link in the Actions column pointing at the edit page (happy path)', () => {
+    listData = { items: [makeApplication({ _id: 'app-42' })], total: 1, page: 1, pageSize: 20 };
+    renderPage();
+
+    expect(screen.getByRole('link', { name: /edit/i })).toHaveAttribute(
+      'href',
+      '/applications/app-42/edit',
+    );
+  });
+
   it('opens the quick-view modal with the job description when the view icon is clicked (happy path)', async () => {
     listData = {
       items: [makeApplication({ jobDescription: 'We build great software.' })],

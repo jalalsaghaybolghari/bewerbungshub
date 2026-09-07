@@ -15,3 +15,4 @@ export * from './interviews';
 export * from './follow-ups';
 export * from './settings';
 export * from './similarity';
+export * from './gmail';

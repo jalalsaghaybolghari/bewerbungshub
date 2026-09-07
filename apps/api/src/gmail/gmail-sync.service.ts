@@ -23,6 +23,17 @@ import { Event, EventDocument } from '../applications/schemas/event.schema';
 // lastSyncedAt is unset until a sync actually completes.
 const GMAIL_BACKFILL_DAYS = 90;
 
+// messages.list returns at most 100 ids per page and, left unpaginated,
+// silently truncates — the bug this constant exists to fix: a mailbox
+// with more than 100 matching messages in the search window only ever
+// got the newest 100, and since the next sync's `after:` bound moves
+// forward regardless, anything beyond that first page was gone for good.
+// Walking nextPageToken fixes that; this just bounds how many pages one
+// sync will walk (2000 messages) so a pathological backlog can't turn a
+// single sync into an unbounded loop — logged if ever hit, since at that
+// scale the remaining backlog needs a second look, not a silent drop.
+const MAX_LIST_PAGES = 20;
+
 function buildSearchQuery(after: Date): string {
   const senders = SENDER_ALLOWLIST.join(' OR ');
   return `from:(${senders}) after:${Math.floor(after.getTime() / 1000)}`;
@@ -77,13 +88,7 @@ export class GmailSyncService {
             GMAIL_BACKFILL_DAYS * 24 * 60 * 60 * 1000,
         );
 
-      const listResult = await gmail.users.messages.list({
-        userId: 'me',
-        q: buildSearchQuery(after),
-      });
-      const messageIds = (listResult.data.messages ?? [])
-        .map((m) => m.id)
-        .filter((id): id is string => !!id);
+      const messageIds = await this.listAllMessageIds(gmail, after);
 
       if (messageIds.length > 0) {
         const alreadyProcessed = await this.emailMatchModel
@@ -131,6 +136,40 @@ export class GmailSyncService {
       if (needsReconnect) return;
       throw err;
     }
+  }
+
+  // See the comment on MAX_LIST_PAGES for why this exists — a single
+  // unpaginated messages.list() call silently truncates to 100 results.
+  private async listAllMessageIds(
+    gmail: gmail_v1.Gmail,
+    after: Date,
+  ): Promise<string[]> {
+    const ids: string[] = [];
+    let pageToken: string | undefined;
+    let pages = 0;
+
+    do {
+      const result = await gmail.users.messages.list({
+        userId: 'me',
+        q: buildSearchQuery(after),
+        pageToken,
+      });
+      ids.push(
+        ...(result.data.messages ?? [])
+          .map((m) => m.id)
+          .filter((id): id is string => !!id),
+      );
+      pageToken = result.data.nextPageToken ?? undefined;
+      pages += 1;
+    } while (pageToken && pages < MAX_LIST_PAGES);
+
+    if (pageToken) {
+      this.logger.warn(
+        `Gmail sync hit the ${MAX_LIST_PAGES}-page cap (${ids.length} messages) — some older matching messages in this window were not fetched this run.`,
+      );
+    }
+
+    return ids;
   }
 
   private async processMessage(

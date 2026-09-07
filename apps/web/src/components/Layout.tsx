@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
+import { useGmailStatus } from '../settings/api';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
@@ -10,6 +11,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 export function Layout() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const { data: gmailStatus } = useGmailStatus();
 
   return (
     <div className="flex min-h-screen">
@@ -25,9 +27,11 @@ export function Layout() {
           <NavLink to="/dashboard" className={navLinkClass}>
             {t('nav.dashboard')}
           </NavLink>
-          <NavLink to="/email-matches" className={navLinkClass}>
-            {t('nav.emailMatches')}
-          </NavLink>
+          {gmailStatus?.connected && (
+            <NavLink to="/email-matches" className={navLinkClass}>
+              {t('nav.emailMatches')}
+            </NavLink>
+          )}
           <NavLink to="/settings" className={navLinkClass}>
             {t('nav.settings')}
           </NavLink>

@@ -6,7 +6,7 @@
     "applications": "Bewerbungen",
     "cvs": "Lebensläufe",
     "dashboard": "Übersicht",
-    "emailMatches": "E-Mail-Treffer",
+    "emailMatches": "E-Mail-Tracking",
     "settings": "Einstellungen",
     "logout": "Abmelden"
   },
@@ -202,7 +202,7 @@
     }
   },
   "emailMatches": {
-    "title": "E-Mail-Treffer",
+    "title": "E-Mail-Tracking",
     "description": "Über Gmail erkannte Interview-Einladungen und Absagen, die auf deine Prüfung warten.",
     "empty": "Aktuell nichts zu prüfen.",
     "approve": "Übernehmen",

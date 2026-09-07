@@ -6,7 +6,7 @@
     "applications": "Applications",
     "cvs": "CVs",
     "dashboard": "Dashboard",
-    "emailMatches": "Email matches",
+    "emailMatches": "Email Tracking",
     "settings": "Settings",
     "logout": "Log out"
   },
@@ -202,7 +202,7 @@
     }
   },
   "emailMatches": {
-    "title": "Email matches",
+    "title": "Email Tracking",
     "description": "Interview invites and rejections detected from Gmail, waiting for your review.",
     "empty": "Nothing waiting for review right now.",
     "approve": "Approve",

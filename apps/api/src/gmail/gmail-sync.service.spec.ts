@@ -30,7 +30,7 @@ jest.setTimeout(60000);
 // real via mongodb-memory-server, same convention as
 // applications.service.spec.ts.
 const mockMessagesList = jest.fn<
-  Promise<{ data: { messages?: { id?: string }[] } }>,
+  Promise<{ data: { messages?: { id?: string }[]; nextPageToken?: string } }>,
   unknown[]
 >();
 const mockMessagesGet = jest.fn<
@@ -302,6 +302,63 @@ describe('GmailSyncService', () => {
     expect(mockMessagesGet).not.toHaveBeenCalled();
     const matches = await emailMatchModel.find({ userId: user._id }).exec();
     expect(matches).toHaveLength(1);
+  });
+
+  it('walks nextPageToken to fetch more than one page of results (edge case — regression guard for the 100-message truncation bug)', async () => {
+    const user = await seedConnectedUser();
+    mockMessagesList
+      .mockResolvedValueOnce({
+        data: { messages: [{ id: 'msg-page-1' }], nextPageToken: 'page-2' },
+      })
+      .mockResolvedValueOnce({ data: { messages: [{ id: 'msg-page-2' }] } });
+    mockMessagesGet.mockResolvedValue({
+      data: {
+        snippet: 'Just a newsletter, nothing actionable.',
+        payload: {
+          headers: messageHeaders('jobs-noreply@linkedin.com', 'Newsletter'),
+        },
+      },
+    });
+
+    await service.syncUserMailbox(user._id.toString());
+
+    expect(mockMessagesList).toHaveBeenCalledTimes(2);
+    const [secondCallArgs] = mockMessagesList.mock.calls[1] as [
+      { pageToken?: string },
+    ];
+    expect(secondCallArgs).toMatchObject({ pageToken: 'page-2' });
+    const matches = await emailMatchModel.find({ userId: user._id }).exec();
+    expect(matches.map((m) => m.gmailMessageId).sort()).toEqual([
+      'msg-page-1',
+      'msg-page-2',
+    ]);
+  });
+
+  it('stops paginating at the page cap instead of looping forever on an endless nextPageToken (edge case)', async () => {
+    const user = await seedConnectedUser();
+    // Every page reports another page available — a real API would never
+    // do this forever, but a broken/malicious response could, so the cap
+    // (20 pages, matching MAX_LIST_PAGES) is what actually bounds this.
+    mockMessagesList.mockImplementation(() =>
+      Promise.resolve({
+        data: {
+          messages: [{ id: `msg-${Math.random()}` }],
+          nextPageToken: 'always-more',
+        },
+      }),
+    );
+    mockMessagesGet.mockResolvedValue({
+      data: {
+        snippet: 'Just a newsletter, nothing actionable.',
+        payload: {
+          headers: messageHeaders('jobs-noreply@linkedin.com', 'Newsletter'),
+        },
+      },
+    });
+
+    await service.syncUserMailbox(user._id.toString());
+
+    expect(mockMessagesList).toHaveBeenCalledTimes(20);
   });
 
   it('sets needsReconnect and does not throw on an invalid_grant failure (edge case)', async () => {

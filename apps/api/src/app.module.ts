@@ -15,6 +15,7 @@ import { CvsModule } from './cvs/cvs.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { GoogleDriveModule } from './google-drive/google-drive.module';
 import { AdminModule } from './admin/admin.module';
+import { GmailModule } from './gmail/gmail.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { AdminModule } from './admin/admin.module';
     ApplicationsModule,
     GoogleDriveModule,
     AdminModule,
+    GmailModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService, { provide: APP_PIPE, useClass: ZodValidationPipe }],

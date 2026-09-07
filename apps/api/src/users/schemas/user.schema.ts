@@ -1,6 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import { approvalStatusValues } from '@bewerber/shared';
+import {
+  approvalStatusValues,
+  gmailSyncIntervalMinutesValues,
+} from '@bewerber/shared';
 
 @Schema({ _id: false })
 class UserSettings {
@@ -9,6 +12,12 @@ class UserSettings {
 
   @Prop({ default: 21 })
   ghostedAfterDays: number;
+
+  @Prop({ enum: gmailSyncIntervalMinutesValues, default: 60 })
+  gmailSyncIntervalMinutes: number;
+
+  @Prop({ default: false })
+  gmailAutoApprove: boolean;
 }
 
 // Tokens are encrypted (TokenEncryptionService) before ever reaching here —
@@ -30,6 +39,52 @@ class GoogleDriveConnection {
 
   @Prop({ required: true, default: Date.now })
   connectedAt: Date;
+}
+
+// Unlike Drive, this connection is actively polled (see GmailSyncService) —
+// the extra fields below track that polling loop's own state, not just the
+// OAuth grant itself.
+@Schema({ _id: false })
+class GmailConnection {
+  @Prop({ required: true })
+  accessTokenEncrypted: string;
+
+  @Prop({ required: true })
+  refreshTokenEncrypted: string;
+
+  @Prop({ required: true })
+  accessTokenExpiresAt: Date;
+
+  @Prop({ required: true, default: Date.now })
+  connectedAt: Date;
+
+  // Undefined until the first sync completes — GmailSyncService falls back
+  // to (connectedAt - a fixed backfill window) for the first run's `after:`
+  // bound when this is unset.
+  @Prop()
+  lastSyncedAt?: Date;
+
+  // Drives GmailSyncDispatcherService's due-user query. Always advanced at
+  // the end of every sync attempt, success or failure, to
+  // now + settings.gmailSyncIntervalMinutes — never left in the past by a
+  // stuck or errored job, which would otherwise cause the dispatcher to
+  // keep re-enqueueing it every tick.
+  @Prop({ required: true, index: true })
+  nextSyncAt: Date;
+
+  @Prop({ type: String, enum: ['ok', 'error'] })
+  lastSyncStatus?: 'ok' | 'error';
+
+  @Prop()
+  lastSyncError?: string;
+
+  // Set on an invalid_grant / revoked-refresh-token failure (Google's
+  // Testing-mode consent expires a refresh token after 7 days of
+  // inactivity — a known, expected occurrence, not a bug). Excludes the
+  // user from the dispatcher's due-user query until they reconnect, so a
+  // permanently-broken connection isn't retried forever.
+  @Prop({ default: false })
+  needsReconnect: boolean;
 }
 
 @Schema({ timestamps: true })
@@ -56,6 +111,9 @@ export class User {
 
   @Prop({ type: GoogleDriveConnection })
   googleDrive?: GoogleDriveConnection;
+
+  @Prop({ type: GmailConnection })
+  gmail?: GmailConnection;
 
   // An unverified account never receives a session (see AuthService) —
   // register() creates the user with this false and no tokens; only a

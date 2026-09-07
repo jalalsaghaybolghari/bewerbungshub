@@ -4,6 +4,8 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
+  Post,
   Query,
   Res,
   UseGuards,
@@ -15,6 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/decorators/current-user.decorator';
 import { GmailService } from './gmail.service';
+import { EmailMatchService } from './email-match.service';
 
 const STATE_PURPOSE = 'gmail-connect';
 const STATE_EXPIRES_IN = '10m';
@@ -28,6 +31,7 @@ interface ConnectState {
 export class GmailController {
   constructor(
     private readonly gmailService: GmailService,
+    private readonly emailMatchService: EmailMatchService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
   ) {}
@@ -36,6 +40,32 @@ export class GmailController {
   @UseGuards(JwtAuthGuard)
   status(@CurrentUser() user: RequestUser) {
     return this.gmailService.getStatus(user.userId);
+  }
+
+  @Get('pending')
+  @UseGuards(JwtAuthGuard)
+  pending(@CurrentUser() user: RequestUser) {
+    return this.emailMatchService.findPending(user.userId);
+  }
+
+  @Post('pending/:id/approve')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async approvePending(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+  ) {
+    await this.emailMatchService.approve(user.userId, id);
+  }
+
+  @Post('pending/:id/reject')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async rejectPending(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+  ) {
+    await this.emailMatchService.reject(user.userId, id);
   }
 
   // Same reasoning as GoogleDriveController.connectUrl — a plain browser

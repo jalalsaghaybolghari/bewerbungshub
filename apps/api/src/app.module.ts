@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 import { APP_PIPE } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { BullModule } from '@nestjs/bullmq';
 import { join } from 'node:path';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { AppController } from './app.controller';
@@ -28,6 +29,14 @@ import { GmailModule } from './gmail/gmail.module';
       envFilePath: join(__dirname, '../../../.env'),
     }),
     ScheduleModule.forRoot(),
+    // One shared Redis connection for every BullMQ queue in the app —
+    // currently just gmail-sync (see GmailModule).
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: { url: config.get<string>('redis.url') },
+      }),
+    }),
     DatabaseModule,
     AuthModule,
     UsersModule,

@@ -2,9 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { Response } from 'express';
-import type { GmailStatus } from '@bewerber/shared';
+import type { EmailMatch, GmailStatus } from '@bewerber/shared';
 import { GmailController } from './gmail.controller';
 import { GmailService } from './gmail.service';
+import { EmailMatchService } from './email-match.service';
 import { AuthService } from '../auth/auth.service';
 import type { RequestUser } from '../auth/decorators/current-user.decorator';
 
@@ -34,6 +35,11 @@ describe('GmailController', () => {
     completeConnection: jest.fn<Promise<void>, [string, string]>(),
     disconnect: jest.fn<Promise<void>, [string]>(),
   };
+  const emailMatchService = {
+    findPending: jest.fn<Promise<EmailMatch[]>, [string]>(),
+    approve: jest.fn<Promise<void>, [string, string]>(),
+    reject: jest.fn<Promise<void>, [string, string]>(),
+  };
   const user: RequestUser = { userId: 'user-1', email: 'a@b.com' };
 
   beforeEach(async () => {
@@ -42,6 +48,7 @@ describe('GmailController', () => {
       controllers: [GmailController],
       providers: [
         { provide: GmailService, useValue: service },
+        { provide: EmailMatchService, useValue: emailMatchService },
         JwtService,
         { provide: ConfigService, useValue: makeConfig() },
         { provide: AuthService, useValue: { validateApiKey: jest.fn() } },
@@ -218,6 +225,38 @@ describe('GmailController', () => {
       await controller.disconnect(user);
 
       expect(service.disconnect).toHaveBeenCalledWith('user-1');
+    });
+  });
+
+  describe('pending', () => {
+    it('delegates to the service (happy path)', async () => {
+      emailMatchService.findPending.mockResolvedValue([]);
+
+      await controller.pending(user);
+
+      expect(emailMatchService.findPending).toHaveBeenCalledWith('user-1');
+    });
+  });
+
+  describe('approvePending', () => {
+    it('delegates to the service with the current user and match id (happy path)', async () => {
+      await controller.approvePending(user, 'match-1');
+
+      expect(emailMatchService.approve).toHaveBeenCalledWith(
+        'user-1',
+        'match-1',
+      );
+    });
+  });
+
+  describe('rejectPending', () => {
+    it('delegates to the service with the current user and match id (happy path)', async () => {
+      await controller.rejectPending(user, 'match-1');
+
+      expect(emailMatchService.reject).toHaveBeenCalledWith(
+        'user-1',
+        'match-1',
+      );
     });
   });
 });

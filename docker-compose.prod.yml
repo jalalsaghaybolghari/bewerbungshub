@@ -1,7 +1,18 @@
 # Production deploy — separate from docker-compose.yml, which is local-dev
 # infra only (mongo/redis/minio). Here mongo runs natively on the host
-# (not in a container), so only the app's own two services are defined.
+# (not in a container), so only the app's own services (+ this Redis,
+# below) are defined.
 services:
+  # BullMQ's job queue store (Gmail sync, apps/api/src/gmail/) — purely
+  # disposable job/queue state, not a database, so no volume backup
+  # strategy needed the way mongo's is handled. Not exposed to the host —
+  # reached only by `api` over the compose network at redis:6379.
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
   api:
     build:
       context: .
@@ -18,6 +29,8 @@ services:
       - 'host.docker.internal:host-gateway'
     volumes:
       - api_uploads:/app/uploads
+    depends_on:
+      - redis
 
   web:
     build:
@@ -59,3 +72,4 @@ services:
 
 volumes:
   api_uploads:
+  redis_data:

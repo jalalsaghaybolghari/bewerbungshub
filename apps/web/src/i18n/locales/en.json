@@ -6,6 +6,7 @@
     "applications": "Applications",
     "cvs": "CVs",
     "dashboard": "Dashboard",
+    "emailMatches": "Email matches",
     "settings": "Settings",
     "logout": "Log out"
   },
@@ -174,6 +175,8 @@
     "title": "Settings",
     "followUpDefaultDays": "Default follow-up reminder (days after applying)",
     "ghostedAfterDays": "Mark as ghosted after (days with no update)",
+    "gmailSyncIntervalMinutes": "Check Gmail for updates every",
+    "gmailAutoApprove": "Automatically apply status changes detected from Gmail",
     "saved": "Saved.",
     "apiKey": {
       "title": "API key",
@@ -184,7 +187,26 @@
       "regenerate": "Regenerate API key",
       "revoke": "Revoke",
       "generatedOnce": "Copy this key now — you won't be able to see it again."
+    },
+    "gmail": {
+      "title": "Gmail",
+      "description": "Connect Gmail to automatically detect interview invites and rejections from your inbox and match them to your applications.",
+      "connect": "Connect Gmail",
+      "disconnect": "Disconnect",
+      "reconnect": "Reconnect Gmail",
+      "connected": "Gmail connected",
+      "lastSynced": "Gmail connected — last checked {{date}}",
+      "needsReconnect": "Your Gmail connection has expired. Reconnect to keep checking for updates.",
+      "connectedBanner": "Gmail connected.",
+      "errorBanner": "Couldn't connect Gmail. Please try again."
     }
+  },
+  "emailMatches": {
+    "title": "Email matches",
+    "description": "Interview invites and rejections detected from Gmail, waiting for your review.",
+    "empty": "Nothing waiting for review right now.",
+    "approve": "Approve",
+    "reject": "Reject"
   },
   "cvs": {
     "title": "CVs",

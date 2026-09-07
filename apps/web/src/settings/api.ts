@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { UpdateUserSettingsInput, UserSettings } from '@bewerber/shared';
+import type { GmailStatus, UpdateUserSettingsInput, UserSettings } from '@bewerber/shared';
 import { apiFetch } from '../lib/api-client';
 import type { ApiKeyStatus, GeneratedApiKey } from './types';
 
@@ -41,5 +41,29 @@ export function useRevokeApiKey() {
   return useMutation({
     mutationFn: () => apiFetch<void>('/auth/api-key', { method: 'DELETE' }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['settings', 'api-key'] }),
+  });
+}
+
+export function useGmailStatus() {
+  return useQuery({
+    queryKey: ['settings', 'gmail-status'],
+    queryFn: () => apiFetch<GmailStatus>('/gmail/status'),
+  });
+}
+
+// Not a mutation — same reasoning as connectGoogleDrive in cvs/api.ts: a
+// successful call ends with the page navigating away entirely to Google's
+// consent screen, so only fetching the signed connect URL itself needs
+// the usual Bearer-authenticated apiFetch.
+export async function connectGmail(): Promise<void> {
+  const { url } = await apiFetch<{ url: string }>('/gmail/connect-url');
+  window.location.href = url;
+}
+
+export function useDisconnectGmail() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiFetch<void>('/gmail/disconnect', { method: 'DELETE' }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['settings', 'gmail-status'] }),
   });
 }

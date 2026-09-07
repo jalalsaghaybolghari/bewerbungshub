@@ -25,6 +25,9 @@ export function Layout() {
           <NavLink to="/dashboard" className={navLinkClass}>
             {t('nav.dashboard')}
           </NavLink>
+          <NavLink to="/email-matches" className={navLinkClass}>
+            {t('nav.emailMatches')}
+          </NavLink>
           <NavLink to="/settings" className={navLinkClass}>
             {t('nav.settings')}
           </NavLink>

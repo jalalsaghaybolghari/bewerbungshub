@@ -3,22 +3,28 @@ import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
-import { updateUserSettingsSchema } from '@bewerber/shared';
+import { gmailSyncIntervalMinutesValues, updateUserSettingsSchema } from '@bewerber/shared';
 import type { UpdateUserSettingsInput } from '@bewerber/shared';
 import { useSettings, useUpdateSettings } from './api';
 import { ApiKeySection } from './ApiKeySection';
-import { Button, Card, FieldError, Input, Label } from '../components/ui';
+import { GmailSection } from './GmailSection';
+import { Button, Card, FieldError, Input, Label, Select } from '../components/ui';
 
 // z.coerce.number()'s input type doesn't match the string a number
-// <input> produces — override both fields (the runtime coercion still
-// accepts a string regardless of this static type).
+// <input>/<select> produces — override both fields (the runtime coercion
+// still accepts a string regardless of this static type).
 type FormValues = Omit<
   z.input<typeof updateUserSettingsSchema>,
-  'followUpDefaultDays' | 'ghostedAfterDays'
+  'followUpDefaultDays' | 'ghostedAfterDays' | 'gmailSyncIntervalMinutes'
 > & {
   followUpDefaultDays: string;
   ghostedAfterDays: string;
+  gmailSyncIntervalMinutes: string;
 };
+
+function formatIntervalLabel(minutes: number): string {
+  return minutes < 60 ? `${minutes}m` : `${minutes / 60}h`;
+}
 
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -47,6 +53,8 @@ export function SettingsPage() {
       reset({
         followUpDefaultDays: String(settings.followUpDefaultDays),
         ghostedAfterDays: String(settings.ghostedAfterDays),
+        gmailSyncIntervalMinutes: String(settings.gmailSyncIntervalMinutes),
+        gmailAutoApprove: settings.gmailAutoApprove,
       });
     }
   }, [settings, reset]);
@@ -87,6 +95,23 @@ export function SettingsPage() {
             />
             <FieldError>{errors.ghostedAfterDays?.message}</FieldError>
           </div>
+          <div>
+            <Label htmlFor="gmailSyncIntervalMinutes">
+              {t('settings.gmailSyncIntervalMinutes')}
+            </Label>
+            <Select id="gmailSyncIntervalMinutes" {...register('gmailSyncIntervalMinutes')}>
+              {gmailSyncIntervalMinutesValues.map((minutes) => (
+                <option key={minutes} value={minutes}>
+                  {formatIntervalLabel(minutes)}
+                </option>
+              ))}
+            </Select>
+            <FieldError>{errors.gmailSyncIntervalMinutes?.message}</FieldError>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-slate">
+            <input type="checkbox" {...register('gmailAutoApprove')} />
+            {t('settings.gmailAutoApprove')}
+          </label>
           <div className="flex items-center gap-3">
             <Button type="submit" disabled={isSubmitting}>
               {t('common.save')}
@@ -97,6 +122,7 @@ export function SettingsPage() {
       </Card>
 
       <ApiKeySection />
+      <GmailSection />
     </div>
   );
 }

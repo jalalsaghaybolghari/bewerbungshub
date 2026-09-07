@@ -40,10 +40,13 @@ function containsAny(text: string, keywords: string[]): boolean {
   return keywords.some((keyword) => text.includes(keyword));
 }
 
-// Subject + Gmail's own short `snippet` only — no MIME body parsing.
-// Deliberately conservative: both-or-neither list matching returns 'none'
-// rather than guessing, since an email matched by both a rejection and an
-// interview phrase (e.g. quoting a prior thread) is genuinely ambiguous.
+// Subject + the caller-supplied body text (GmailSyncService passes the
+// cleaned MIME body extracted in body-text.ts, not Gmail's short auto
+// `snippet` — that field was found to truncate before reaching the actual
+// outcome sentence on real production emails). Deliberately conservative:
+// both-or-neither list matching returns 'none' rather than guessing, since
+// an email matched by both a rejection and an interview phrase (e.g.
+// quoting a prior thread) is genuinely ambiguous.
 export function classifyEmail(
   subject: string,
   snippet: string,

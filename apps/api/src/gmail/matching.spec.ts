@@ -62,6 +62,27 @@ describe('matchApplication', () => {
     expect(result).toBe('app-2');
   });
 
+  it('trusts the subject over a longer but unrelated company name mentioned in the body (regression guard — real "jobs recommended for you" false positive)', () => {
+    // Confirmed against a real production email: LinkedIn's rejection
+    // emails end with a "jobs recommended for you" section naming other
+    // real companies, unrelated to the actual application. Once the body
+    // (not just the short snippet) is searched, the longest-match rule
+    // alone would pick one of those recommended companies over the real
+    // one named in the subject, whenever its name happened to be longer.
+    const result = matchApplication(
+      [
+        candidate({ id: 'app-1', companyName: 'philoro EDELMETALLE' }),
+        candidate({
+          id: 'app-2',
+          companyName: 'Raiffeisen Bank International AG',
+        }),
+      ],
+      'Your application to Software Developer at philoro EDELMETALLE',
+      'Jobs recommended for you: Senior Frontend Developer at Raiffeisen Bank International AG.',
+    );
+    expect(result).toBe('app-1');
+  });
+
   it('strips company suffixes before matching (edge case)', () => {
     const result = matchApplication(
       [candidate({ id: 'app-1', companyName: 'Beispiel GmbH' })],

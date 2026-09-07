@@ -61,6 +61,13 @@ function messageHeaders(fromAddress: string, subject: string) {
   ];
 }
 
+function textPart(text: string) {
+  return {
+    mimeType: 'text/plain',
+    body: { data: Buffer.from(text, 'utf-8').toString('base64url') },
+  };
+}
+
 describe('GmailSyncService', () => {
   let mongod: MongoMemoryServer;
   let module: TestingModule;
@@ -359,6 +366,56 @@ describe('GmailSyncService', () => {
     await service.syncUserMailbox(user._id.toString());
 
     expect(mockMessagesList).toHaveBeenCalledTimes(20);
+  });
+
+  it("classifies a rejection whose real outcome sentence is beyond what Gmail's snippet would carry (regression guard — the philoro EDELMETALLE bug)", async () => {
+    // Reproduces a real production miss: LinkedIn's employer-relay emails
+    // echo the subject line, then pad with invisible characters, before
+    // the actual "Unfortunately..." sentence — Gmail's own short `snippet`
+    // field never reaches it, but the real MIME body (fetched here via
+    // format: 'full') does.
+    const user = await seedConnectedUser({ gmailAutoApprove: true });
+    const application = await seedApplication(user._id, {
+      company: { name: 'philoro EDELMETALLE' },
+    });
+    const combiningGraphemeJoiner = String.fromCharCode(0x034f);
+    const fullBody = `Your application to Software Developer at philoro EDELMETALLE${combiningGraphemeJoiner.repeat(80)}Thank you for your interest. Unfortunately, we will not be moving forward with your application, but we appreciate your time.`;
+    mockMessagesList.mockResolvedValue({
+      data: { messages: [{ id: 'msg-1' }] },
+    });
+    mockMessagesGet.mockResolvedValue({
+      data: {
+        threadId: 'thread-1',
+        // Mirrors the real bug: Gmail's own snippet is just the echoed
+        // subject line, with no rejection keyword in it at all.
+        snippet:
+          'Your application to Software Developer at philoro EDELMETALLE',
+        internalDate: '1700000000000',
+        payload: {
+          headers: messageHeaders(
+            'jobs-noreply@linkedin.com',
+            'Your application to Software Developer at philoro EDELMETALLE',
+          ),
+          parts: [textPart(fullBody)],
+        },
+      },
+    });
+
+    await service.syncUserMailbox(user._id.toString());
+
+    const updatedApplication = await applicationModel
+      .findById(application._id)
+      .exec();
+    expect(updatedApplication?.status).toBe('rejected');
+
+    const matches = await emailMatchModel.find({ userId: user._id }).exec();
+    expect(matches[0]).toMatchObject({
+      classification: 'rejection',
+      decision: 'auto_applied',
+    });
+    // The stored snippet is the real extracted body text, not Gmail's
+    // useless subject-echo snippet.
+    expect(matches[0].snippet).toContain('Unfortunately');
   });
 
   it('sets needsReconnect and does not throw on an invalid_grant failure (edge case)', async () => {

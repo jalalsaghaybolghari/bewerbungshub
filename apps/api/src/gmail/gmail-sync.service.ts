@@ -10,6 +10,7 @@ import { GmailService } from './gmail.service';
 import { EmailMatch, EmailMatchDocument } from './schemas/email-match.schema';
 import { SENDER_ALLOWLIST, extractSenderAddress } from './sender-allowlist';
 import { classifyEmail } from './classification';
+import { cleanEmailText, extractPlainText } from './body-text';
 import { matchApplication, type MatchCandidate } from './matching';
 import { decideOutcome } from './decision';
 import { UsersService } from '../users/users.service';
@@ -178,17 +179,26 @@ export class GmailSyncService {
     gmail: gmail_v1.Gmail,
     messageId: string,
   ): Promise<void> {
+    // format: 'full' (not 'metadata') is required to reach the real MIME
+    // body — Gmail's own `snippet` field is a short auto-generated preview
+    // that some senders' emails (LinkedIn's employer-relay messages,
+    // confirmed in production) defeat with invisible-character padding
+    // right after the subject-echoing first line, so the actual outcome
+    // sentence (e.g. a rejection) never reaches it. See body-text.ts.
     const message = await gmail.users.messages.get({
       userId: 'me',
       id: messageId,
-      format: 'metadata',
-      metadataHeaders: ['From', 'Subject'],
+      format: 'full',
     });
 
     const headers = message.data.payload?.headers ?? [];
     const fromHeader = headers.find((h) => h.name === 'From')?.value ?? '';
     const subject = headers.find((h) => h.name === 'Subject')?.value ?? '';
-    const snippet = message.data.snippet ?? '';
+    const bodyText = cleanEmailText(extractPlainText(message.data.payload));
+    // Falls back to Gmail's own snippet only when body extraction found no
+    // usable text at all (e.g. an unusual MIME structure) — otherwise the
+    // real body always wins over the short, potentially-truncated snippet.
+    const snippet = bodyText || (message.data.snippet ?? '');
     const receivedAt = message.data.internalDate
       ? new Date(Number(message.data.internalDate))
       : new Date();

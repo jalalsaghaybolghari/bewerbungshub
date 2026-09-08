@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { EmailMatch } from '@bewerber/shared';
 import { Button, Card } from '../components/ui';
 import { StatusBadge } from '../applications/StatusBadge';
+import { ExternalLinkIcon } from '../components/icons';
 import { usePendingEmailMatches, useApproveEmailMatch, useRejectEmailMatch } from './api';
 
 // #all/ (not #inbox/) so this still resolves once the thread has been
@@ -23,28 +24,27 @@ function EmailMatchRow({ match }: { match: EmailMatch }) {
         <div className="mb-1 flex items-center gap-2">
           <Link
             to={`/applications/${match.applicationId}`}
-            className="font-semibold text-ink hover:text-accent"
+            className="min-w-0 truncate font-semibold text-ink hover:text-accent"
           >
             {match.applicationTitle}
           </Link>
-          <span className="text-sm text-slate">· {match.applicationCompany}</span>
+          <span className="shrink-0 text-sm text-slate">· {match.applicationCompany}</span>
         </div>
         <div className="mb-2 flex items-center gap-2 text-xs text-slate">
           <span>{new Date(match.receivedAt).toLocaleDateString()}</span>
           <span>→</span>
           <StatusBadge status={match.proposedStatus} />
         </div>
-        {match.gmailThreadId ? (
+        {match.gmailThreadId && (
           <a
             href={gmailThreadUrl(match.gmailThreadId)}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-medium text-ink underline decoration-slate/40 hover:text-accent"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
           >
-            {match.subject}
+            <ExternalLinkIcon className="size-4" />
+            {t('emailMatches.viewEmail')}
           </a>
-        ) : (
-          <p className="text-sm font-medium text-ink">{match.subject}</p>
         )}
       </div>
       <div className="flex shrink-0 items-center gap-2">

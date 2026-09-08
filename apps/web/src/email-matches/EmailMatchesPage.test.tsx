@@ -59,7 +59,7 @@ describe('EmailMatchesPage', () => {
     expect(screen.getByText(/nothing waiting for review/i)).toBeInTheDocument();
   });
 
-  it('renders a pending match with its application, subject, and proposed status (happy path)', () => {
+  it('renders a pending match with its application and proposed status (happy path)', () => {
     matchesData = [makeMatch()];
     renderPage();
 
@@ -72,24 +72,22 @@ describe('EmailMatchesPage', () => {
     expect(screen.queryByText(/schedule a call/i)).not.toBeInTheDocument();
   });
 
-  it('links the subject to the real email in Gmail, opening in a new tab (happy path)', () => {
+  it('links to the real email in Gmail via a "View email" link, opening in a new tab (happy path)', () => {
     matchesData = [makeMatch({ gmailThreadId: 'abc123' })];
     renderPage();
 
-    const link = screen.getByRole('link', { name: 'Update on your application' });
+    const link = screen.getByRole('link', { name: /view email/i });
     expect(link).toHaveAttribute('href', 'https://mail.google.com/mail/u/0/#all/abc123');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.queryByText('Update on your application')).not.toBeInTheDocument();
   });
 
-  it('falls back to plain (non-linked) subject text when a match has no gmailThreadId (edge case)', () => {
+  it('shows no email link when a match has no gmailThreadId (edge case)', () => {
     matchesData = [makeMatch({ gmailThreadId: undefined })];
     renderPage();
 
-    expect(screen.getByText('Update on your application')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: 'Update on your application' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /view email/i })).not.toBeInTheDocument();
   });
 
   it('calls approve with the match id when Approve is clicked (happy path)', async () => {

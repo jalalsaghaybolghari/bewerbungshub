@@ -68,6 +68,7 @@ export class EmailMatchService {
           applicationCompany: application.company.name,
           subject: m.subject,
           snippet: m.snippet,
+          gmailThreadId: m.gmailThreadId,
           receivedAt: m.receivedAt,
           classification: m.classification,
           proposedStatus: m.proposedStatus!,

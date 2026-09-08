@@ -28,6 +28,7 @@ export const SENDER_DOMAIN_ALLOWLIST = [
   'smartrecruiters.com', // SmartRecruiters — e.g. Thoesch GmbH
   'message.digitalrecruiters.com', // DigitalRecruiters — e.g. Segula Technologies
   'mail.onlyfy.jobs', // onlyfy/softgarden — e.g. NOVOMATIC AG
+  'hire.eu.lever.co', // Lever (EU region) — e.g. Blackshark.ai
 ];
 
 // Gmail's `From` header is typically `"Display Name" <address@example.com>`

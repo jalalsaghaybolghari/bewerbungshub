@@ -20,6 +20,10 @@ const REJECTION_KEYWORDS = [
   // consider your application further for this position" (NOVOMATIC AG).
   'not able to move forward',
   'unable to consider your application',
+  // Confirmed against a real Lever (ATS) rejection email (Blackshark.ai):
+  // "we regret to inform you that we have chosen not to move forward at
+  // this time."
+  'chosen not to move forward',
   // German — normalizeForSimilarity only lowercases/strips punctuation, it
   // doesn't fold umlauts, so these must be written with them (ü/ä/ö) to
   // ever actually match.

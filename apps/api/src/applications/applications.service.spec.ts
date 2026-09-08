@@ -668,4 +668,32 @@ describe('ApplicationsService', () => {
       ).rejects.toThrow(NotFoundException);
     });
   });
+
+  describe('getStats', () => {
+    it('counts sentToday for an application created today, and excludes one backdated before today (happy path)', async () => {
+      const sentToday = await createApplication({ status: 'applied' });
+      const sentBeforeToday = await createApplication({ status: 'applied' });
+      const todayStart = new Date();
+      todayStart.setUTCHours(0, 0, 0, 0);
+      await applicationModel
+        .updateOne(
+          { _id: sentBeforeToday._id },
+          { sentAt: new Date(todayStart.getTime() - 1) },
+        )
+        .exec();
+
+      const stats = await service.getStats(userId);
+
+      expect(stats.sentToday).toBe(1);
+      expect(sentToday.sentAt).toBeInstanceOf(Date);
+    });
+
+    it('excludes a draft application (never sent) from sentToday (negative case)', async () => {
+      await createApplication({ status: 'draft' });
+
+      const stats = await service.getStats(userId);
+
+      expect(stats.sentToday).toBe(0);
+    });
+  });
 });

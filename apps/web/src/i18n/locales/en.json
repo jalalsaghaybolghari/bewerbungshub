@@ -162,6 +162,7 @@
   "dashboard": {
     "title": "Dashboard",
     "totalTracked": "Total tracked",
+    "sentToday": "Sent today",
     "sentThisWeek": "Sent this week",
     "responseRate": "Response rate",
     "avgDaysToReply": "Avg days to first reply",

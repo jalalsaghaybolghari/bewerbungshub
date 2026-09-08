@@ -35,6 +35,7 @@ describe('DashboardPage', () => {
   it('shows the no-data message when there are no applications yet (negative case)', () => {
     statsData = {
       total: 0,
+      sentToday: 0,
       sentThisWeek: 0,
       responseRate: 0,
       avgDaysToFirstResponse: null,
@@ -49,6 +50,7 @@ describe('DashboardPage', () => {
   it('renders stat cards and the overdue follow-ups list (happy path)', () => {
     statsData = {
       total: 12,
+      sentToday: 2,
       sentThisWeek: 3,
       responseRate: 42,
       avgDaysToFirstResponse: 5,
@@ -66,6 +68,8 @@ describe('DashboardPage', () => {
     renderDashboard();
 
     expect(screen.getByText('12')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText(/sent today/i)).toBeInTheDocument();
     expect(screen.getByText('42%')).toBeInTheDocument();
     expect(screen.getByText(/backend engineer/i)).toBeInTheDocument();
   });

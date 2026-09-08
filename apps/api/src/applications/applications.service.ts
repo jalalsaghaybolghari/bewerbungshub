@@ -232,11 +232,16 @@ export class ApplicationsService {
     const userObjectId = new Types.ObjectId(userId);
     const baseFilter = { userId: userObjectId, archivedAt: { $exists: false } };
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    // Calendar day (server-UTC), not a rolling 24h window — "sent today"
+    // reads as "since midnight", unlike sentThisWeek's rolling 7 days.
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
 
     const [
       total,
       byStatusAgg,
       byApplyTypeAgg,
+      sentToday,
       sentThisWeek,
       respondedCount,
       sentCount,
@@ -251,6 +256,9 @@ export class ApplicationsService {
         { $match: baseFilter },
         { $group: { _id: '$applyType', count: { $sum: 1 } } },
       ]),
+      this.applicationModel
+        .countDocuments({ ...baseFilter, sentAt: { $gte: todayStart } })
+        .exec(),
       this.applicationModel
         .countDocuments({ ...baseFilter, sentAt: { $gte: weekAgo } })
         .exec(),
@@ -276,6 +284,7 @@ export class ApplicationsService {
 
     return {
       total,
+      sentToday,
       sentThisWeek,
       responseRate:
         sentCount > 0 ? Math.round((respondedCount / sentCount) * 100) : 0,

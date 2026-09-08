@@ -35,8 +35,9 @@ export function DashboardPage() {
     <div className="mx-auto max-w-4xl">
       <h1 className="mb-6 text-2xl font-bold text-ink">{t('dashboard.title')}</h1>
 
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-5">
         <StatCard label={t('dashboard.totalTracked')} value={stats.total} />
+        <StatCard label={t('dashboard.sentToday')} value={stats.sentToday} />
         <StatCard label={t('dashboard.sentThisWeek')} value={stats.sentThisWeek} />
         <StatCard label={t('dashboard.responseRate')} value={`${stats.responseRate}%`} />
         <StatCard

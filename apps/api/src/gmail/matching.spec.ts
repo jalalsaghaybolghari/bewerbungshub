@@ -83,6 +83,21 @@ describe('matchApplication', () => {
     expect(result).toBe('app-1');
   });
 
+  it('matches on the sender display name when the company appears nowhere in the subject or body (regression guard — real NOVOMATIC/onlyfy email)', () => {
+    // Confirmed against a real production email: onlyfy/softgarden's
+    // rejection subject is generic ("Your application – Software Tester
+    // / Systems Integration (w/m/x)") and the body never names the
+    // company either — only the sender's display name does
+    // ("NOVOMATIC AG <reply@mail.onlyfy.jobs>").
+    const result = matchApplication(
+      [candidate({ id: 'app-1', companyName: 'NOVOMATIC AG' })],
+      'Your application – Software Tester / Systems Integration (w/m/x)',
+      'We have carefully evaluated your documents.',
+      'NOVOMATIC AG',
+    );
+    expect(result).toBe('app-1');
+  });
+
   it('strips company suffixes before matching (edge case)', () => {
     const result = matchApplication(
       [candidate({ id: 'app-1', companyName: 'Beispiel GmbH' })],

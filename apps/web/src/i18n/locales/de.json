@@ -162,6 +162,7 @@
   "dashboard": {
     "title": "Übersicht",
     "totalTracked": "Insgesamt erfasst",
+    "sentToday": "Heute gesendet",
     "sentThisWeek": "Diese Woche gesendet",
     "responseRate": "Antwortquote",
     "avgDaysToReply": "Ø Tage bis erste Antwort",

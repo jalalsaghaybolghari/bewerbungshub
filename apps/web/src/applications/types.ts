@@ -61,6 +61,7 @@ export interface OverdueFollowUpApplication {
 
 export interface ApplicationStats {
   total: number;
+  sentToday: number;
   sentThisWeek: number;
   responseRate: number;
   avgDaysToFirstResponse: number | null;

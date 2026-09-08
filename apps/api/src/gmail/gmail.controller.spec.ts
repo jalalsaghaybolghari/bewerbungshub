@@ -2,7 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { Response } from 'express';
-import type { EmailMatch, GmailStatus } from '@bewerber/shared';
+import type {
+  EmailMatch,
+  GmailStatus,
+  UnmatchedEmailMatch,
+} from '@bewerber/shared';
 import { GmailController } from './gmail.controller';
 import { GmailService } from './gmail.service';
 import { EmailMatchService } from './email-match.service';
@@ -37,6 +41,7 @@ describe('GmailController', () => {
   };
   const emailMatchService = {
     findPending: jest.fn<Promise<EmailMatch[]>, [string]>(),
+    findUnmatched: jest.fn<Promise<UnmatchedEmailMatch[]>, [string]>(),
     approve: jest.fn<Promise<void>, [string, string]>(),
     reject: jest.fn<Promise<void>, [string, string]>(),
   };
@@ -235,6 +240,16 @@ describe('GmailController', () => {
       await controller.pending(user);
 
       expect(emailMatchService.findPending).toHaveBeenCalledWith('user-1');
+    });
+  });
+
+  describe('unmatched', () => {
+    it('delegates to the service (happy path)', async () => {
+      emailMatchService.findUnmatched.mockResolvedValue([]);
+
+      await controller.unmatched(user);
+
+      expect(emailMatchService.findUnmatched).toHaveBeenCalledWith('user-1');
     });
   });
 

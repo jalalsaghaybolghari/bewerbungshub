@@ -5,8 +5,12 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import type { EmailMatch as EmailMatchSummary } from '@bewerber/shared';
+import type {
+  EmailMatch as EmailMatchSummary,
+  UnmatchedEmailMatch,
+} from '@bewerber/shared';
 import { EmailMatch, EmailMatchDocument } from './schemas/email-match.schema';
+import { guessCompanyFromSubject } from './company-guess';
 import {
   Application,
   ApplicationDocument,
@@ -74,6 +78,33 @@ export class EmailMatchService {
           proposedStatus: m.proposedStatus!,
         };
       });
+  }
+
+  // A real interview/rejection signal that matchApplication couldn't tie
+  // to any application — distinct from the far more common 'no_action'
+  // case (classification:'none', sender-matched noise), which is why
+  // classification is excluded here rather than just applicationId.
+  // Never actionable (there's no application to apply a status to), so
+  // this is a read-only list — no approve/reject like findPending's.
+  async findUnmatched(userId: string): Promise<UnmatchedEmailMatch[]> {
+    const matches = await this.emailMatchModel
+      .find({
+        userId: new Types.ObjectId(userId),
+        applicationId: { $exists: false },
+        classification: { $ne: 'none' },
+      })
+      .sort({ receivedAt: -1 })
+      .lean()
+      .exec();
+
+    return matches.map((m) => ({
+      id: m._id.toString(),
+      companyGuess: guessCompanyFromSubject(m.subject),
+      subject: m.subject,
+      gmailThreadId: m.gmailThreadId,
+      receivedAt: m.receivedAt,
+      classification: m.classification,
+    }));
   }
 
   // Delegates to the existing ApplicationsService.changeStatus rather than

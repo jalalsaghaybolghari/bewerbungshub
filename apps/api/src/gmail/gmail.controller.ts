@@ -48,6 +48,12 @@ export class GmailController {
     return this.emailMatchService.findPending(user.userId);
   }
 
+  @Get('unmatched')
+  @UseGuards(JwtAuthGuard)
+  unmatched(@CurrentUser() user: RequestUser) {
+    return this.emailMatchService.findUnmatched(user.userId);
+  }
+
   @Post('pending/:id/approve')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)

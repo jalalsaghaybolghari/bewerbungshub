@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import {
@@ -30,6 +30,12 @@ export function ApplicationFormPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEdit = !!id;
+  const [searchParams] = useSearchParams();
+  // Populated when arriving from the Email Tracking page's "Add
+  // application" link on an unmatched email — lets the user start the new
+  // application already scoped to the right company instead of retyping
+  // it from the email.
+  const prefillCompany = !isEdit ? searchParams.get('company') : null;
 
   const { data: detail } = useApplication(id);
   const { data: cvs } = useCvs();
@@ -41,6 +47,7 @@ export function ApplicationFormPage() {
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ApplicationFormValues, unknown, CreateApplicationInput>({
     resolver: zodResolver(createApplicationSchema),
@@ -48,6 +55,15 @@ export function ApplicationFormPage() {
   });
 
   const relatedLinks = useFieldArray({ control, name: 'relatedLinks' });
+
+  useEffect(() => {
+    if (prefillCompany) {
+      setValue('company.name', prefillCompany);
+    }
+    // Only meant to run once, from the initial URL — not on every
+    // keystroke if the user then edits the field themselves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (detail) {

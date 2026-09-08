@@ -43,3 +43,11 @@ export function useRejectEmailMatch() {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
   });
 }
+
+export function useRejectUnmatchedEmailMatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch<void>(`/gmail/unmatched/${id}/reject`, { method: 'POST' }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: UNMATCHED_QUERY_KEY }),
+  });
+}

@@ -84,14 +84,17 @@ export class EmailMatchService {
   // to any application — distinct from the far more common 'no_action'
   // case (classification:'none', sender-matched noise), which is why
   // classification is excluded here rather than just applicationId.
-  // Never actionable (there's no application to apply a status to), so
-  // this is a read-only list — no approve/reject like findPending's.
+  // There's no application to apply a status to, so "approve" makes no
+  // sense here (unlike findPending's rows) — but "reject" still does, as
+  // a dismissal: rejectUnmatched below sets resolvedAt, which this query
+  // excludes, so a dismissed one stops reappearing.
   async findUnmatched(userId: string): Promise<UnmatchedEmailMatch[]> {
     const matches = await this.emailMatchModel
       .find({
         userId: new Types.ObjectId(userId),
         applicationId: { $exists: false },
         classification: { $ne: 'none' },
+        resolvedAt: { $exists: false },
       })
       .sort({ receivedAt: -1 })
       .lean()
@@ -137,6 +140,28 @@ export class EmailMatchService {
 
   async reject(userId: string, matchId: string): Promise<void> {
     const match = await this.findResolvableMatch(userId, matchId);
+
+    match.resolvedAt = new Date();
+    match.resolvedBy = 'user';
+    match.resolution = 'rejected';
+    await match.save();
+  }
+
+  // Dismisses an unmatched row — there's no application to act on, so
+  // this only ever records resolution:'rejected', never 'approved'
+  // (approve() above stays findPending-only, where there's a
+  // proposedStatus to actually apply).
+  async rejectUnmatched(userId: string, matchId: string): Promise<void> {
+    const match = await this.emailMatchModel
+      .findOne({ _id: matchId, userId: new Types.ObjectId(userId) })
+      .exec();
+    if (!match) throw new NotFoundException('Email match not found');
+    if (match.applicationId || match.classification === 'none') {
+      throw new ConflictException('This match is not an unmatched email');
+    }
+    if (match.resolvedAt) {
+      throw new ConflictException('This match has already been resolved');
+    }
 
     match.resolvedAt = new Date();
     match.resolvedBy = 'user';

@@ -74,6 +74,16 @@ export class GmailController {
     await this.emailMatchService.reject(user.userId, id);
   }
 
+  @Post('unmatched/:id/reject')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async rejectUnmatched(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+  ) {
+    await this.emailMatchService.rejectUnmatched(user.userId, id);
+  }
+
   // Same reasoning as GoogleDriveController.connectUrl — a plain browser
   // navigation can't carry our Authorization header, so this is the
   // Bearer-authenticated half (called via AJAX) that hands back a URL

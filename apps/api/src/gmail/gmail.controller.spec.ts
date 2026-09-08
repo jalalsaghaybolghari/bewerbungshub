@@ -44,6 +44,7 @@ describe('GmailController', () => {
     findUnmatched: jest.fn<Promise<UnmatchedEmailMatch[]>, [string]>(),
     approve: jest.fn<Promise<void>, [string, string]>(),
     reject: jest.fn<Promise<void>, [string, string]>(),
+    rejectUnmatched: jest.fn<Promise<void>, [string, string]>(),
   };
   const user: RequestUser = { userId: 'user-1', email: 'a@b.com' };
 
@@ -269,6 +270,17 @@ describe('GmailController', () => {
       await controller.rejectPending(user, 'match-1');
 
       expect(emailMatchService.reject).toHaveBeenCalledWith(
+        'user-1',
+        'match-1',
+      );
+    });
+  });
+
+  describe('rejectUnmatched', () => {
+    it('delegates to the service with the current user and match id (happy path)', async () => {
+      await controller.rejectUnmatched(user, 'match-1');
+
+      expect(emailMatchService.rejectUnmatched).toHaveBeenCalledWith(
         'user-1',
         'match-1',
       );

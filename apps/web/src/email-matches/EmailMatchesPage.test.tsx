@@ -11,6 +11,7 @@ let gmailAutoApprove = false;
 let isLoading = false;
 const approveMock = vi.fn();
 const rejectMock = vi.fn();
+const rejectUnmatchedMock = vi.fn();
 
 vi.mock('./api', () => ({
   usePendingEmailMatches: () => ({ data: matchesData, isLoading }),
@@ -20,6 +21,7 @@ vi.mock('./api', () => ({
   }),
   useApproveEmailMatch: () => ({ mutate: approveMock, isPending: false }),
   useRejectEmailMatch: () => ({ mutate: rejectMock, isPending: false }),
+  useRejectUnmatchedEmailMatch: () => ({ mutate: rejectUnmatchedMock, isPending: false }),
 }));
 
 vi.mock('../settings/api', () => ({
@@ -139,7 +141,7 @@ describe('EmailMatchesPage', () => {
     expect(screen.queryByText(/unmatched/i)).not.toBeInTheDocument();
   });
 
-  it('renders an unmatched email with its company guess, status, date, and a Gmail link, but no approve/reject buttons (happy path)', () => {
+  it('renders an unmatched email with its company guess, status, date, and a Gmail link, but no approve button (happy path)', () => {
     unmatchedData = [makeUnmatched()];
     renderPage();
 
@@ -150,8 +152,17 @@ describe('EmailMatchesPage', () => {
     const link = screen.getByRole('link', { name: /view email/i });
     expect(link).toHaveAttribute('href', 'https://mail.google.com/mail/u/0/#all/thread-9');
 
+    // No application to apply an outcome to — nothing to "approve".
     expect(screen.queryByRole('button', { name: /approve/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /reject/i })).not.toBeInTheDocument();
+  });
+
+  it("calls rejectUnmatched with the match id when an unmatched row's Reject is clicked (happy path)", async () => {
+    unmatchedData = [makeUnmatched({ id: 'unmatched-42' })];
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: /reject/i }));
+
+    expect(rejectUnmatchedMock).toHaveBeenCalledWith('unmatched-42');
   });
 
   it('links "Add application" to a prefilled new-application form (happy path)', () => {

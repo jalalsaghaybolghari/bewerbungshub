@@ -8,6 +8,7 @@ import {
   usePendingEmailMatches,
   useApproveEmailMatch,
   useRejectEmailMatch,
+  useRejectUnmatchedEmailMatch,
   useUnmatchedEmailMatches,
 } from './api';
 import { useSettings } from '../settings/api';
@@ -87,6 +88,7 @@ function EmailMatchRow({ match }: { match: EmailMatch }) {
 
 function UnmatchedRow({ match }: { match: UnmatchedEmailMatch }) {
   const { t } = useTranslation();
+  const reject = useRejectUnmatchedEmailMatch();
 
   return (
     <Card className="flex items-start justify-between gap-4">
@@ -99,12 +101,22 @@ function UnmatchedRow({ match }: { match: UnmatchedEmailMatch }) {
         </div>
         <EmailLink threadId={match.gmailThreadId} />
       </div>
-      <Link
-        to={`/applications/new?company=${encodeURIComponent(match.companyGuess)}`}
-        className={buttonClasses('secondary', 'shrink-0')}
-      >
-        {t('emailMatches.addApplication')}
-      </Link>
+      <div className="flex shrink-0 items-center gap-2">
+        <Link
+          to={`/applications/new?company=${encodeURIComponent(match.companyGuess)}`}
+          className={buttonClasses('secondary')}
+        >
+          {t('emailMatches.addApplication')}
+        </Link>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => reject.mutate(match.id)}
+          disabled={reject.isPending}
+        >
+          {t('emailMatches.reject')}
+        </Button>
+      </div>
     </Card>
   );
 }

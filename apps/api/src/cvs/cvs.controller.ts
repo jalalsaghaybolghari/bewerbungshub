@@ -61,6 +61,12 @@ export class CvsController {
     return this.cvsService.remove(user.userId, id);
   }
 
+  @Get(':id/view-url')
+  async getViewUrl(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    const url = await this.cvsService.getViewUrl(user.userId, id);
+    return { url };
+  }
+
   @Get(':id/file')
   async getFile(
     @CurrentUser() user: RequestUser,

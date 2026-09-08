@@ -215,6 +215,7 @@
   "cvs": {
     "title": "CVs",
     "upload": "Upload CV",
+    "fileLabel": "PDF or DOCX",
     "empty": "No CVs uploaded yet.",
     "label": "Label",
     "language": "Language",

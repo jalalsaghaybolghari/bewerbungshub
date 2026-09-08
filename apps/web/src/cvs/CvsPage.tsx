@@ -154,12 +154,12 @@ export function CvsPage() {
         <h2 className="mb-4 font-semibold text-ink">{t('cvs.upload')}</h2>
         <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4">
           <div>
-            <Label htmlFor="cv-file">PDF</Label>
+            <Label htmlFor="cv-file">{t('cvs.fileLabel')}</Label>
             <input
               id="cv-file"
               ref={fileInputRef}
               type="file"
-              accept="application/pdf"
+              accept="application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
               className="block w-full text-sm text-slate"
             />
@@ -267,7 +267,7 @@ function CvRow({ cv }: { cv: Cv }) {
         {!isUnattached && (
           <button
             className="text-sm text-accent hover:underline disabled:opacity-50"
-            onClick={() => openMutation.mutate(cv._id)}
+            onClick={() => openMutation.mutate(cv)}
             disabled={openMutation.isPending}
           >
             {t('cvs.open')}

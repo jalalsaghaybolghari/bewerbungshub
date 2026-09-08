@@ -215,6 +215,7 @@
   "cvs": {
     "title": "Lebensläufe",
     "upload": "Lebenslauf hochladen",
+    "fileLabel": "PDF oder DOCX",
     "empty": "Noch keine Lebensläufe hochgeladen.",
     "label": "Bezeichnung",
     "language": "Sprache",

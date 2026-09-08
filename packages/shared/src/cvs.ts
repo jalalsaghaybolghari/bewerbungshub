@@ -25,5 +25,8 @@ export const updateCvSchema = z.object({
 });
 export type UpdateCvInput = z.infer<typeof updateCvSchema>;
 
-export const ALLOWED_CV_MIME_TYPES = ['application/pdf'] as const;
+export const ALLOWED_CV_MIME_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+] as const;
 export const MAX_CV_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB, per the plan's PDF size ceiling

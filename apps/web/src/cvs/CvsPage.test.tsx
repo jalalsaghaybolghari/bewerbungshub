@@ -127,6 +127,21 @@ describe('CvsPage — Google Drive connection', () => {
     expect(await screen.findByLabelText(/save to google drive/i)).toBeChecked();
   });
 
+  it('accepts a .docx file for upload (happy path)', async () => {
+    driveStatus = { connected: false };
+    uploadMutateAsync.mockResolvedValue(makeCv({}));
+    renderAt();
+
+    const file = new File(['docx-bytes'], 'resume.docx', {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    });
+    await userEvent.upload(screen.getByLabelText(/pdf/i), file);
+    await userEvent.type(screen.getByLabelText(/label/i), 'Main resume');
+    await userEvent.click(screen.getByRole('button', { name: /upload cv/i }));
+
+    expect(uploadMutateAsync).toHaveBeenCalledWith(expect.objectContaining({ file }));
+  });
+
   it('shows a success banner when redirected back with driveConnected=1 (happy path)', () => {
     driveStatus = { connected: true };
     renderAt('/cvs?driveConnected=1');
@@ -231,12 +246,13 @@ describe('CvsPage — open and unattached state', () => {
 
   it('opens the CV when "Open" is clicked (happy path)', async () => {
     driveStatus = { connected: false };
-    cvsData = [makeCv({})];
+    const cv = makeCv({});
+    cvsData = [cv];
     renderAt();
 
     await userEvent.click(screen.getByRole('button', { name: /^open$/i }));
 
-    expect(openMutate).toHaveBeenCalledWith('cv-1');
+    expect(openMutate).toHaveBeenCalledWith(cv);
   });
 
   it('shows an "Unattached" badge and hides "Open" once a Drive file is missing (edge case)', () => {

@@ -5,6 +5,12 @@ import { Button, Card } from '../components/ui';
 import { StatusBadge } from '../applications/StatusBadge';
 import { usePendingEmailMatches, useApproveEmailMatch, useRejectEmailMatch } from './api';
 
+// #all/ (not #inbox/) so this still resolves once the thread has been
+// archived or labeled, not just while it's sitting in the inbox.
+function gmailThreadUrl(threadId: string): string {
+  return `https://mail.google.com/mail/u/0/#all/${threadId}`;
+}
+
 function EmailMatchRow({ match }: { match: EmailMatch }) {
   const { t } = useTranslation();
   const approve = useApproveEmailMatch();
@@ -28,8 +34,18 @@ function EmailMatchRow({ match }: { match: EmailMatch }) {
           <span>→</span>
           <StatusBadge status={match.proposedStatus} />
         </div>
-        <p className="text-sm font-medium text-ink">{match.subject}</p>
-        <p className="text-sm text-slate">{match.snippet}</p>
+        {match.gmailThreadId ? (
+          <a
+            href={gmailThreadUrl(match.gmailThreadId)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-medium text-ink underline decoration-slate/40 hover:text-accent"
+          >
+            {match.subject}
+          </a>
+        ) : (
+          <p className="text-sm font-medium text-ink">{match.subject}</p>
+        )}
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <Button type="button" onClick={() => approve.mutate(match.id)} disabled={isPending}>

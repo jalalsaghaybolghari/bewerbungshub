@@ -47,6 +47,9 @@ export const emailMatchSchema = z.object({
   applicationCompany: z.string(),
   subject: z.string(),
   snippet: z.string(),
+  // Powers the "open in Gmail" link on the approval row — optional since
+  // older records synced before this field was persisted may lack it.
+  gmailThreadId: z.string().optional(),
   receivedAt: z.coerce.date(),
   classification: emailMatchClassificationSchema,
   proposedStatus: applicationStatusSchema,

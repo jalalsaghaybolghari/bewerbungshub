@@ -32,6 +32,7 @@ function makeMatch(overrides: Partial<EmailMatch> = {}): EmailMatch {
     applicationCompany: 'Acme',
     subject: 'Update on your application',
     snippet: 'We would like to invite you to schedule a call.',
+    gmailThreadId: 'thread-1',
     receivedAt: new Date('2026-01-01T00:00:00.000Z'),
     classification: 'interview',
     proposedStatus: 'interview',
@@ -67,8 +68,28 @@ describe('EmailMatchesPage', () => {
       '/applications/app-1',
     );
     expect(screen.getByText(/acme/i)).toBeInTheDocument();
-    expect(screen.getByText('Update on your application')).toBeInTheDocument();
     expect(screen.getByText('Interview', { selector: 'span' })).toBeInTheDocument();
+    expect(screen.queryByText(/schedule a call/i)).not.toBeInTheDocument();
+  });
+
+  it('links the subject to the real email in Gmail, opening in a new tab (happy path)', () => {
+    matchesData = [makeMatch({ gmailThreadId: 'abc123' })];
+    renderPage();
+
+    const link = screen.getByRole('link', { name: 'Update on your application' });
+    expect(link).toHaveAttribute('href', 'https://mail.google.com/mail/u/0/#all/abc123');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  it('falls back to plain (non-linked) subject text when a match has no gmailThreadId (edge case)', () => {
+    matchesData = [makeMatch({ gmailThreadId: undefined })];
+    renderPage();
+
+    expect(screen.getByText('Update on your application')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Update on your application' }),
+    ).not.toBeInTheDocument();
   });
 
   it('calls approve with the match id when Approve is clicked (happy path)', async () => {

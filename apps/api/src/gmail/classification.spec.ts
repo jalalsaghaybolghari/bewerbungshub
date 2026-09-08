@@ -14,6 +14,16 @@ describe('classifyEmail', () => {
       'Your application status',
       'We regret to inform you that you were not selected for this role.',
     ],
+    [
+      'Your application at CYBERTEC PostgreSQL International GmbH',
+      // Real production text (CYBERTEC PostgreSQL International GmbH, via join.com)
+      'Based on your profile and the number of other qualified applications, for the moment, we are not able to move forward in the recruiting process with you.',
+    ],
+    [
+      'Your application – Software Tester / Systems Integration (w/m/x)',
+      // Real production text (NOVOMATIC AG, via onlyfy/softgarden)
+      'We have carefully evaluated your documents and tried to match it to our internal requirements. We regret to inform you that we were unable to consider your application further for this position.',
+    ],
   ])('classifies a rejection email (happy path): %s', (subject, snippet) => {
     expect(classifyEmail(subject, snippet)).toBe('rejection');
   });
@@ -30,6 +40,11 @@ describe('classifyEmail', () => {
     [
       'Interview request',
       'We would like to speak with you next week, are you available?',
+    ],
+    [
+      'AT – Einladung zum Google Meet Interview',
+      // Real production text (Segula Technologies, via DigitalRecruiters)
+      'wir bedanken uns für Ihre Bewerbung und würden Sie gerne zu einem Google Meet Interview einladen.',
     ],
   ])('classifies an interview invite (happy path): %s', (subject, snippet) => {
     expect(classifyEmail(subject, snippet)).toBe('interview');

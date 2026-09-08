@@ -13,6 +13,13 @@ const REJECTION_KEYWORDS = [
   'will not be moving forward',
   'other candidates',
   'not selected',
+  // Both confirmed against real direct-company (non-LinkedIn) rejection
+  // emails once those senders were added to SENDER_DOMAIN_ALLOWLIST —
+  // "we are not able to move forward in the recruiting process with
+  // you" (CYBERTEC PostgreSQL International GmbH) and "we were unable to
+  // consider your application further for this position" (NOVOMATIC AG).
+  'not able to move forward',
+  'unable to consider your application',
   // German — normalizeForSimilarity only lowercases/strips punctuation, it
   // doesn't fold umlauts, so these must be written with them (ü/ä/ö) to
   // ever actually match.
@@ -34,6 +41,13 @@ const INTERVIEW_KEYWORDS = [
   'interviewtermin',
   'vorstellungsgespräch',
   'kennenlernen',
+  // Confirmed against a real direct-company interview invite (Segula
+  // Technologies, via DigitalRecruiters): "...würden Sie gerne zu einem
+  // Google Meet Interview einladen." Deliberately not the bare word
+  // "interview" alone — that would also match plenty of real rejection
+  // emails that mention interview only to say the candidate won't reach
+  // one, and both-lists-match already falls back to 'none' on ambiguity.
+  'interview einladen',
 ];
 
 function containsAny(text: string, keywords: string[]): boolean {

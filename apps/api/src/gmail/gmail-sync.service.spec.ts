@@ -170,6 +170,20 @@ describe('GmailSyncService', () => {
     });
   }
 
+  it('searches both the exact-address and the domain-allowlisted senders (regression guard — direct-company ATS emails)', async () => {
+    const user = await seedConnectedUser();
+    mockMessagesList.mockResolvedValue({ data: { messages: [] } });
+
+    await service.syncUserMailbox(user._id.toString());
+
+    const [callArgs] = mockMessagesList.mock.calls[0] as [{ q: string }];
+    expect(callArgs.q).toContain('jobs-noreply@linkedin.com');
+    expect(callArgs.q).toContain('@smartrecruiters.com');
+    expect(callArgs.q).toContain('@message.digitalrecruiters.com');
+    expect(callArgs.q).toContain('@mail.onlyfy.jobs');
+    expect(callArgs.q).toContain('@msg.join.com');
+  });
+
   it('does nothing when the user has no Gmail connection (edge case)', async () => {
     const user = await userModel.create({
       email: 'no-gmail@example.com',

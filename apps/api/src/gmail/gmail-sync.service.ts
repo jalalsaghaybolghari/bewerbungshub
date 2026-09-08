@@ -8,7 +8,12 @@ import type {
 } from '@bewerber/shared';
 import { GmailService } from './gmail.service';
 import { EmailMatch, EmailMatchDocument } from './schemas/email-match.schema';
-import { SENDER_ALLOWLIST, extractSenderAddress } from './sender-allowlist';
+import {
+  SENDER_ALLOWLIST,
+  SENDER_DOMAIN_ALLOWLIST,
+  extractSenderAddress,
+  extractSenderDisplayName,
+} from './sender-allowlist';
 import { classifyEmail } from './classification';
 import { cleanEmailText, extractPlainText } from './body-text';
 import { matchApplication, type MatchCandidate } from './matching';
@@ -35,9 +40,15 @@ const GMAIL_BACKFILL_DAYS = 90;
 // scale the remaining backlog needs a second look, not a silent drop.
 const MAX_LIST_PAGES = 20;
 
+// Gmail's from: operator accepts a bare `@domain` term to match any
+// sender at that (sub)domain — used for SENDER_DOMAIN_ALLOWLIST since
+// several of those senders vary their local-part per application.
 function buildSearchQuery(after: Date): string {
-  const senders = SENDER_ALLOWLIST.join(' OR ');
-  return `from:(${senders}) after:${Math.floor(after.getTime() / 1000)}`;
+  const senderTerms = [
+    ...SENDER_ALLOWLIST,
+    ...SENDER_DOMAIN_ALLOWLIST.map((domain) => `@${domain}`),
+  ];
+  return `from:(${senderTerms.join(' OR ')}) after:${Math.floor(after.getTime() / 1000)}`;
 }
 
 // Google's node client surfaces a revoked/expired refresh token as a 400
@@ -224,7 +235,12 @@ export class GmailSyncService {
       status: a.status,
     }));
 
-    const applicationId = matchApplication(candidates, subject, snippet);
+    const applicationId = matchApplication(
+      candidates,
+      subject,
+      snippet,
+      extractSenderDisplayName(fromHeader),
+    );
     const classification = classifyEmail(subject, snippet);
 
     if (!applicationId || classification === 'none') {

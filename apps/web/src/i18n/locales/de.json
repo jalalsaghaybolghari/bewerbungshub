@@ -207,7 +207,10 @@
     "empty": "Aktuell nichts zu prüfen.",
     "approve": "Übernehmen",
     "reject": "Ablehnen",
-    "viewEmail": "E-Mail ansehen"
+    "viewEmail": "E-Mail ansehen",
+    "unmatchedTitle": "Nicht zugeordnet",
+    "unmatchedDescription": "Über Gmail erkannte Absagen und Interview-Einladungen, die keiner Bewerbung zugeordnet werden konnten.",
+    "addApplication": "Bewerbung hinzufügen"
   },
   "cvs": {
     "title": "Lebensläufe",

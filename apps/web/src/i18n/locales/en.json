@@ -207,7 +207,10 @@
     "empty": "Nothing waiting for review right now.",
     "approve": "Approve",
     "reject": "Reject",
-    "viewEmail": "View email"
+    "viewEmail": "View email",
+    "unmatchedTitle": "Unmatched",
+    "unmatchedDescription": "Rejections and interview invites detected from Gmail that couldn't be matched to an application.",
+    "addApplication": "Add application"
   },
   "cvs": {
     "title": "CVs",

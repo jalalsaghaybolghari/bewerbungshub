@@ -58,6 +58,18 @@ describe('ApplicationFormPage', () => {
     detailData = undefined;
   });
 
+  it('prefills the company field from a ?company= query param on the new-application route (happy path)', () => {
+    renderAt('/applications/new?company=Globex');
+
+    expect(screen.getByLabelText(/company/i)).toHaveValue('Globex');
+  });
+
+  it('does not prefill the company field when there is no query param (negative case)', () => {
+    renderAt('/applications/new');
+
+    expect(screen.getByLabelText(/company/i)).toHaveValue('');
+  });
+
   it('adds a related link row that accepts a label and url (happy path)', async () => {
     renderAt('/applications/new');
 

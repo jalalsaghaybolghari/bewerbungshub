@@ -55,3 +55,17 @@ export const emailMatchSchema = z.object({
   proposedStatus: applicationStatusSchema,
 });
 export type EmailMatch = z.infer<typeof emailMatchSchema>;
+
+// A real interview/rejection keyword matched, but matchApplication
+// couldn't tie the email to any application (new/renamed company, an
+// application not tracked here, etc.) — companyGuess is a best-effort
+// display aid (see company-guess.ts), not something matching relies on.
+export const unmatchedEmailMatchSchema = z.object({
+  id: z.string(),
+  companyGuess: z.string(),
+  subject: z.string(),
+  gmailThreadId: z.string().optional(),
+  receivedAt: z.coerce.date(),
+  classification: emailMatchClassificationSchema,
+});
+export type UnmatchedEmailMatch = z.infer<typeof unmatchedEmailMatchSchema>;

@@ -2,18 +2,28 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { EmailMatch } from '@bewerber/shared';
+import type { EmailMatch, UnmatchedEmailMatch } from '@bewerber/shared';
 import { EmailMatchesPage } from './EmailMatchesPage';
 
 let matchesData: EmailMatch[] | undefined;
+let unmatchedData: UnmatchedEmailMatch[] | undefined;
+let gmailAutoApprove = false;
 let isLoading = false;
 const approveMock = vi.fn();
 const rejectMock = vi.fn();
 
 vi.mock('./api', () => ({
   usePendingEmailMatches: () => ({ data: matchesData, isLoading }),
+  useUnmatchedEmailMatches: (enabled: boolean) => ({
+    data: enabled ? unmatchedData : undefined,
+    isLoading: false,
+  }),
   useApproveEmailMatch: () => ({ mutate: approveMock, isPending: false }),
   useRejectEmailMatch: () => ({ mutate: rejectMock, isPending: false }),
+}));
+
+vi.mock('../settings/api', () => ({
+  useSettings: () => ({ data: { gmailAutoApprove } }),
 }));
 
 function renderPage() {
@@ -40,10 +50,24 @@ function makeMatch(overrides: Partial<EmailMatch> = {}): EmailMatch {
   };
 }
 
+function makeUnmatched(overrides: Partial<UnmatchedEmailMatch> = {}): UnmatchedEmailMatch {
+  return {
+    id: 'unmatched-1',
+    companyGuess: 'Globex',
+    subject: 'Update from Globex',
+    gmailThreadId: 'thread-9',
+    receivedAt: new Date('2026-01-02T00:00:00.000Z'),
+    classification: 'rejection',
+    ...overrides,
+  };
+}
+
 describe('EmailMatchesPage', () => {
   afterEach(() => {
     vi.clearAllMocks();
     matchesData = undefined;
+    unmatchedData = undefined;
+    gmailAutoApprove = false;
     isLoading = false;
   });
 
@@ -106,5 +130,51 @@ describe('EmailMatchesPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /reject/i }));
 
     expect(rejectMock).toHaveBeenCalledWith('match-42');
+  });
+
+  it('does not show the unmatched section when there is nothing unmatched (negative case)', () => {
+    unmatchedData = [];
+    renderPage();
+
+    expect(screen.queryByText(/unmatched/i)).not.toBeInTheDocument();
+  });
+
+  it('renders an unmatched email with its company guess, status, date, and a Gmail link, but no approve/reject buttons (happy path)', () => {
+    unmatchedData = [makeUnmatched()];
+    renderPage();
+
+    expect(screen.getByText('Unmatched')).toBeInTheDocument();
+    expect(screen.getByText('Globex')).toBeInTheDocument();
+    expect(screen.getByText('Rejected', { selector: 'span' })).toBeInTheDocument();
+
+    const link = screen.getByRole('link', { name: /view email/i });
+    expect(link).toHaveAttribute('href', 'https://mail.google.com/mail/u/0/#all/thread-9');
+
+    expect(screen.queryByRole('button', { name: /approve/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /reject/i })).not.toBeInTheDocument();
+  });
+
+  it('links "Add application" to a prefilled new-application form (happy path)', () => {
+    unmatchedData = [makeUnmatched({ companyGuess: 'Globex & Co' })];
+    renderPage();
+
+    const link = screen.getByRole('link', { name: /add application/i });
+    expect(link).toHaveAttribute('href', '/applications/new?company=Globex%20%26%20Co');
+  });
+
+  it('maps an "interview" classification to the Interview status badge (edge case)', () => {
+    unmatchedData = [makeUnmatched({ classification: 'interview' })];
+    renderPage();
+
+    expect(screen.getByText('Interview', { selector: 'span' })).toBeInTheDocument();
+  });
+
+  it('hides the unmatched section entirely in auto-approve mode, even when there is unmatched data (edge case)', () => {
+    gmailAutoApprove = true;
+    unmatchedData = [makeUnmatched()];
+    renderPage();
+
+    expect(screen.queryByText(/unmatched/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Globex')).not.toBeInTheDocument();
   });
 });

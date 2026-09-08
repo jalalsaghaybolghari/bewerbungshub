@@ -206,7 +206,8 @@
     "description": "Über Gmail erkannte Interview-Einladungen und Absagen, die auf deine Prüfung warten.",
     "empty": "Aktuell nichts zu prüfen.",
     "approve": "Übernehmen",
-    "reject": "Ablehnen"
+    "reject": "Ablehnen",
+    "viewEmail": "E-Mail ansehen"
   },
   "cvs": {
     "title": "Lebensläufe",

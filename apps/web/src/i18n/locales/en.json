@@ -206,7 +206,8 @@
     "description": "Interview invites and rejections detected from Gmail, waiting for your review.",
     "empty": "Nothing waiting for review right now.",
     "approve": "Approve",
-    "reject": "Reject"
+    "reject": "Reject",
+    "viewEmail": "View email"
   },
   "cvs": {
     "title": "CVs",

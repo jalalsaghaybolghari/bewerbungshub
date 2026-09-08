@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { useDisconnectGoogleDrive, useGoogleDriveStatus, useUploadCv } from './api';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { openCvFile, useDisconnectGoogleDrive, useGoogleDriveStatus, useUploadCv } from './api';
 import type { Cv, GoogleDriveStatus } from './types';
 
 function jsonResponse(body: unknown, init: { status?: number; ok?: boolean } = {}) {
@@ -101,6 +101,59 @@ describe('useUploadCv', () => {
     const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit];
     const body = requestInit.body as FormData;
     expect(body.get('useGoogleDrive')).toBeNull();
+  });
+});
+
+describe('openCvFile', () => {
+  const windowOpenMock = vi.fn();
+
+  beforeEach(() => {
+    window.open = windowOpenMock;
+    // jsdom doesn't implement these — stubbed just enough for the
+    // app-storage blob-open branch to run without throwing.
+    URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+    URL.revokeObjectURL = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('fetches a view URL and opens it directly for a Drive-backed CV, without downloading a blob (happy path)', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ url: 'https://drive.google.com/file/d/abc/view' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await openCvFile({ _id: 'cv-1', storageProvider: 'google-drive' });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/cvs/cv-1/view-url'),
+      expect.anything(),
+    );
+    expect(windowOpenMock).toHaveBeenCalledWith(
+      'https://drive.google.com/file/d/abc/view',
+      '_blank',
+      'noopener,noreferrer',
+    );
+  });
+
+  it('downloads and opens a blob for an app-storage CV (happy path)', async () => {
+    const blob = new Blob(['pdf-bytes'], { type: 'application/pdf' });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: () => Promise.resolve(blob),
+    } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await openCvFile({ _id: 'cv-1', storageProvider: 'app' });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/cvs/cv-1/file'),
+      expect.anything(),
+    );
+    expect(windowOpenMock).toHaveBeenCalledWith('blob:mock-url', '_blank', 'noopener,noreferrer');
   });
 });
 

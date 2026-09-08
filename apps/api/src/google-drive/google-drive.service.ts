@@ -110,6 +110,31 @@ export class GoogleDriveService {
     return { driveFileId: result.data.id };
   }
 
+  // Used for "Open" on a Drive-backed CV — Drive's own webViewLink opens
+  // the file in Drive's native viewer/editor (handles docx natively,
+  // unlike this app's own inline viewer), rather than proxying the raw
+  // bytes through downloadFile below.
+  async getFileViewUrl(userId: string, driveFileId: string): Promise<string> {
+    const { client } = await this.getAuthenticatedClient(userId);
+    const drive = google.drive({ version: 'v3', auth: client });
+    try {
+      const result = await drive.files.get({
+        fileId: driveFileId,
+        fields: 'webViewLink',
+      });
+      if (!result.data.webViewLink) {
+        throw new Error(
+          'Google Drive did not return a webViewLink for the file',
+        );
+      }
+      return result.data.webViewLink;
+    } catch (err) {
+      if (isNotFoundError(err))
+        throw new GoogleDriveFileNotFoundError(driveFileId);
+      throw err;
+    }
+  }
+
   async downloadFile(userId: string, driveFileId: string): Promise<Buffer> {
     const { client } = await this.getAuthenticatedClient(userId);
     const drive = google.drive({ version: 'v3', auth: client });

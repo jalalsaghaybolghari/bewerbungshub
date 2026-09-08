@@ -248,6 +248,30 @@ describe('GoogleDriveService', () => {
       expect(result.toString()).toBe('pdf-content');
     });
 
+    it('returns the Drive webViewLink for a file (happy path)', async () => {
+      mockConnectedUser();
+      mockFilesGet.mockResolvedValue({
+        data: { webViewLink: 'https://drive.google.com/file/d/file-abc/view' },
+      });
+
+      const result = await service.getFileViewUrl('user-1', 'file-abc');
+
+      expect(mockFilesGet).toHaveBeenCalledWith({
+        fileId: 'file-abc',
+        fields: 'webViewLink',
+      });
+      expect(result).toBe('https://drive.google.com/file/d/file-abc/view');
+    });
+
+    it('throws GoogleDriveFileNotFoundError when the file is already gone (edge case)', async () => {
+      mockConnectedUser();
+      mockFilesGet.mockRejectedValue({ code: 404 });
+
+      await expect(
+        service.getFileViewUrl('user-1', 'file-abc'),
+      ).rejects.toThrow(GoogleDriveFileNotFoundError);
+    });
+
     it('deletes the file by id (happy path)', async () => {
       mockConnectedUser();
       mockFilesDelete.mockResolvedValue({});

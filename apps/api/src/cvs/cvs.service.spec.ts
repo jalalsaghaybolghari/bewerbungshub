@@ -37,6 +37,7 @@ function makeGoogleDriveMock() {
       [string, Buffer, string, string]
     >(),
     downloadFile: jest.fn<Promise<Buffer>, [string, string]>(),
+    getFileViewUrl: jest.fn<Promise<string>, [string, string]>(),
     deleteFile: jest.fn<Promise<void>, [string, string]>(),
   };
 }
@@ -46,6 +47,14 @@ const testFile = {
   originalname: 'resume.pdf',
   mimetype: 'application/pdf',
   size: 9,
+};
+
+const docxFile = {
+  buffer: Buffer.from('docx-bytes'),
+  originalname: 'resume.docx',
+  mimetype:
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  size: 10,
 };
 
 interface ReferencingApplication {
@@ -152,6 +161,25 @@ describe('CvsService', () => {
         service.create(userId, metadata({ useGoogleDrive: true }), testFile),
       ).rejects.toThrow('Google Drive is not connected');
       expect(googleDrive.uploadFile).not.toHaveBeenCalled();
+    });
+
+    it('accepts a .docx file and stores it with a .docx extension (happy path)', async () => {
+      storage.save.mockResolvedValue(undefined);
+
+      const cv = await service.create(userId, metadata(), docxFile);
+
+      expect(cv.mimeType).toBe(docxFile.mimetype);
+      expect(cv.fileKey).toMatch(/\.docx$/);
+    });
+
+    it('rejects a file type that is neither PDF nor DOCX (negative case)', async () => {
+      await expect(
+        service.create(userId, metadata(), {
+          ...testFile,
+          mimetype: 'text/plain',
+        }),
+      ).rejects.toThrow('Unsupported file type');
+      expect(storage.save).not.toHaveBeenCalled();
     });
   });
 
@@ -281,6 +309,59 @@ describe('CvsService', () => {
       const result = await service.getFile(userId, cv._id.toString());
 
       expect(result.buffer?.toString()).toBe('local-content');
+    });
+  });
+
+  describe('getViewUrl', () => {
+    it("returns Drive's webViewLink for a Drive-backed CV (happy path)", async () => {
+      googleDrive.isConnected.mockResolvedValue(true);
+      googleDrive.uploadFile.mockResolvedValue({ driveFileId: 'drive-file-1' });
+      const cv = await service.create(
+        userId,
+        metadata({ useGoogleDrive: true }),
+        testFile,
+      );
+      googleDrive.getFileViewUrl.mockResolvedValue(
+        'https://drive.google.com/file/d/drive-file-1/view',
+      );
+
+      const url = await service.getViewUrl(userId, cv._id.toString());
+
+      expect(url).toBe('https://drive.google.com/file/d/drive-file-1/view');
+      expect(googleDrive.getFileViewUrl).toHaveBeenCalledWith(
+        userId,
+        'drive-file-1',
+      );
+    });
+
+    it('rejects for an app-storage CV — there is no Drive URL to give (negative case)', async () => {
+      storage.save.mockResolvedValue(undefined);
+      const cv = await service.create(userId, metadata(), testFile);
+
+      await expect(
+        service.getViewUrl(userId, cv._id.toString()),
+      ).rejects.toThrow('not stored in Google Drive');
+      expect(googleDrive.getFileViewUrl).not.toHaveBeenCalled();
+    });
+
+    it('marks the CV unattached and throws NotFoundException when the Drive file is gone (edge case)', async () => {
+      googleDrive.isConnected.mockResolvedValue(true);
+      googleDrive.uploadFile.mockResolvedValue({ driveFileId: 'drive-file-1' });
+      const cv = await service.create(
+        userId,
+        metadata({ useGoogleDrive: true }),
+        testFile,
+      );
+      googleDrive.getFileViewUrl.mockRejectedValue(
+        new GoogleDriveFileNotFoundError('drive-file-1'),
+      );
+
+      await expect(
+        service.getViewUrl(userId, cv._id.toString()),
+      ).rejects.toThrow(NotFoundException);
+
+      const reloaded = await cvModel.findById(cv._id).exec();
+      expect(reloaded?.unattachedAt).toBeInstanceOf(Date);
     });
   });
 });

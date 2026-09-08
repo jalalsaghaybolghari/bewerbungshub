@@ -21,6 +21,17 @@ import {
 import { ApplicationsService } from '../applications/applications.service';
 import { Cv, CvDocument } from './schemas/cv.schema';
 
+// Local storage keys need a real extension (StorageService/the local
+// filesystem backend don't know or care about mimetype) — keyed off the
+// mimetype rather than the user-supplied original filename, since that
+// can be missing an extension, have the wrong one, or contain characters
+// unsafe for a storage key.
+const MIME_TYPE_EXTENSIONS: Record<string, string> = {
+  'application/pdf': '.pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+    '.docx',
+};
+
 @Injectable()
 export class CvsService {
   constructor(
@@ -61,7 +72,7 @@ export class CvsService {
       )
     ) {
       throw new BadRequestException(
-        `Unsupported file type: ${file.mimetype}. Only PDF is accepted.`,
+        `Unsupported file type: ${file.mimetype}. Only PDF and DOCX are accepted.`,
       );
     }
     if (file.size > MAX_CV_SIZE_BYTES) {
@@ -85,7 +96,8 @@ export class CvsService {
       fileKey = uploaded.driveFileId;
       storageProvider = 'google-drive';
     } else {
-      fileKey = `cvs/${userId}/${randomUUID()}.pdf`;
+      const extension = MIME_TYPE_EXTENSIONS[file.mimetype] ?? '';
+      fileKey = `cvs/${userId}/${randomUUID()}${extension}`;
       await this.storage.save(fileKey, file.buffer, file.mimetype);
     }
 
@@ -215,5 +227,30 @@ export class CvsService {
     const url = await this.storage.getDownloadUrl(cv.fileKey);
     const buffer = url ? null : await this.storage.read(cv.fileKey);
     return { url, buffer, mimeType: cv.mimeType, fileName: cv.fileName };
+  }
+
+  // "Open" for a Drive-backed CV — a plain <a>/window.open can't carry
+  // the Bearer auth getFile's endpoint requires, so the web app calls
+  // this (a normal authenticated JSON request) to get the URL first,
+  // then opens *that* URL as a separate, unauthenticated navigation.
+  // Only meaningful for storageProvider:'google-drive' — local/S3 CVs
+  // still go through getFile's blob-fetch-and-open path unchanged.
+  async getViewUrl(userId: string, id: string): Promise<string> {
+    const cv = await this.findOneForUser(userId, id);
+    if (cv.storageProvider !== 'google-drive') {
+      throw new BadRequestException('This CV is not stored in Google Drive');
+    }
+    try {
+      return await this.googleDrive.getFileViewUrl(userId, cv.fileKey);
+    } catch (err) {
+      if (err instanceof GoogleDriveFileNotFoundError) {
+        cv.unattachedAt = new Date();
+        await cv.save();
+        throw new NotFoundException(
+          'This file is no longer available in Google Drive',
+        );
+      }
+      throw err;
+    }
   }
 }

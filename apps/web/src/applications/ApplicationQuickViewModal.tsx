@@ -34,11 +34,11 @@ export function ApplicationQuickViewModal({
   const cv = cvs?.find((c) => c._id === application.cvId);
 
   async function handleOpenCv() {
-    if (!application.cvId) return;
+    if (!cv) return;
     setCvError(null);
     setOpeningCv(true);
     try {
-      await openCvFile(application.cvId);
+      await openCvFile(cv);
     } catch {
       setCvError(t('applications.quickView.cvOpenError'));
     } finally {
@@ -139,7 +139,12 @@ export function ApplicationQuickViewModal({
             <button
               type="button"
               onClick={() => void handleOpenCv()}
-              disabled={openingCv}
+              // Also disabled while `cv` itself hasn't resolved yet (the
+              // CV list load can lag behind the modal opening) — needed
+              // client-side to pick the right open behavior (Drive's own
+              // viewer vs. this app's blob-open), unlike before when only
+              // the raw id was required.
+              disabled={openingCv || !cv}
               className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline disabled:opacity-50"
             >
               <DocumentIcon className="size-4" />

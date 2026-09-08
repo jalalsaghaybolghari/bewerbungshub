@@ -53,6 +53,12 @@ describe('isAllowlistedSender', () => {
     ).toBe(true);
   });
 
+  it('matches a sender at Lever (happy path — real Blackshark.ai shape)', () => {
+    expect(isAllowlistedSender('Blackshark.ai <mail@hire.eu.lever.co>')).toBe(
+      true,
+    );
+  });
+
   it('rejects a sender that is neither the exact address nor an allowlisted domain (negative case)', () => {
     expect(isAllowlistedSender('"Newsletter" <hello@random-company.com>')).toBe(
       false,

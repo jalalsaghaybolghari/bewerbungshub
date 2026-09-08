@@ -182,6 +182,7 @@ describe('GmailSyncService', () => {
     expect(callArgs.q).toContain('@message.digitalrecruiters.com');
     expect(callArgs.q).toContain('@mail.onlyfy.jobs');
     expect(callArgs.q).toContain('@msg.join.com');
+    expect(callArgs.q).toContain('@hire.eu.lever.co');
   });
 
   it('does nothing when the user has no Gmail connection (edge case)', async () => {

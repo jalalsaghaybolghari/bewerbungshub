@@ -24,6 +24,11 @@ describe('classifyEmail', () => {
       // Real production text (NOVOMATIC AG, via onlyfy/softgarden)
       'We have carefully evaluated your documents and tried to match it to our internal requirements. We regret to inform you that we were unable to consider your application further for this position.',
     ],
+    [
+      'Thanks for your interest in Blackshark.ai, Jalal',
+      // Real production text (Blackshark.ai, via Lever)
+      'After careful consideration of your application and resume, we regret to inform you that we have chosen not to move forward at this time.',
+    ],
   ])('classifies a rejection email (happy path): %s', (subject, snippet) => {
     expect(classifyEmail(subject, snippet)).toBe('rejection');
   });

@@ -10,5 +10,7 @@ coverage/
 .vite/
 reports/
 apps/api/uploads/
-# Local-only working notes (not part of the published project)
+# Local-only working notes (not part of the published project) — README.md
+# is the exception, it's the project's actual GitHub-facing readme.
 *.md
+!/README.md

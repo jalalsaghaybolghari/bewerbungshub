@@ -35,6 +35,14 @@ function EmailLink({ threadId }: { threadId: string | undefined }) {
   );
 }
 
+// Mirrors GmailSyncService/EmailMatchService's buildGmailRelatedLinkLabel
+// on the API side — a short, predictable label ("Rejection Email"/
+// "Interview Email") reads better in the relatedLinks list than a long/
+// variable email subject line would.
+function gmailRelatedLinkLabel(classification: UnmatchedEmailMatch['classification']): string {
+  return classification === 'rejection' ? 'Rejection Email' : 'Interview Email';
+}
+
 // Carries the email itself over to the new-application form as a
 // prefilled related link (see ApplicationFormPage.tsx's linkLabel/linkUrl
 // handling) — the whole reason "Add application" exists on an unmatched
@@ -43,7 +51,7 @@ function EmailLink({ threadId }: { threadId: string | undefined }) {
 function addApplicationUrl(match: UnmatchedEmailMatch): string {
   const params = new URLSearchParams({ company: match.companyGuess });
   if (match.gmailThreadId) {
-    params.set('linkLabel', match.subject);
+    params.set('linkLabel', gmailRelatedLinkLabel(match.classification));
     params.set('linkUrl', gmailThreadUrl(match.gmailThreadId));
   }
   return `/applications/new?${params.toString()}`;

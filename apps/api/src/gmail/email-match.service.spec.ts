@@ -144,7 +144,7 @@ describe('EmailMatchService', () => {
         reloaded?.relatedLinks.map((l) => ({ label: l.label, url: l.url })),
       ).toEqual([
         {
-          label: 'Your application to Backend Engineer at Acme',
+          label: 'Rejection Email',
           url: 'https://mail.google.com/mail/u/0/#all/thread-1',
         },
       ]);
@@ -174,7 +174,7 @@ describe('EmailMatchService', () => {
       const reloaded = await applicationModel.findById(application._id).exec();
       expect(reloaded?.relatedLinks).toHaveLength(5);
       expect(reloaded?.relatedLinks.map((l) => l.label)).not.toContain(
-        match.subject,
+        'Rejection Email',
       );
     });
 

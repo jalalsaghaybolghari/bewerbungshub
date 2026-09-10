@@ -178,8 +178,17 @@ describe('EmailMatchesPage', () => {
     const link = screen.getByRole('link', { name: /add application/i });
     const params = new URL(link.getAttribute('href')!, 'http://example.com').searchParams;
     expect(params.get('company')).toBe('Globex & Co');
-    expect(params.get('linkLabel')).toBe('Update from Globex');
+    expect(params.get('linkLabel')).toBe('Rejection Email');
     expect(params.get('linkUrl')).toBe('https://mail.google.com/mail/u/0/#all/thread-9');
+  });
+
+  it('labels the prefilled link "Interview Email" for an interview-classified unmatched email (edge case)', () => {
+    unmatchedData = [makeUnmatched({ gmailThreadId: 'thread-9', classification: 'interview' })];
+    renderPage();
+
+    const link = screen.getByRole('link', { name: /add application/i });
+    const params = new URL(link.getAttribute('href')!, 'http://example.com').searchParams;
+    expect(params.get('linkLabel')).toBe('Interview Email');
   });
 
   it('omits linkLabel/linkUrl from "Add application" when the match has no gmailThreadId (edge case)', () => {

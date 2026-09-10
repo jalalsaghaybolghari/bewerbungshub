@@ -17,7 +17,7 @@ import {
 } from './sender-allowlist';
 import { classifyEmail } from './classification';
 import { cleanEmailText, extractPlainText } from './body-text';
-import { buildGmailThreadUrl } from './gmail-link';
+import { buildGmailRelatedLinkLabel, buildGmailThreadUrl } from './gmail-link';
 import { matchApplication, type MatchCandidate } from './matching';
 import { decideOutcome } from './decision';
 import { UsersService } from '../users/users.service';
@@ -52,12 +52,12 @@ const MIN_COMPANY_SEARCH_TERM_LENGTH = 3;
 // unbounded (or Gmail-rejected) query string. Logged if ever hit.
 const MAX_COMPANY_SEARCH_TERMS = 50;
 
-// Mirrors relatedLinkSchema's own limits in packages/shared/src/applications.ts
-// (label max(120), relatedLinks array max(5)) — kept in sync here manually,
-// same convention email-match.service.ts and ApplicationFormPage.tsx (web)
-// already use, since an auto-applied status change bypasses that Zod
-// schema entirely (it mutates the Mongoose document directly).
-const RELATED_LINK_LABEL_MAX_LENGTH = 120;
+// Mirrors relatedLinkSchema's own array cap in
+// packages/shared/src/applications.ts (max(5)) — kept in sync here
+// manually, same convention email-match.service.ts and
+// ApplicationFormPage.tsx (web) already use, since an auto-applied
+// status change bypasses that Zod schema entirely (it mutates the
+// Mongoose document directly).
 const MAX_RELATED_LINKS = 5;
 
 // Gmail's from: operator accepts a bare `@domain` term to match any
@@ -332,7 +332,6 @@ export class GmailSyncService {
         applicationId,
         decision.proposedStatus,
         classification,
-        subject,
         baseRecord.gmailThreadId,
       );
       await this.emailMatchModel.create({
@@ -368,7 +367,6 @@ export class GmailSyncService {
     applicationId: string,
     proposedStatus: ApplicationStatus,
     classification: EmailMatchClassification,
-    subject: string,
     gmailThreadId: string | undefined,
   ): Promise<Types.ObjectId | undefined> {
     const application = await this.applicationModel
@@ -390,7 +388,7 @@ export class GmailSyncService {
     // Best-effort: never blocks the status change itself.
     if (gmailThreadId && application.relatedLinks.length < MAX_RELATED_LINKS) {
       application.relatedLinks.push({
-        label: subject.slice(0, RELATED_LINK_LABEL_MAX_LENGTH),
+        label: buildGmailRelatedLinkLabel(classification),
         url: buildGmailThreadUrl(gmailThreadId),
       });
     }

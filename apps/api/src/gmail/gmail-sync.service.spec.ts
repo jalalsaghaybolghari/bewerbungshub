@@ -268,7 +268,7 @@ describe('GmailSyncService', () => {
       })),
     ).toEqual([
       {
-        label: 'Update from Acme',
+        label: 'Rejection Email',
         url: 'https://mail.google.com/mail/u/0/#all/thread-1',
       },
     ]);

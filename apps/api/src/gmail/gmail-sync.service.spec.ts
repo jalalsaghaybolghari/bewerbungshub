@@ -185,6 +185,42 @@ describe('GmailSyncService', () => {
     expect(callArgs.q).toContain('@hire.eu.lever.co');
   });
 
+  it("includes a tracked application's company name as a search term (regression guard — direct-company mail with no shared ATS domain, e.g. COUNT IT/REGIUS/Hainzl)", async () => {
+    const user = await seedConnectedUser();
+    await seedApplication(user._id, { company: { name: 'COUNT IT' } });
+    mockMessagesList.mockResolvedValue({ data: { messages: [] } });
+
+    await service.syncUserMailbox(user._id.toString());
+
+    const [callArgs] = mockMessagesList.mock.calls[0] as [{ q: string }];
+    expect(callArgs.q).toContain('"COUNT IT"');
+  });
+
+  it("excludes a terminal-status application's company name from the search terms (negative case)", async () => {
+    const user = await seedConnectedUser();
+    await seedApplication(user._id, {
+      company: { name: 'Rejected Co' },
+      status: 'rejected',
+    });
+    mockMessagesList.mockResolvedValue({ data: { messages: [] } });
+
+    await service.syncUserMailbox(user._id.toString());
+
+    const [callArgs] = mockMessagesList.mock.calls[0] as [{ q: string }];
+    expect(callArgs.q).not.toContain('Rejected Co');
+  });
+
+  it('excludes a company name too short to be a useful search term (edge case)', async () => {
+    const user = await seedConnectedUser();
+    await seedApplication(user._id, { company: { name: 'Ab' } });
+    mockMessagesList.mockResolvedValue({ data: { messages: [] } });
+
+    await service.syncUserMailbox(user._id.toString());
+
+    const [callArgs] = mockMessagesList.mock.calls[0] as [{ q: string }];
+    expect(callArgs.q).not.toContain('"Ab"');
+  });
+
   it('does nothing when the user has no Gmail connection (edge case)', async () => {
     const user = await userModel.create({
       email: 'no-gmail@example.com',

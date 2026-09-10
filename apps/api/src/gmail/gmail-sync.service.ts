@@ -6,6 +6,7 @@ import type {
   ApplicationStatus,
   EmailMatchClassification,
 } from '@bewerber/shared';
+import { terminalApplicationStatuses } from '@bewerber/shared';
 import { GmailService } from './gmail.service';
 import { EmailMatch, EmailMatchDocument } from './schemas/email-match.schema';
 import {
@@ -40,15 +41,42 @@ const GMAIL_BACKFILL_DAYS = 90;
 // scale the remaining backlog needs a second look, not a silent drop.
 const MAX_LIST_PAGES = 20;
 
+// Below this, a company name is too generic to trust as a Gmail search
+// term (mirrors matching.ts's own substring-match guard) — including it
+// would just inflate fetch volume with irrelevant mail, never anything
+// this sync could actually act on.
+const MIN_COMPANY_SEARCH_TERM_LENGTH = 3;
+// Bounds how many company-name OR terms one sync's search query carries —
+// a pathologically long list of tracked applications shouldn't produce an
+// unbounded (or Gmail-rejected) query string. Logged if ever hit.
+const MAX_COMPANY_SEARCH_TERMS = 50;
+
 // Gmail's from: operator accepts a bare `@domain` term to match any
 // sender at that (sub)domain — used for SENDER_DOMAIN_ALLOWLIST since
 // several of those senders vary their local-part per application.
-function buildSearchQuery(after: Date): string {
+//
+// The sender allowlist alone only ever covers shared ATS platforms
+// (join.com, SmartRecruiters, Lever, ...) — real direct-company rejection
+// emails (confirmed repeatedly in production: COUNT IT, KERN, REGIUS,
+// Hainzl, each sent from that company's own one-off mail domain) can
+// never be enumerated as a static list, since there's no bound on which
+// companies a user might apply to. Instead, the search also OR's in a
+// quoted term for each of the user's own tracked, non-terminal
+// applications' company names — this is what actually gates relevance
+// (matchApplication/classifyEmail still have to agree afterward for
+// anything to surface), so it scales with the one thing that's already
+// bounded per user: their own application list, not a global registry of
+// every possible employer's mail domain.
+function buildSearchQuery(after: Date, companyNames: string[]): string {
   const senderTerms = [
     ...SENDER_ALLOWLIST,
     ...SENDER_DOMAIN_ALLOWLIST.map((domain) => `@${domain}`),
   ];
-  return `from:(${senderTerms.join(' OR ')}) after:${Math.floor(after.getTime() / 1000)}`;
+  const companyTerms = companyNames.map(
+    (name) => `"${name.replace(/"/g, '')}"`,
+  );
+  const clauses = [`from:(${senderTerms.join(' OR ')})`, ...companyTerms];
+  return `(${clauses.join(' OR ')}) after:${Math.floor(after.getTime() / 1000)}`;
 }
 
 // Google's node client surfaces a revoked/expired refresh token as a 400
@@ -100,7 +128,38 @@ export class GmailSyncService {
             GMAIL_BACKFILL_DAYS * 24 * 60 * 60 * 1000,
         );
 
-      const messageIds = await this.listAllMessageIds(gmail, after);
+      // Fetched once per sync (not once per message, as before) — also
+      // what the search query's company-name terms are built from below.
+      const applications = await this.applicationModel
+        .find({ userId: user._id })
+        .select('_id company.name status')
+        .lean()
+        .exec();
+      const candidates: MatchCandidate[] = applications.map((a) => ({
+        id: a._id.toString(),
+        companyName: a.company.name,
+        status: a.status,
+      }));
+      const companyNames = candidates
+        .filter(
+          (c) =>
+            !terminalApplicationStatuses.includes(
+              c.status as (typeof terminalApplicationStatuses)[number],
+            ),
+        )
+        .map((c) => c.companyName.trim())
+        .filter((name) => name.length >= MIN_COMPANY_SEARCH_TERM_LENGTH);
+      if (companyNames.length > MAX_COMPANY_SEARCH_TERMS) {
+        this.logger.warn(
+          `User ${userId} has ${companyNames.length} non-terminal applications — capping this sync's search to the first ${MAX_COMPANY_SEARCH_TERMS} company names.`,
+        );
+      }
+
+      const messageIds = await this.listAllMessageIds(
+        gmail,
+        after,
+        companyNames.slice(0, MAX_COMPANY_SEARCH_TERMS),
+      );
 
       if (messageIds.length > 0) {
         const alreadyProcessed = await this.emailMatchModel
@@ -119,6 +178,7 @@ export class GmailSyncService {
             user.settings.gmailAutoApprove,
             gmail,
             id,
+            candidates,
           );
         }
       }
@@ -155,15 +215,17 @@ export class GmailSyncService {
   private async listAllMessageIds(
     gmail: gmail_v1.Gmail,
     after: Date,
+    companyNames: string[],
   ): Promise<string[]> {
     const ids: string[] = [];
     let pageToken: string | undefined;
     let pages = 0;
+    const query = buildSearchQuery(after, companyNames);
 
     do {
       const result = await gmail.users.messages.list({
         userId: 'me',
-        q: buildSearchQuery(after),
+        q: query,
         pageToken,
       });
       ids.push(
@@ -189,6 +251,7 @@ export class GmailSyncService {
     autoApproveEnabled: boolean,
     gmail: gmail_v1.Gmail,
     messageId: string,
+    candidates: MatchCandidate[],
   ): Promise<void> {
     // format: 'full' (not 'metadata') is required to reach the real MIME
     // body — Gmail's own `snippet` field is a short auto-generated preview
@@ -224,17 +287,6 @@ export class GmailSyncService {
       receivedAt,
     };
 
-    const applications = await this.applicationModel
-      .find({ userId })
-      .select('_id company.name status')
-      .lean()
-      .exec();
-    const candidates: MatchCandidate[] = applications.map((a) => ({
-      id: a._id.toString(),
-      companyName: a.company.name,
-      status: a.status,
-    }));
-
     const applicationId = matchApplication(
       candidates,
       subject,
@@ -253,9 +305,7 @@ export class GmailSyncService {
       return;
     }
 
-    const matchedApplication = applications.find(
-      (a) => a._id.toString() === applicationId,
-    );
+    const matchedApplication = candidates.find((c) => c.id === applicationId);
     // Shouldn't happen (matchApplication only returns ids from the same
     // candidates list) — defensive, since a deleted-mid-sync application
     // isn't worth failing the whole sync over.

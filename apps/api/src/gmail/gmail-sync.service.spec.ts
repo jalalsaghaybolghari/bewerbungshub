@@ -261,6 +261,17 @@ describe('GmailSyncService', () => {
       .exec();
     expect(updatedApplication?.status).toBe('rejected');
     expect(updatedApplication?.statusSetBy).toBe('system');
+    expect(
+      updatedApplication?.relatedLinks.map((l) => ({
+        label: l.label,
+        url: l.url,
+      })),
+    ).toEqual([
+      {
+        label: 'Update from Acme',
+        url: 'https://mail.google.com/mail/u/0/#all/thread-1',
+      },
+    ]);
 
     const events = await eventModel
       .find({ applicationId: application._id })

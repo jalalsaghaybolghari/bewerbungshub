@@ -70,6 +70,31 @@ describe('ApplicationFormPage', () => {
     expect(screen.getByLabelText(/company/i)).toHaveValue('');
   });
 
+  it('prefills a related link row from ?linkLabel=&linkUrl= query params (happy path — arriving from an unmatched email\'s "Add application")', () => {
+    renderAt(
+      '/applications/new?company=Globex&linkLabel=Your+application+at+Globex&linkUrl=https%3A%2F%2Fmail.google.com%2Fmail%2Fu%2F0%2F%23all%2Fthread-1',
+    );
+
+    expect(screen.getByDisplayValue('Your application at Globex')).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue('https://mail.google.com/mail/u/0/#all/thread-1'),
+    ).toBeInTheDocument();
+  });
+
+  it('falls back to the URL itself as the label when only ?linkUrl= is present (edge case)', () => {
+    renderAt('/applications/new?linkUrl=https%3A%2F%2Fexample.com%2Fmail%2F1');
+
+    // Both the label and url fields show the same string in this
+    // fallback case — one for each of the prefilled row's two inputs.
+    expect(screen.getAllByDisplayValue('https://example.com/mail/1')).toHaveLength(2);
+  });
+
+  it('does not prefill a related link when there is no ?linkUrl= query param (negative case)', () => {
+    renderAt('/applications/new?company=Globex');
+
+    expect(screen.queryByPlaceholderText(/label/i)).not.toBeInTheDocument();
+  });
+
   it('adds a related link row that accepts a label and url (happy path)', async () => {
     renderAt('/applications/new');
 

@@ -36,6 +36,12 @@ export function ApplicationFormPage() {
   // application already scoped to the right company instead of retyping
   // it from the email.
   const prefillCompany = !isEdit ? searchParams.get('company') : null;
+  // Same origin as prefillCompany above — carries the email itself over
+  // as a related link, so it doesn't have to be re-added by hand once the
+  // application exists. Both must be present (a label with no URL isn't a
+  // usable link); linkUrl alone falls back to the subject as the label.
+  const prefillLinkUrl = !isEdit ? searchParams.get('linkUrl') : null;
+  const prefillLinkLabel = !isEdit ? searchParams.get('linkLabel') : null;
 
   const { data: detail } = useApplication(id);
   const { data: cvs } = useCvs();
@@ -59,6 +65,9 @@ export function ApplicationFormPage() {
   useEffect(() => {
     if (prefillCompany) {
       setValue('company.name', prefillCompany);
+    }
+    if (prefillLinkUrl) {
+      relatedLinks.append({ label: prefillLinkLabel ?? prefillLinkUrl, url: prefillLinkUrl });
     }
     // Only meant to run once, from the initial URL — not on every
     // keystroke if the user then edits the field themselves.

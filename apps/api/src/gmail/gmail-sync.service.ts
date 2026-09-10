@@ -17,6 +17,7 @@ import {
 } from './sender-allowlist';
 import { classifyEmail } from './classification';
 import { cleanEmailText, extractPlainText } from './body-text';
+import { buildGmailThreadUrl } from './gmail-link';
 import { matchApplication, type MatchCandidate } from './matching';
 import { decideOutcome } from './decision';
 import { UsersService } from '../users/users.service';
@@ -50,6 +51,14 @@ const MIN_COMPANY_SEARCH_TERM_LENGTH = 3;
 // a pathologically long list of tracked applications shouldn't produce an
 // unbounded (or Gmail-rejected) query string. Logged if ever hit.
 const MAX_COMPANY_SEARCH_TERMS = 50;
+
+// Mirrors relatedLinkSchema's own limits in packages/shared/src/applications.ts
+// (label max(120), relatedLinks array max(5)) — kept in sync here manually,
+// same convention email-match.service.ts and ApplicationFormPage.tsx (web)
+// already use, since an auto-applied status change bypasses that Zod
+// schema entirely (it mutates the Mongoose document directly).
+const RELATED_LINK_LABEL_MAX_LENGTH = 120;
+const MAX_RELATED_LINKS = 5;
 
 // Gmail's from: operator accepts a bare `@domain` term to match any
 // sender at that (sub)domain — used for SENDER_DOMAIN_ALLOWLIST since
@@ -323,6 +332,8 @@ export class GmailSyncService {
         applicationId,
         decision.proposedStatus,
         classification,
+        subject,
+        baseRecord.gmailThreadId,
       );
       await this.emailMatchModel.create({
         ...baseRecord,
@@ -357,6 +368,8 @@ export class GmailSyncService {
     applicationId: string,
     proposedStatus: ApplicationStatus,
     classification: EmailMatchClassification,
+    subject: string,
+    gmailThreadId: string | undefined,
   ): Promise<Types.ObjectId | undefined> {
     const application = await this.applicationModel
       .findOne({ _id: applicationId, userId })
@@ -371,6 +384,15 @@ export class GmailSyncService {
     // can in principle land on an application that never left 'draft'.
     if (!application.sentAt && proposedStatus !== 'draft') {
       application.sentAt = new Date();
+    }
+    // Same as EmailMatchService.approve's manual path — the email is the
+    // actual evidence for this status change, worth a permanent link.
+    // Best-effort: never blocks the status change itself.
+    if (gmailThreadId && application.relatedLinks.length < MAX_RELATED_LINKS) {
+      application.relatedLinks.push({
+        label: subject.slice(0, RELATED_LINK_LABEL_MAX_LENGTH),
+        url: buildGmailThreadUrl(gmailThreadId),
+      });
     }
     await application.save();
 

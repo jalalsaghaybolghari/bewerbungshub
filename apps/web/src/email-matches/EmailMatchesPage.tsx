@@ -35,6 +35,20 @@ function EmailLink({ threadId }: { threadId: string | undefined }) {
   );
 }
 
+// Carries the email itself over to the new-application form as a
+// prefilled related link (see ApplicationFormPage.tsx's linkLabel/linkUrl
+// handling) — the whole reason "Add application" exists on an unmatched
+// row is that this email is the evidence for an application that doesn't
+// exist yet, so the link shouldn't have to be re-added by hand afterward.
+function addApplicationUrl(match: UnmatchedEmailMatch): string {
+  const params = new URLSearchParams({ company: match.companyGuess });
+  if (match.gmailThreadId) {
+    params.set('linkLabel', match.subject);
+    params.set('linkUrl', gmailThreadUrl(match.gmailThreadId));
+  }
+  return `/applications/new?${params.toString()}`;
+}
+
 // UnmatchedEmailMatch.classification is never 'none' (the API already
 // filters that out — see EmailMatchService.findUnmatched), so this only
 // ever needs to cover the two real signals.
@@ -102,10 +116,7 @@ function UnmatchedRow({ match }: { match: UnmatchedEmailMatch }) {
         <EmailLink threadId={match.gmailThreadId} />
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <Link
-          to={`/applications/new?company=${encodeURIComponent(match.companyGuess)}`}
-          className={buttonClasses('secondary')}
-        >
+        <Link to={addApplicationUrl(match)} className={buttonClasses('secondary')}>
           {t('emailMatches.addApplication')}
         </Link>
         <Button

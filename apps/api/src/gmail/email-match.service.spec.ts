@@ -43,7 +43,30 @@ describe('EmailMatchService', () => {
       ],
       providers: [
         EmailMatchService,
-        { provide: ApplicationsService, useValue: { changeStatus: jest.fn() } },
+        {
+          provide: ApplicationsService,
+          // Real enough for approve()'s purposes: applies the status
+          // change against the same real Mongoose model and returns the
+          // saved document, same shape the real ApplicationsService.
+          // changeStatus returns — approve() needs that real document
+          // back (with a real relatedLinks DocumentArray) to push onto.
+          useValue: {
+            changeStatus: jest.fn(
+              async (
+                _userId: string,
+                id: string,
+                input: { status: string },
+              ) => {
+                const application = await applicationModel.findById(id).exec();
+                if (!application) throw new NotFoundException();
+                application.status =
+                  input.status as ApplicationDocument['status'];
+                await application.save();
+                return application;
+              },
+            ),
+          },
+        },
       ],
     }).compile();
 
@@ -78,6 +101,95 @@ describe('EmailMatchService', () => {
       ...overrides,
     });
   }
+
+  async function makePendingMatch(
+    overrides: Partial<Record<string, unknown>> = {},
+  ) {
+    const application = await applicationModel.create({
+      userId,
+      jobTitle: 'Backend Engineer',
+      company: { name: 'Acme' },
+      location: { raw: 'Vienna' },
+      jobDescription: 'x',
+      applyLink: `https://example.com/${new Types.ObjectId().toString()}`,
+      applyType: 'linkedin',
+      status: 'applied',
+    });
+    const match = await emailMatchModel.create({
+      userId,
+      applicationId: application._id,
+      gmailMessageId: `msg-${new Types.ObjectId().toString()}`,
+      gmailThreadId: 'thread-1',
+      fromAddress: 'jobs-noreply@linkedin.com',
+      subject: 'Your application to Backend Engineer at Acme',
+      snippet: 'Unfortunately...',
+      receivedAt: new Date(),
+      classification: 'rejection',
+      decision: 'pending_approval',
+      proposedStatus: 'rejected',
+      ...overrides,
+    });
+    return { application, match };
+  }
+
+  describe('approve', () => {
+    it('adds the email as a related link on the application (happy path)', async () => {
+      const { application, match } = await makePendingMatch();
+
+      await service.approve(userId.toString(), match._id.toString());
+
+      const reloaded = await applicationModel.findById(application._id).exec();
+      expect(reloaded?.status).toBe('rejected');
+      expect(
+        reloaded?.relatedLinks.map((l) => ({ label: l.label, url: l.url })),
+      ).toEqual([
+        {
+          label: 'Your application to Backend Engineer at Acme',
+          url: 'https://mail.google.com/mail/u/0/#all/thread-1',
+        },
+      ]);
+    });
+
+    it('does not add a related link when the match has no gmailThreadId (edge case)', async () => {
+      const { application, match } = await makePendingMatch({
+        gmailThreadId: undefined,
+      });
+
+      await service.approve(userId.toString(), match._id.toString());
+
+      const reloaded = await applicationModel.findById(application._id).exec();
+      expect(reloaded?.relatedLinks).toEqual([]);
+    });
+
+    it('skips adding a related link once the application already has 5 (edge case)', async () => {
+      const { application, match } = await makePendingMatch();
+      application.relatedLinks = Array.from({ length: 5 }, (_, i) => ({
+        label: `Existing ${i}`,
+        url: `https://example.com/${i}`,
+      }));
+      await application.save();
+
+      await service.approve(userId.toString(), match._id.toString());
+
+      const reloaded = await applicationModel.findById(application._id).exec();
+      expect(reloaded?.relatedLinks).toHaveLength(5);
+      expect(reloaded?.relatedLinks.map((l) => l.label)).not.toContain(
+        match.subject,
+      );
+    });
+
+    it('still resolves the match even when no related link is added (happy path)', async () => {
+      const { match } = await makePendingMatch({ gmailThreadId: undefined });
+
+      await service.approve(userId.toString(), match._id.toString());
+
+      const reloaded = await emailMatchModel.findById(match._id).exec();
+      expect(reloaded).toMatchObject({
+        resolvedBy: 'user',
+        resolution: 'approved',
+      });
+    });
+  });
 
   describe('findUnmatched', () => {
     it('excludes a dismissed (rejected) unmatched email (regression guard — must actually disappear once rejected)', async () => {

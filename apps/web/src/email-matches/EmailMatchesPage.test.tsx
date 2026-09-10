@@ -165,12 +165,32 @@ describe('EmailMatchesPage', () => {
     expect(rejectUnmatchedMock).toHaveBeenCalledWith('unmatched-42');
   });
 
-  it('links "Add application" to a prefilled new-application form (happy path)', () => {
-    unmatchedData = [makeUnmatched({ companyGuess: 'Globex & Co' })];
+  it('links "Add application" to a prefilled new-application form, including the email as a related link (happy path)', () => {
+    unmatchedData = [
+      makeUnmatched({
+        companyGuess: 'Globex & Co',
+        subject: 'Update from Globex',
+        gmailThreadId: 'thread-9',
+      }),
+    ];
     renderPage();
 
     const link = screen.getByRole('link', { name: /add application/i });
-    expect(link).toHaveAttribute('href', '/applications/new?company=Globex%20%26%20Co');
+    const params = new URL(link.getAttribute('href')!, 'http://example.com').searchParams;
+    expect(params.get('company')).toBe('Globex & Co');
+    expect(params.get('linkLabel')).toBe('Update from Globex');
+    expect(params.get('linkUrl')).toBe('https://mail.google.com/mail/u/0/#all/thread-9');
+  });
+
+  it('omits linkLabel/linkUrl from "Add application" when the match has no gmailThreadId (edge case)', () => {
+    unmatchedData = [makeUnmatched({ companyGuess: 'Globex', gmailThreadId: undefined })];
+    renderPage();
+
+    const link = screen.getByRole('link', { name: /add application/i });
+    const params = new URL(link.getAttribute('href')!, 'http://example.com').searchParams;
+    expect(params.get('company')).toBe('Globex');
+    expect(params.has('linkLabel')).toBe(false);
+    expect(params.has('linkUrl')).toBe(false);
   });
 
   it('maps an "interview" classification to the Interview status badge (edge case)', () => {

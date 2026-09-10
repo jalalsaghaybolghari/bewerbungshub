@@ -11,11 +11,20 @@ import type {
 } from '@bewerber/shared';
 import { EmailMatch, EmailMatchDocument } from './schemas/email-match.schema';
 import { guessCompanyFromSubject } from './company-guess';
+import { buildGmailThreadUrl } from './gmail-link';
 import {
   Application,
   ApplicationDocument,
 } from '../applications/schemas/application.schema';
 import { ApplicationsService } from '../applications/applications.service';
+
+// Mirrors relatedLinkSchema's own limits in packages/shared/src/applications.ts
+// (label max(120), relatedLinks array max(5)) — kept in sync here manually,
+// same convention ApplicationFormPage.tsx already uses on the web side,
+// since this write bypasses that Zod schema entirely (it mutates the
+// Mongoose document directly, not through the update DTO).
+const RELATED_LINK_LABEL_MAX_LENGTH = 120;
+const MAX_RELATED_LINKS = 5;
 
 @Injectable()
 export class EmailMatchService {
@@ -123,7 +132,7 @@ export class EmailMatchService {
       );
     }
 
-    await this.applicationsService.changeStatus(
+    const application = await this.applicationsService.changeStatus(
       userId,
       match.applicationId.toString(),
       {
@@ -131,6 +140,21 @@ export class EmailMatchService {
         note: 'Approved from Gmail match',
       },
     );
+
+    // Best-effort — the email is the actual evidence for this status
+    // change, so it's worth a permanent link on the application. Never
+    // blocks the approval itself: silently skipped if there's no thread
+    // to link to, or the application is already at the related-links cap.
+    if (
+      match.gmailThreadId &&
+      application.relatedLinks.length < MAX_RELATED_LINKS
+    ) {
+      application.relatedLinks.push({
+        label: match.subject.slice(0, RELATED_LINK_LABEL_MAX_LENGTH),
+        url: buildGmailThreadUrl(match.gmailThreadId),
+      });
+      await application.save();
+    }
 
     match.resolvedAt = new Date();
     match.resolvedBy = 'user';
